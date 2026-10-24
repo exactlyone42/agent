@@ -1,0 +1,40 @@
+{
+  "version": "1.0.2",
+  "repository": "agent-platform",
+  "baseline": "c72cd342323182eba2d75be833cfce74268ff381",
+  "default_branch": "develop",
+  "legacy_branches": [],
+  "legacy_tips": [],
+  "deployment_branches": [],
+  "deployment_tags": false,
+  "checks": [
+    {
+      "pattern": ".*",
+      "requires": "package.json",
+      "pre_commit": [
+        "npm",
+        "run",
+        "format:check"
+      ],
+      "pre_push": [
+        "npm",
+        "run",
+        "format:check"
+      ],
+      "timeout": 900
+    },
+    {
+      "pattern": ".*",
+      "requires": ".repo-policy/test_policy.py",
+      "pre_commit": [
+        "python3",
+        ".repo-policy/test_policy.py"
+      ],
+      "pre_push": [
+        "python3",
+        ".repo-policy/test_policy.py"
+      ],
+      "timeout": 900
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "agent-platform-plan",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent Platform planning and repository checks",
+  "scripts": {
+    "format": "prettier --write README.md PLAN.md AGENTS.md docs package.json",
+    "format:check": "prettier --check README.md PLAN.md AGENTS.md docs package.json",
+    "test": "python3 .repo-policy/test_policy.py"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

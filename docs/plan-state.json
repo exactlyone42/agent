@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "scope": "agent-first-release",
+  "execution_started": false,
+  "authoritative_loop": "/home/cash/.cache/agent-platform-decisions/loops/agent-platform-decisions.loop.md",
+  "steps": [
+    {
+      "id": "P01",
+      "status": "PENDING",
+      "depends_on": [],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p01",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P02",
+      "status": "PENDING",
+      "depends_on": ["P01"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p02",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P03",
+      "status": "PENDING",
+      "depends_on": ["P02"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p03",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04",
+      "status": "PENDING",
+      "depends_on": ["P02"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p04",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05",
+      "status": "PENDING",
+      "depends_on": ["P02"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p05",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06",
+      "status": "PENDING",
+      "depends_on": ["P02"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p06",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07",
+      "status": "PENDING",
+      "depends_on": ["P02"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p07",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P08",
+      "status": "PENDING",
+      "depends_on": ["P03", "P04", "P05", "P06", "P07"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p08",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P09",
+      "status": "PENDING",
+      "depends_on": ["P08"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p09",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P10",
+      "status": "PENDING",
+      "depends_on": ["P09"],
+      "plan": "PLAN.md",
+      "evidence_directory": "docs/evidence/p10",
+      "done_requires": [
+        "positive_control",
+        "negative_control",
+        "quality_gate",
+        "acceptance_evidence",
+        "coverage_and_limits"
+      ],
+      "evidence": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+/target/
+/node_modules/
+**/node_modules/
+**/__pycache__/
+/.env
+/.env.*
+!/.env.example
+/.runtime/
+*.log

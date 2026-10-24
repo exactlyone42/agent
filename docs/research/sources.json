@@ -1,0 +1,258 @@
+{
+  "checked_at": "2026-10-24T06:24:46.253337+00:00",
+  "sources": [
+    {
+      "repo": "0xPlaygrounds/rig",
+      "commit": "55cd481a2421fd5da468b5bd6afc6ac876883599",
+      "review": "Rust / MIT。直接使用組件候選；engine.rs處理模型、工具步驟與取消，不照搬其mod.rs命名。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/0xPlaygrounds/rig/blob/55cd481a2421fd5da468b5bd6afc6ac876883599/LICENSE",
+          "sha256": "42cf0f78132fe1de338cbff947bf5b9f7d2d8a377cb827c9df9e90b4b9499ef7"
+        },
+        {
+          "path": "crates/rig-agent/src/agent/engine.rs",
+          "url": "https://github.com/0xPlaygrounds/rig/blob/55cd481a2421fd5da468b5bd6afc6ac876883599/crates/rig-agent/src/agent/engine.rs",
+          "sha256": "f2535fcc2f9e7a2d7386c441f081bab6ca1ee5816d81d7415e487d7a2259e74a"
+        }
+      ]
+    },
+    {
+      "repo": "modelcontextprotocol/rust-sdk",
+      "commit": "8aec3891dd07fc537b21c2eb2596235640de9025",
+      "review": "Rust SDK候選。根LICENSE為MIT與Apache-2.0轉換期，文件CC-BY-4.0；不是無授權。client.rs含放棄請求的取消通知；P01須再核對選定crate的實際授權。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/modelcontextprotocol/rust-sdk/blob/8aec3891dd07fc537b21c2eb2596235640de9025/LICENSE",
+          "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a"
+        },
+        {
+          "path": "crates/rmcp/Cargo.toml",
+          "url": "https://github.com/modelcontextprotocol/rust-sdk/blob/8aec3891dd07fc537b21c2eb2596235640de9025/crates/rmcp/Cargo.toml",
+          "sha256": "38c1af4decd86a3c0ce90ef7bdef325e034158f25d87a5c8ad86068beddb7000"
+        },
+        {
+          "path": "crates/rmcp/src/service/client.rs",
+          "url": "https://github.com/modelcontextprotocol/rust-sdk/blob/8aec3891dd07fc537b21c2eb2596235640de9025/crates/rmcp/src/service/client.rs",
+          "sha256": "71d57ec394fe3df2e4011710a7470b2a4e1b4c69cdc823f18da2d8068e53d0cd"
+        }
+      ]
+    },
+    {
+      "repo": "aaif-goose/goose",
+      "commit": "c3bfc5f7b0e230180ba3164ec1ee84fd951eaf0d",
+      "review": "Rust / Apache-2.0。agent.rs接入PermissionManager與CancellationToken，參考授權與取消，不搬整套桌面。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/aaif-goose/goose/blob/c3bfc5f7b0e230180ba3164ec1ee84fd951eaf0d/LICENSE",
+          "sha256": "44459b86c2e96fdbfd8a6b5c33d30d4b04b5293fcb2ec96fe4dcc4e0f90b8962"
+        },
+        {
+          "path": "crates/goose/src/agents/agent.rs",
+          "url": "https://github.com/aaif-goose/goose/blob/c3bfc5f7b0e230180ba3164ec1ee84fd951eaf0d/crates/goose/src/agents/agent.rs",
+          "sha256": "69a0f0fe35205326cd6569139634d7cbc64cbc65659b511619387d46de5bd6d3"
+        }
+      ]
+    },
+    {
+      "repo": "infiniflow/ragflow",
+      "commit": "a55dccee4c211046b4e4d216a538bc60fae78dfd",
+      "review": "Apache-2.0。本次讀到Go retrieval.go的不同檢索服務契約；不能沿用舊印象稱全是Python。只移植來源、權限及檢索邊界。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/infiniflow/ragflow/blob/a55dccee4c211046b4e4d216a538bc60fae78dfd/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "path": "internal/agent/runtime/retrieval.go",
+          "url": "https://github.com/infiniflow/ragflow/blob/a55dccee4c211046b4e4d216a538bc60fae78dfd/internal/agent/runtime/retrieval.go",
+          "sha256": "c500076ed7dcfdd0d677055862dcc29a217c8adfd3e15312b2422d84b8094dec"
+        }
+      ]
+    },
+    {
+      "repo": "mem0ai/mem0",
+      "commit": "2c81af3bbe27d9bccb09c772d583df9e9be72ee5",
+      "review": "Python / Apache-2.0。main.py提供add/search及scope，抽取失敗拋錯。Rust版保留同意、來源、隔離，不搬全部儲存依賴。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/mem0ai/mem0/blob/2c81af3bbe27d9bccb09c772d583df9e9be72ee5/LICENSE",
+          "sha256": "0bbcbe931c353293a2fafce08326181dfeea0e568c566afd4ce8337a70f5e219"
+        },
+        {
+          "path": "mem0/memory/main.py",
+          "url": "https://github.com/mem0ai/mem0/blob/2c81af3bbe27d9bccb09c772d583df9e9be72ee5/mem0/memory/main.py",
+          "sha256": "f329ca4a17af1fbefb32ac10d4cc7ae7ddbdb7435a87eb74c30915cff98b8b7c"
+        }
+      ]
+    },
+    {
+      "repo": "promptfoo/promptfoo",
+      "commit": "c0b88a324175c60019cc80de1b2e32b4c849d4c3",
+      "review": "TypeScript / MIT。assertions/index.ts處理型別化斷言及未知類型錯誤，作為Rust評測器參考。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/promptfoo/promptfoo/blob/c0b88a324175c60019cc80de1b2e32b4c849d4c3/LICENSE",
+          "sha256": "bf813686553f451e1b833fbd827488aee49b60b189626915bf3108d10b754e44"
+        },
+        {
+          "path": "src/assertions/index.ts",
+          "url": "https://github.com/promptfoo/promptfoo/blob/c0b88a324175c60019cc80de1b2e32b4c849d4c3/src/assertions/index.ts",
+          "sha256": "4ca41190729c1ff01f016c139bd5fa2d9e785520e26f99d4e8202f842fbc6c3f"
+        }
+      ]
+    },
+    {
+      "repo": "Shopify/toxiproxy",
+      "commit": "49299d8838525126e09c85ebe0ba89940a3261e5",
+      "review": "Go / MIT。timeout.go可斷開或持續阻塞連線。直接用測試容器，由Rust控制API，不重寫網路代理。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/Shopify/toxiproxy/blob/49299d8838525126e09c85ebe0ba89940a3261e5/LICENSE",
+          "sha256": "c305a1ef46fe6a38b357a943945191184df3cdef9ed833e171c5d811d560ad8f"
+        },
+        {
+          "path": "toxics/timeout.go",
+          "url": "https://github.com/Shopify/toxiproxy/blob/49299d8838525126e09c85ebe0ba89940a3261e5/toxics/timeout.go",
+          "sha256": "b2a472aaad3c1f70683e47350eeb61e89e89fb41bfb1f3f9ef332a3ef1061247"
+        }
+      ]
+    },
+    {
+      "repo": "trycua/cua",
+      "commit": "f06f203291c6c5a12e7c9134ec6b1b918acaf5d1",
+      "review": "根MIT，子套件另查。讀到cua-driver的macOS權限與程序要求；未實測Linux，不直接選定。作為現成Computer Use驅動候選。",
+      "files": [
+        {
+          "path": "LICENSE.md",
+          "url": "https://github.com/trycua/cua/blob/f06f203291c6c5a12e7c9134ec6b1b918acaf5d1/LICENSE.md",
+          "sha256": "c0779290c1d4783169aa3dbfb55feb505e563ef8a004bbf55298ceffcfbda8d9"
+        },
+        {
+          "path": "libs/cua-driver/README.md",
+          "url": "https://github.com/trycua/cua/blob/f06f203291c6c5a12e7c9134ec6b1b918acaf5d1/libs/cua-driver/README.md",
+          "sha256": "91e6b8dbaee4286ba6724930a649d2908632cfe39586171e5a38e021958ea040"
+        }
+      ]
+    },
+    {
+      "repo": "openai/codex",
+      "commit": "970111f6cb62cc02fe36a82ea7d71b37a2889c97",
+      "review": "Rust / Apache-2.0。主要Harness試接候選；app-server供Client接會話與授權，turn.rs傳遞CancellationToken。優先程序介面，不依賴內部crate。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/LICENSE",
+          "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc"
+        },
+        {
+          "path": "codex-rs/app-server/README.md",
+          "url": "https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/app-server/README.md",
+          "sha256": "b4a92cfab25bd7b96a16b8f9503a8aeae71fad9bad786ee0662efb2cddd1aeb6"
+        },
+        {
+          "path": "codex-rs/core/src/session/turn.rs",
+          "url": "https://github.com/openai/codex/blob/970111f6cb62cc02fe36a82ea7d71b37a2889c97/codex-rs/core/src/session/turn.rs",
+          "sha256": "9fc51309911acf0722445f4a062c9c83dd8ec228504fd498e7281bb09d286ff1"
+        }
+      ]
+    },
+    {
+      "repo": "google-gemini/gemini-cli",
+      "commit": "cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005",
+      "review": "TypeScript / Apache-2.0。client.ts的sendMessageStream傳遞AbortSignal，參考串流及中止，不搬供應商綁定。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/google-gemini/gemini-cli/blob/cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005/LICENSE",
+          "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+        },
+        {
+          "path": "packages/core/src/core/client.ts",
+          "url": "https://github.com/google-gemini/gemini-cli/blob/cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005/packages/core/src/core/client.ts",
+          "sha256": "e25cd763ebc63944f3cf5178ca6c0d9c828634f57e921a98e52c2cb91276fe63"
+        }
+      ]
+    },
+    {
+      "repo": "microsoft/agent-framework",
+      "commit": "4982e4c61ec81cc4f9ba0cbdb5594ed530dbbcfe",
+      "review": "Python與.NET / MIT。_checkpoint.py保存工作流與graph_signature_hash，參考恢復時核對流程版本。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/microsoft/agent-framework/blob/4982e4c61ec81cc4f9ba0cbdb5594ed530dbbcfe/LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        },
+        {
+          "path": "README.md",
+          "url": "https://github.com/microsoft/agent-framework/blob/4982e4c61ec81cc4f9ba0cbdb5594ed530dbbcfe/README.md",
+          "sha256": "0cf473bae41c25e4011e7de64ecfc66be83b395f206aeca7a22f31f19ad9fd31"
+        },
+        {
+          "path": "python/packages/core/agent_framework/_workflows/_checkpoint.py",
+          "url": "https://github.com/microsoft/agent-framework/blob/4982e4c61ec81cc4f9ba0cbdb5594ed530dbbcfe/python/packages/core/agent_framework/_workflows/_checkpoint.py",
+          "sha256": "b00f0624c8c2f689c2c1583370f7b9a578a2c2ea612044268888a5c60e040d4d"
+        }
+      ]
+    },
+    {
+      "repo": "anthropics/claude-agent-sdk-python",
+      "commit": "0e89b298e771259378a6cd3734e00d323dff5703",
+      "review": "Python SDK / MIT。subprocess_cli.py啟動CLI子程序。SDK開源不代表Claude Code核心可複製改成Rust；服務條款及模型成本另算。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/anthropics/claude-agent-sdk-python/blob/0e89b298e771259378a6cd3734e00d323dff5703/LICENSE",
+          "sha256": "cebdde8a8fb9ee59e5eaaed19578bf8085aa7047562259c31f38f225c26f6812"
+        },
+        {
+          "path": "src/claude_agent_sdk/_internal/transport/subprocess_cli.py",
+          "url": "https://github.com/anthropics/claude-agent-sdk-python/blob/0e89b298e771259378a6cd3734e00d323dff5703/src/claude_agent_sdk/_internal/transport/subprocess_cli.py",
+          "sha256": "23c0b35acfcff5426255f1f17433e66fc7f8f6d5b8f339e93e085233c569e11c"
+        }
+      ]
+    },
+    {
+      "repo": "bytedance/deer-flow",
+      "commit": "9a11f9aec71b754ffe392b47a4950bfbce669454",
+      "review": "Python / MIT。lead_agent/agent.py以create_agent組裝middleware及checkpoint模式，參考長任務與上下文，不移植多agent全套。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/bytedance/deer-flow/blob/9a11f9aec71b754ffe392b47a4950bfbce669454/LICENSE",
+          "sha256": "b23dff4d4bac8d17b6efaaa7e88c2b730149c4dda45699ce676b719cfdffe7e1"
+        },
+        {
+          "path": "backend/packages/harness/deerflow/agents/lead_agent/agent.py",
+          "url": "https://github.com/bytedance/deer-flow/blob/9a11f9aec71b754ffe392b47a4950bfbce669454/backend/packages/harness/deerflow/agents/lead_agent/agent.py",
+          "sha256": "97f7ad18a59e553a1a6a038bc7759aece70567105e8c856a4509179ca6328fdb"
+        }
+      ]
+    },
+    {
+      "repo": "google/adk-python",
+      "commit": "25d191710985371dfb93a131f2fa797734850952",
+      "review": "Python / Apache-2.0。agent_evaluator.py讀資料集並透過eval_service評量，參考評測接法，環境結果與工具軌跡分開。",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://github.com/google/adk-python/blob/25d191710985371dfb93a131f2fa797734850952/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "path": "src/google/adk/evaluation/agent_evaluator.py",
+          "url": "https://github.com/google/adk-python/blob/25d191710985371dfb93a131f2fa797734850952/src/google/adk/evaluation/agent_evaluator.py",
+          "sha256": "35b26daeff389d3ec7a28961ded5af0943d302b5b685871fba156dee611e6f65"
+        }
+      ]
+    }
+  ]
+}

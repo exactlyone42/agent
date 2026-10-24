@@ -10,7 +10,17 @@
     "architecture_render": "pass",
     "architecture_visual_review": "pass",
     "source_repositories": 14,
-    "source_revision_and_license_read": "pass"
+    "source_revision_and_license_read": "pass",
+    "internal_links": {
+      "status": "pass",
+      "count": 13
+    },
+    "shared_policy_source_hashes": "pass",
+    "orca_open_plan": true,
+    "git_policy_installed": true,
+    "npm_audit": {
+      "vulnerabilities": 0
+    }
   },
   "not_run": [
     "Rust build/clippy/tests/mutation",
@@ -25,5 +35,11 @@
   "schedule": {
     "id": "ad8983b6-1875-4762-8031-1a12b989a6aa",
     "enabled": false
+  },
+  "bootstrap": {
+    "reason": "empty repository has no develop ancestor; seed checked manually before shared hook installation",
+    "seed_commit": "c72cd342323182eba2d75be833cfce74268ff381",
+    "default_branch": "develop",
+    "hooks_bypassed": false
   }
 }

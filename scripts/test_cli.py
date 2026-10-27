@@ -56,6 +56,7 @@ class CliContract(unittest.TestCase):
             text=True, encoding='utf-8', timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         status = json.loads(result.stdout)
+        self.assertEqual('最後保存的狀態' in result.stderr, status['recorded_state'] == 'running')
         result = subprocess.run([str(BINARY), 'events', task_id, '0'], capture_output=True,
             text=True, encoding='utf-8', timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -124,6 +125,7 @@ class CliContract(unittest.TestCase):
                 identifiers = []
 
                 def receive_id():
+                    identifiers.append(process.stderr.readline())
                     identifiers.append(process.stderr.readline())
                     ready.set()
 
@@ -201,6 +203,7 @@ class CliContract(unittest.TestCase):
                                 self.assertIsNone(process.poll())
                             database.rollback()
                     stdout, stderr = process.communicate(timeout=10)
+                    self.assertIn('逐次確認模式', identifiers[1])
                     if action in ['approve', 'wrong_revision', 'busy', 'receipt_busy']:
                         self.assertEqual(process.returncode, 0, stderr)
                         self.assertEqual(artifact.read_text(), 'APPROVED')
@@ -259,14 +262,51 @@ class CliContract(unittest.TestCase):
             task = root / 'task.json'
             task.write_text(json.dumps({'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
                 'task': {'prompt': 'work', 'input': 'unused', 'output': str(root / 'output'), 'allow_write': True}}))
-            for value in ['', 'relative/path', str(task)]:
+            for value, message in [('', '不可為空'), ('relative/path', '必須是絕對路徑'), (str(task), '無法建立任務資料目錄')]:
                 with self.subTest(value=value):
                     result = subprocess.run([str(BINARY), 'run', str(task)],
                         env={**os.environ, 'AGENT_STATE_DIR': value}, capture_output=True,
                         text=True, encoding='utf-8', timeout=5)
                     self.assertEqual(result.returncode, 1)
+                    self.assertIn(message, result.stderr)
                     self.assertNotIn('任務編號：', result.stderr)
                     self.assertFalse((root / 'output').exists())
+
+    def test_invalid_revision_is_rejected_before_opening_database(self):
+        for revision in ['0', '-1', 'x']:
+            with self.subTest(revision=revision):
+                result = subprocess.run([str(BINARY), 'approve', 'missing', revision], capture_output=True,
+                    text=True, encoding='utf-8', timeout=5)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('必須提供正整數的任務版本', result.stderr)
+
+    def test_existing_directory_without_database_is_refused_for_queries(self):
+        state = Path(os.environ['AGENT_STATE_DIR'])
+        state.mkdir(parents=True, mode=0o700)
+        result = subprocess.run([str(BINARY), 'status', 'missing'], capture_output=True,
+            text=True, encoding='utf-8', timeout=5)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('找不到或無法讀取任務資料庫', result.stderr)
+        self.assertFalse((state / 'tasks.sqlite3').exists())
+
+    @unittest.skipUnless(os.name == 'posix', 'Unix 目錄權限測試')
+    def test_unreadable_database_path_is_not_treated_as_missing_on_create(self):
+        with tempfile.TemporaryDirectory(prefix='agent-state-noexec-') as directory:
+            root = Path(directory)
+            state = root / 'state'
+            state.mkdir(mode=0o700)
+            task = root / 'task.json'
+            task.write_text(json.dumps({'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
+                'task': {'prompt': 'work', 'input': 'unused', 'output': str(root / 'output'), 'allow_write': True}}))
+            state.chmod(0o600)
+            try:
+                result = subprocess.run([str(BINARY), 'run', str(task)],
+                    env={**os.environ, 'AGENT_STATE_DIR': str(state)}, capture_output=True,
+                    text=True, encoding='utf-8', timeout=5)
+            finally:
+                state.chmod(0o700)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('找不到或無法讀取任務資料庫', result.stderr)
 
     @unittest.skipUnless(os.name == 'posix', 'Unix 資料目錄與連結拒絕測試')
     def test_state_directory_and_database_links_are_rejected(self):
@@ -627,6 +667,7 @@ class CliContract(unittest.TestCase):
                     server.server_close()
                     worker.join(timeout=5)
                 self.assertEqual(result.returncode, exit_code, result.stderr)
+                self.assertNotIn('逐次確認模式', result.stderr)
                 task_id = result.stderr.split('任務編號：')[1].splitlines()[0]
                 status, events = self.stored_result(task_id)
                 expected_state = ('running' if case == 'receipt_failed' else

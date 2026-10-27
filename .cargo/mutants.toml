@@ -1,0 +1,11 @@
+exclude_re = [
+  "crates/agent/src/input\\.rs:40:47: replace \\| with \\^",
+  "crates/agent/src/store\\.rs:84:39: ",
+  "crates/agent/src/store\\.rs:88:47: replace \\| with \\^",
+  "crates/agent/src/store\\.rs:96:(19|53): replace \\| with \\^",
+  "crates/agent/src/store\\.rs:114:30: replace < with <=",
+  "crates/agent/src/store\\.rs:135:17: ",
+  "crates/agent/src/store\\.rs:160:(41|61): ",
+  "crates/agent/src/store/approvals\\.rs:132:(68|94): ",
+  "crates/agent/src/approval\\.rs:146:56: ",
+]

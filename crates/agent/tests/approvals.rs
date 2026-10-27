@@ -356,3 +356,45 @@ fn corrupted_spec_is_fatal_but_malformed_tool_arguments_are_rejected()
     std::fs::remove_file(path)?;
     Ok(())
 }
+
+#[test]
+fn argument_hash_is_sha256_hex_and_call_id_length_is_bounded()
+-> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
+    let prepared = store.prepare_intent(&id, 0, "call", "read_input", "{}")?;
+    assert_eq!(
+        prepared.args_hash,
+        "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    );
+    store.prepare_intent(&id, 1, &"c".repeat(256), "read_input", "{}")?;
+    for call_id in [String::new(), "c".repeat(257), "c".repeat(300)] {
+        assert!(matches!(
+            store.prepare_intent(&id, 2, &call_id, "read_input", "{}"),
+            Err(StoreError::InvalidToolCall)
+        ));
+    }
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+#[test]
+fn saved_spec_size_limit_is_exact() -> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let mut sized = spec(ApprovalMode::Manual, true);
+    let base = serde_json::to_string(&sized)?.len();
+    sized.task.prompt = "x".repeat(131072 - base + sized.task.prompt.len());
+    assert_eq!(serde_json::to_string(&sized)?.len(), 131072);
+    store.start_spec(&sized)?;
+    sized.task.prompt.push('x');
+    assert!(matches!(
+        store.start_spec(&sized),
+        Err(StoreError::InvalidSpec)
+    ));
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}

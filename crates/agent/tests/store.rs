@@ -289,3 +289,18 @@ fn foreign_and_newer_databases_are_not_migrated() -> Result<(), Box<dyn std::err
     }
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+fn symlinked_database_is_never_opened() -> Result<(), Box<dyn std::error::Error>> {
+    let path = database_path();
+    TaskStore::open(&path)?;
+    let link = database_path();
+    std::os::unix::fs::symlink(&path, &link)?;
+    assert!(TaskStore::open(&link).is_err());
+    assert!(TaskStore::read(&link).is_err());
+    assert!(TaskStore::write(&link).is_err());
+    std::fs::remove_file(link)?;
+    std::fs::remove_file(path)?;
+    Ok(())
+}

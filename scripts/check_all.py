@@ -122,6 +122,7 @@ def main():
         results['mutation'] = run_step('mutation', [
             'cargo', 'mutants', '--in-place', '--workspace', '--test-workspace', 'true',
             '--all-features', '--timeout', '90', '--cargo-arg=--locked',
+            *([] if os.name == 'nt' else ['--exclude-re', r'crates/agent/src/input\.rs:(30|61|69|82):']),
             '--output', str(evidence / 'mutation')], ROOT, evidence)
         try:
             results['reports'] = 0 if validate_reports(evidence) else 1

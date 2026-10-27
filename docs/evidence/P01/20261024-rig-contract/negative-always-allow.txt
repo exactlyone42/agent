@@ -1,0 +1,24 @@
+   Compiling harness-probe v0.1.0 (/home/cash/work_space/private/agent-platform/crates/harness-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.41s
+     Running tests/rig_contract.rs (target/debug/deps/rig_contract-a0e9a051d2b6d2a2)
+
+running 1 test
+test approval_controls_actual_tool_execution ... FAILED
+
+failures:
+
+---- approval_controls_actual_tool_execution stdout ----
+
+thread 'approval_controls_actual_tool_execution' (2525539) panicked at crates/harness-probe/tests/rig_contract.rs:75:9:
+assertion `left == right` failed
+  left: 1
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    approval_controls_actual_tool_execution
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `--test rig_contract`

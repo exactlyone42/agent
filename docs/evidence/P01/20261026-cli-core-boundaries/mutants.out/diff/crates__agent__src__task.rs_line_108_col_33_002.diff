@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace > with >= in <impl Tool for ReadInput>::call
+@@ -100,17 +100,17 @@
+             .as_mut()
+             .ok_or_else(|| ToolExecutionError::refused("使用者未授權讀取來源"))?;
+         file.seek(SeekFrom::Start(0))
+             .map_err(ToolExecutionError::from_error)?;
+         let mut content = String::new();
+         file.take(FILE_LIMIT + 1)
+             .read_to_string(&mut content)
+             .map_err(ToolExecutionError::from_error)?;
+-        if content.len() as u64 > FILE_LIMIT {
++        if content.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {
+             return Err(ToolExecutionError::refused("來源超出大小限制"));
+         }
+         Ok(content)
+     }
+ }
+
+ impl Tool for WriteOutput {
+     const NAME: &'static str = "write_output";

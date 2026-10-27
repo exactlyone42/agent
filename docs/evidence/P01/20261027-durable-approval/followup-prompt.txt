@@ -1,0 +1,1257 @@
+複審持久批准增量，只讀提供文字，不使用工具、不改檔。請找具體未解的執行安全錯誤，位置與原因。已修：逐次批准總任務限時900秒、每個批准120秒；原自動模式120秒未改。模型call_id改為task/generation/step/call複合識別，claim另綁平台intent_id。壞參數保存tool_rejected事件，不保存惡意原文。過期/撤銷/工具結果未知有事件；結束時沒回執的dispatched改outcome_unknown。只有SQLITE_BUSY在派工具前有界重試，其餘錯誤停止；approve/deny改可寫但不可建立資料庫，舊版只在run遷移。規格/政策目前只有第1版，編輯、角色及恢復後續實作；不把第1版說成已完成企業政策。附實際正反測試程式，完整現況仍非企業發布。若建議擴需求，請分開標明，不以假設取代可重現缺陷。
+
+### crates/agent/src/approval.rs
+use crate::{
+    store::{APPROVAL_TTL_SECONDS, Claim, StoreError, TOOL_CALL_LIMIT, TaskStore},
+    task::CancellationToken,
+};
+use rig_agent::agent::{
+    AgentHook, DispatchAction, DispatchEvent, HookContext, OutcomeAction, OutcomeEvent,
+};
+use std::{
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    },
+    time::Duration,
+};
+
+#[derive(Clone)]
+pub struct ApprovalGate {
+    store: Arc<Mutex<TaskStore>>,
+    task_id: String,
+    cancellation: CancellationToken,
+    manual: bool,
+    denied: Arc<AtomicBool>,
+    calls: Arc<AtomicUsize>,
+}
+
+impl ApprovalGate {
+    pub fn new(
+        store: Arc<Mutex<TaskStore>>,
+        task_id: String,
+        cancellation: CancellationToken,
+        manual: bool,
+    ) -> Self {
+        Self {
+            store,
+            task_id,
+            cancellation,
+            manual,
+            denied: Arc::new(AtomicBool::new(false)),
+            calls: Arc::new(AtomicUsize::new(0)),
+        }
+    }
+
+    pub fn was_denied(&self) -> bool {
+        self.denied.load(Ordering::SeqCst)
+    }
+}
+
+impl AgentHook for ApprovalGate {
+    async fn on_dispatch(&self, _: &HookContext, event: DispatchEvent<'_>) -> DispatchAction {
+        let Some(name) = event.tool_name() else {
+            return DispatchAction::proceed();
+        };
+        if self.cancellation.is_cancelled() {
+            return DispatchAction::stop("任務已要求停止");
+        }
+        let (Some(call_id), Some(args)) = (event.call_id, event.tool_args()) else {
+            return DispatchAction::stop("工具缺少識別或參數，不能執行");
+        };
+        let prepared = match self.store.lock() {
+            Ok(mut store) => {
+                if self.calls.fetch_add(1, Ordering::SeqCst) >= TOOL_CALL_LIMIT as usize {
+                    return DispatchAction::stop("工具呼叫已達任務上限，不能繼續執行");
+                }
+                store.prepare_intent(
+                    &self.task_id,
+                    event.turn as i64,
+                    &call_id.to_string(),
+                    name,
+                    args,
+                )
+            }
+            Err(_) => return DispatchAction::stop("任務紀錄狀態異常，不能執行工具"),
+        };
+        let prepared = match prepared {
+            Ok(prepared) => prepared,
+            Err(StoreError::InvalidSpec) => {
+                let recorded = match self.store.lock() {
+                    Ok(mut store) => store.record_rejection(&self.task_id, &event.id.to_string()),
+                    Err(_) => return DispatchAction::stop("任務紀錄狀態異常，不能保存拒絕紀錄"),
+                };
+                if recorded.is_err() {
+                    return DispatchAction::stop("無法保存工具拒絕紀錄，任務停止");
+                }
+                return DispatchAction::skip("工具參數或授權範圍不符合限制");
+            }
+            Err(_) => return DispatchAction::stop("無法保存工具意圖，未執行工具"),
+        };
+        let deadline =
+            tokio::time::Instant::now() + Duration::from_secs(APPROVAL_TTL_SECONDS as u64);
+        loop {
+            if self.cancellation.is_cancelled() {
+                return DispatchAction::stop("任務已要求停止");
+            }
+            if tokio::time::Instant::now() >= deadline {
+                self.denied.store(true, Ordering::SeqCst);
+                return DispatchAction::stop("等待批准逾時，未執行工具");
+            }
+            let claim = match self.store.lock() {
+                Ok(mut store) => store.claim(&prepared),
+                Err(_) => return DispatchAction::stop("任務紀錄狀態異常，不能執行工具"),
+            };
+            match claim {
+                Ok(Claim::Granted) => return DispatchAction::proceed(),
+                Ok(Claim::Denied) if self.manual => {
+                    self.denied.store(true, Ordering::SeqCst);
+                    return DispatchAction::stop("工具未獲批准或批准已失效");
+                }
+                Ok(Claim::Denied) => return DispatchAction::skip("使用者未授權此工具操作"),
+                Err(StoreError::Database(rusqlite::Error::SqliteFailure(code, _)))
+                    if code.code == rusqlite::ErrorCode::DatabaseBusy => {}
+                Err(_) => return DispatchAction::stop("無法領用批准，未執行工具"),
+                Ok(Claim::Pending) => {}
+            }
+            tokio::select! {
+                _ = self.cancellation.cancelled() => return DispatchAction::stop("任務已要求停止"),
+                _ = tokio::time::sleep(Duration::from_millis(200)) => {}
+            }
+        }
+    }
+
+    async fn on_outcome(&self, _: &HookContext, event: OutcomeEvent<'_>) -> OutcomeAction {
+        let Some(result) = event.tool_result() else {
+            return OutcomeAction::proceed();
+        };
+        if result.is_skipped() {
+            return OutcomeAction::proceed();
+        }
+        let Some(call_id) = event.call_id else {
+            return OutcomeAction::stop("工具結果缺少識別，不能確認成果");
+        };
+        let saved = match self.store.lock() {
+            Ok(mut store) => store.receipt(
+                &self.task_id,
+                event.turn as i64,
+                &call_id.to_string(),
+                result.is_success(),
+            ),
+            Err(_) => return OutcomeAction::stop("任務紀錄狀態異常，請核對已執行的動作"),
+        };
+        if saved.is_err() {
+            return OutcomeAction::stop("無法保存工具結果，請核對已執行的動作");
+        }
+        OutcomeAction::proceed()
+    }
+}
+
+### crates/agent/src/store/approvals.rs
+use super::{StoreError, TaskStore};
+use crate::task::{FILE_LIMIT, FileTask, ReadArgs, WriteArgs};
+use rusqlite::{OptionalExtension, Transaction, TransactionBehavior, params};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::path::PathBuf;
+use uuid::Uuid;
+
+pub const APPROVAL_TTL_SECONDS: i64 = 120;
+pub const TOOL_CALL_LIMIT: i64 = 64;
+
+#[derive(Clone, Copy, Default, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalMode {
+    #[default]
+    Preapproved,
+    Manual,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TaskSpec {
+    pub workspace: PathBuf,
+    pub endpoint: String,
+    pub model: String,
+    pub task: FileTask,
+    pub approval_mode: ApprovalMode,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApprovalRecord {
+    pub intent_id: String,
+    pub intent_status: String,
+    pub step_id: i64,
+    pub approval_id: String,
+    pub task_id: String,
+    pub spec_revision: i64,
+    pub policy_revision: i64,
+    pub tool_name: String,
+    pub tool_version: i64,
+    pub scope_path: String,
+    pub args_json: String,
+    pub args_hash: String,
+    pub status: String,
+    pub uses_remaining: i64,
+    pub expires_at: i64,
+    pub decision_source: String,
+}
+
+pub struct PreparedIntent {
+    pub intent_id: String,
+    pub approval_id: String,
+    pub task_id: String,
+    pub call_id: String,
+    pub args_hash: String,
+    pub spec_revision: i64,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Claim {
+    Pending,
+    Granted,
+    Denied,
+}
+
+pub(super) fn digest(value: &str) -> String {
+    format!("{:x}", Sha256::digest(value.as_bytes()))
+}
+
+fn append(
+    transaction: &Transaction<'_>,
+    task_id: &str,
+    kind: &str,
+    state: Option<&str>,
+    related_id: &str,
+) -> Result<(), StoreError> {
+    let seq = transaction.query_row(
+        "UPDATE tasks SET last_seq=last_seq+1, recorded_state=coalesce(?2,recorded_state), updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
+         WHERE task_id=?1 AND recorded_state IN ('running','waiting_approval') RETURNING last_seq", params![task_id,state], |r| r.get::<_, i64>(0))
+        .optional()?.ok_or(StoreError::Conflict)?;
+    transaction.execute(
+        "INSERT INTO events(event_id,task_id,seq,event_type,related_id) VALUES (?1,?2,?3,?4,?5)",
+        params![Uuid::new_v4().to_string(), task_id, seq, kind, related_id],
+    )?;
+    Ok(())
+}
+
+pub(super) fn close_intents(
+    transaction: &Transaction<'_>,
+    task_id: &str,
+) -> Result<(), StoreError> {
+    for (sql, kind) in [
+        (
+            "UPDATE approvals SET status='revoked' WHERE uses_remaining=1 AND status IN ('pending','approved') AND intent_id IN (SELECT intent_id FROM tool_intents WHERE task_id=?1) RETURNING approval_id",
+            "approval_revoked",
+        ),
+        (
+            "UPDATE tool_intents SET status='outcome_unknown' WHERE task_id=?1 AND status='dispatched' RETURNING intent_id",
+            "tool_outcome_unknown",
+        ),
+    ] {
+        let identifiers = {
+            let mut statement = transaction.prepare(sql)?;
+            statement
+                .query_map([task_id], |r| r.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        for id in identifiers {
+            let seq: i64 = transaction.query_row(
+                "UPDATE tasks SET last_seq=last_seq+1 WHERE task_id=?1 RETURNING last_seq",
+                [task_id],
+                |r| r.get(0),
+            )?;
+            transaction.execute("INSERT INTO events(event_id,task_id,seq,event_type,related_id) VALUES (?1,?2,?3,?4,?5)",params![Uuid::new_v4().to_string(),task_id,seq,kind,id])?;
+        }
+    }
+    Ok(())
+}
+
+impl TaskStore {
+    pub fn prepare_intent(
+        &mut self,
+        task_id: &str,
+        step_id: i64,
+        call_id: &str,
+        tool_name: &str,
+        args: &str,
+    ) -> Result<PreparedIntent, StoreError> {
+        if step_id < 0
+            || call_id.is_empty()
+            || call_id.len() > 256
+            || args.len() > 6 * FILE_LIMIT as usize + 1024
+        {
+            return Err(StoreError::InvalidSpec);
+        }
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let (spec_json, spec_hash, spec_revision, policy_revision, generation): (String,String,i64,i64,i64) = transaction.query_row(
+            "SELECT s.spec_json,s.spec_hash,s.spec_revision,s.policy_revision,t.generation FROM task_specs s JOIN tasks t USING(task_id)
+             WHERE s.task_id=?1 AND t.recorded_state='running'", [task_id],
+             |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)))
+            .optional()?.ok_or(StoreError::Conflict)?;
+        if digest(&spec_json) != spec_hash {
+            return Err(StoreError::InvalidSpec);
+        }
+        let spec: TaskSpec =
+            serde_json::from_str(&spec_json).map_err(|_| StoreError::InvalidSpec)?;
+        let (canonical, path, allowed) = match tool_name {
+            "read_input" => {
+                let parsed: ReadArgs =
+                    serde_json::from_str(args).map_err(|_| StoreError::InvalidSpec)?;
+                (
+                    serde_json::to_string(&parsed),
+                    spec.task.input,
+                    spec.task.allow_read,
+                )
+            }
+            "write_output" => {
+                let parsed: WriteArgs =
+                    serde_json::from_str(args).map_err(|_| StoreError::InvalidSpec)?;
+                if parsed.content.len() as u64 > FILE_LIMIT {
+                    return Err(StoreError::InvalidSpec);
+                }
+                (
+                    serde_json::to_string(&parsed),
+                    spec.task.output,
+                    spec.task.allow_write,
+                )
+            }
+            _ => return Err(StoreError::InvalidSpec),
+        };
+        let args_json = canonical.map_err(|_| StoreError::InvalidSpec)?;
+        let scope = path
+            .to_str()
+            .filter(|_| path.is_absolute())
+            .ok_or(StoreError::InvalidSpec)?;
+        let calls: i64 = transaction.query_row(
+            "SELECT count(*) FROM tool_intents WHERE task_id=?1",
+            [task_id],
+            |r| r.get(0),
+        )?;
+        if calls >= TOOL_CALL_LIMIT {
+            return Err(StoreError::InvalidSpec);
+        }
+        let status = if !allowed {
+            "denied"
+        } else if spec.approval_mode == ApprovalMode::Manual {
+            "pending"
+        } else {
+            "approved"
+        };
+        let intent_id = Uuid::new_v4().to_string();
+        let approval_id = Uuid::new_v4().to_string();
+        let args_hash = digest(&args_json);
+        transaction.execute("INSERT INTO tool_intents(intent_id,task_id,generation,call_id,tool_name,tool_version,args_json,args_hash,scope_path,status,step_id) VALUES (?1,?2,?3,?4,?5,1,?6,?7,?8,?9,?10)",
+            params![intent_id,task_id,generation,call_id,tool_name,args_json,args_hash,scope,if allowed { "prepared" } else { "denied" },step_id])?;
+        transaction.execute("INSERT INTO approvals(approval_id,intent_id,spec_revision,policy_revision,spec_hash,args_hash,tool_version,status,decision_source,expires_at,uses_remaining,decided_at)
+            VALUES (?1,?2,?3,?4,?5,?6,1,?7,?8,unixepoch()+?9,1,CASE WHEN ?7='pending' THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ','now') END)",
+            params![approval_id,intent_id,spec_revision,policy_revision,spec_hash,args_hash,status,if status == "pending" { "pending" } else { "task_policy" },APPROVAL_TTL_SECONDS])?;
+        append(
+            &transaction,
+            task_id,
+            if status == "pending" {
+                "approval_requested"
+            } else if allowed {
+                "approval_granted"
+            } else {
+                "approval_denied"
+            },
+            Some(if status == "pending" {
+                "waiting_approval"
+            } else {
+                "running"
+            }),
+            &approval_id,
+        )?;
+        transaction.commit()?;
+        Ok(PreparedIntent {
+            intent_id,
+            approval_id,
+            task_id: task_id.into(),
+            call_id: call_id.into(),
+            args_hash,
+            spec_revision,
+        })
+    }
+
+    pub fn approvals(&self, task_id: &str) -> Result<Vec<ApprovalRecord>, StoreError> {
+        self.status(task_id)?;
+        let mut query = self.connection.prepare(
+            "SELECT a.approval_id,i.task_id,a.spec_revision,a.policy_revision,i.tool_name,i.tool_version,i.scope_path,i.args_json,a.args_hash,a.status,a.uses_remaining,a.expires_at,a.decision_source,i.intent_id,i.status,i.step_id
+             FROM approvals a JOIN tool_intents i USING(intent_id) WHERE i.task_id=?1 ORDER BY i.rowid LIMIT 100")?;
+        let rows = query.query_map([task_id], |r| {
+            Ok(ApprovalRecord {
+                intent_id: r.get(13)?,
+                intent_status: r.get(14)?,
+                step_id: r.get(15)?,
+                approval_id: r.get(0)?,
+                task_id: r.get(1)?,
+                spec_revision: r.get(2)?,
+                policy_revision: r.get(3)?,
+                tool_name: r.get(4)?,
+                tool_version: r.get(5)?,
+                scope_path: r.get(6)?,
+                args_json: r.get(7)?,
+                args_hash: r.get(8)?,
+                status: r.get(9)?,
+                uses_remaining: r.get(10)?,
+                expires_at: r.get(11)?,
+                decision_source: r.get(12)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+
+    pub fn decide(
+        &mut self,
+        approval_id: &str,
+        spec_revision: i64,
+        approve: bool,
+    ) -> Result<(), StoreError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let task_id: String = transaction.query_row(
+            "SELECT i.task_id FROM approvals a JOIN tool_intents i USING(intent_id) JOIN tasks t USING(task_id) JOIN task_specs s USING(task_id)
+             WHERE a.approval_id=?1 AND a.spec_revision=?2 AND a.spec_revision=s.spec_revision AND a.policy_revision=s.policy_revision AND a.spec_hash=s.spec_hash
+             AND a.uses_remaining=1 AND a.expires_at>unixepoch() AND (a.status='pending' OR (?3=0 AND a.status='approved'))
+             AND i.status='prepared' AND i.generation=t.generation AND t.recorded_state IN ('running','waiting_approval')",
+            params![approval_id,spec_revision,approve], |r| r.get(0)).optional()?.ok_or(StoreError::Conflict)?;
+        transaction.execute("UPDATE approvals SET status=?2,decision_source='local_cli',decided_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE approval_id=?1", params![approval_id, if approve { "approved" } else { "denied" }])?;
+        append(
+            &transaction,
+            &task_id,
+            if approve {
+                "approval_granted"
+            } else {
+                "approval_denied"
+            },
+            None,
+            approval_id,
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn claim(&mut self, prepared: &PreparedIntent) -> Result<Claim, StoreError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let value: Option<(String,i64,bool)> = transaction.query_row(
+            "SELECT a.status,a.uses_remaining,a.expires_at>unixepoch() FROM approvals a JOIN tool_intents i USING(intent_id) JOIN tasks t USING(task_id) JOIN task_specs s USING(task_id)
+             WHERE a.approval_id=?1 AND i.task_id=?2 AND i.call_id=?3 AND a.args_hash=?4 AND i.args_hash=a.args_hash AND a.spec_revision=?5
+             AND a.spec_revision=s.spec_revision AND a.policy_revision=s.policy_revision AND a.spec_hash=s.spec_hash AND a.tool_version=i.tool_version
+             AND i.generation=t.generation AND i.intent_id=?6 AND t.recorded_state IN ('running','waiting_approval')",
+            params![prepared.approval_id,prepared.task_id,prepared.call_id,prepared.args_hash,prepared.spec_revision,prepared.intent_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?))).optional()?;
+        let (status, uses, valid) = value.ok_or(StoreError::Conflict)?;
+        if uses != 1 || status == "denied" || status == "revoked" || status == "expired" {
+            return Ok(Claim::Denied);
+        }
+        if !valid {
+            transaction.execute(
+                "UPDATE approvals SET status='expired' WHERE approval_id=?1",
+                [&prepared.approval_id],
+            )?;
+            append(
+                &transaction,
+                &prepared.task_id,
+                "approval_expired",
+                None,
+                &prepared.approval_id,
+            )?;
+            transaction.commit()?;
+            return Ok(Claim::Denied);
+        }
+        if status == "pending" {
+            return Ok(Claim::Pending);
+        }
+        if status != "approved" {
+            return Err(StoreError::Conflict);
+        }
+        transaction.execute(
+            "UPDATE approvals SET uses_remaining=0 WHERE approval_id=?1",
+            [&prepared.approval_id],
+        )?;
+        let changed = transaction.execute(
+            "UPDATE tool_intents SET status='dispatched' WHERE intent_id=?1 AND status='prepared'",
+            [&prepared.intent_id],
+        )?;
+        if changed != 1 {
+            return Err(StoreError::Conflict);
+        }
+        append(
+            &transaction,
+            &prepared.task_id,
+            "tool_dispatched",
+            Some("running"),
+            &prepared.approval_id,
+        )?;
+        transaction.commit()?;
+        Ok(Claim::Granted)
+    }
+
+    pub fn receipt(
+        &mut self,
+        task_id: &str,
+        step_id: i64,
+        call_id: &str,
+        succeeded: bool,
+    ) -> Result<(), StoreError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let intent_id: String = transaction.query_row("UPDATE tool_intents SET status=?3 WHERE task_id=?1 AND call_id=?2 AND step_id=?4 AND generation=(SELECT generation FROM tasks WHERE task_id=?1) AND status='dispatched' RETURNING intent_id",
+            params![task_id,call_id,if succeeded { "succeeded" } else { "failed" },step_id], |r| r.get(0)).optional()?.ok_or(StoreError::Conflict)?;
+        append(
+            &transaction,
+            task_id,
+            if succeeded {
+                "tool_succeeded"
+            } else {
+                "tool_failed"
+            },
+            None,
+            &intent_id,
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn record_rejection(&mut self, task_id: &str, dispatch_id: &str) -> Result<(), StoreError> {
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        append(&transaction, task_id, "tool_rejected", None, dispatch_id)?;
+        transaction.commit()?;
+        Ok(())
+    }
+}
+
+### crates/agent/src/store.rs
+use crate::task::{ArtifactState, TaskError, TaskReport};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
+use serde::Serialize;
+use std::{path::Path, time::Duration};
+use uuid::Uuid;
+mod approvals;
+pub use approvals::{
+    APPROVAL_TTL_SECONDS, ApprovalMode, ApprovalRecord, Claim, PreparedIntent, TOOL_CALL_LIMIT,
+    TaskSpec,
+};
+
+const APPLICATION_ID: i64 = 0x41504754;
+const SCHEMA_VERSION: i64 = 3;
+pub const EVENT_PAGE_SIZE: i64 = 100;
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum StoreAccess {
+    Read,
+    Write,
+    Create,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum StoreError {
+    #[error("無法保存或讀取任務紀錄")]
+    Database(#[from] rusqlite::Error),
+    #[error("任務資料庫版本或設定不相容")]
+    Incompatible,
+    #[error("找不到任務")]
+    NotFound,
+    #[error("任務紀錄已變動，不可用舊狀態保存結果或重複執行")]
+    Conflict,
+    #[error("事件位置不可小於零")]
+    InvalidCursor,
+    #[error("任務規格或工具參數不符合限制")]
+    InvalidSpec,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskRecord {
+    pub task_id: String,
+    pub schema_version: i64,
+    pub generation: i64,
+    pub recorded_state: String,
+    pub artifact_created: Option<bool>,
+    pub last_seq: i64,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskEvent {
+    pub event_id: String,
+    pub task_id: String,
+    pub schema_version: i64,
+    pub generation: i64,
+    pub seq: i64,
+    pub event_type: String,
+    pub created_at: String,
+    pub related_id: Option<String>,
+}
+
+pub struct TaskStore {
+    connection: Connection,
+    schema_version: i64,
+}
+
+impl TaskStore {
+    pub fn open(path: &Path) -> Result<Self, StoreError> {
+        Self::connect(path, StoreAccess::Create)
+    }
+
+    pub fn read(path: &Path) -> Result<Self, StoreError> {
+        Self::connect(path, StoreAccess::Read)
+    }
+
+    pub fn write(path: &Path) -> Result<Self, StoreError> {
+        Self::connect(path, StoreAccess::Write)
+    }
+
+    fn connect(path: &Path, access: StoreAccess) -> Result<Self, StoreError> {
+        let create = access == StoreAccess::Create;
+        if rusqlite::version_number() < 3_051_003 {
+            return Err(StoreError::Incompatible);
+        }
+        let flags = if create {
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE
+        } else if access == StoreAccess::Write {
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+        } else {
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+        };
+        let mut connection = Connection::open_with_flags(
+            path,
+            flags | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )?;
+        connection.busy_timeout(Duration::from_millis(500))?;
+        let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let application: i64 =
+            connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
+        if !matches!(
+            (application, version),
+            (0, 0) | (APPLICATION_ID, 1..=SCHEMA_VERSION)
+        ) {
+            return Err(StoreError::Incompatible);
+        }
+        if version == 0 && !create {
+            return Err(StoreError::Incompatible);
+        }
+        if access == StoreAccess::Write && version != SCHEMA_VERSION {
+            return Err(StoreError::Incompatible);
+        }
+        if create && version < SCHEMA_VERSION {
+            connection.pragma_update(None, "foreign_keys", false)?;
+            let transaction =
+                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let mut current_version: i64 =
+                transaction.pragma_query_value(None, "user_version", |r| r.get(0))?;
+            let current_application: i64 =
+                transaction.pragma_query_value(None, "application_id", |r| r.get(0))?;
+            if (current_application, current_version) == (0, 0) {
+                let tables: i64 = transaction.query_row(
+                    "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                if tables != 0 {
+                    return Err(StoreError::Incompatible);
+                }
+                transaction.execute_batch(include_str!("store_v1.sql"))?;
+                transaction.pragma_update(None, "application_id", APPLICATION_ID)?;
+                current_version = 1;
+            } else if current_application != APPLICATION_ID
+                || !(1..=SCHEMA_VERSION).contains(&current_version)
+            {
+                return Err(StoreError::Incompatible);
+            }
+            if current_version == 1 {
+                transaction.execute_batch(include_str!("store_v2.sql"))?;
+                current_version = 2;
+            }
+            if current_version == 2 {
+                transaction.execute_batch(include_str!("store_v3.sql"))?;
+            }
+            transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+            transaction.commit()?;
+        }
+        let journal: String = if create {
+            connection.pragma_update_and_check(None, "journal_mode", "wal", |r| r.get(0))?
+        } else {
+            connection.pragma_query_value(None, "journal_mode", |r| r.get(0))?
+        };
+        connection.pragma_update(None, "synchronous", "FULL")?;
+        connection.pragma_update(None, "foreign_keys", true)?;
+        connection.pragma_update(None, "trusted_schema", false)?;
+        let synchronous: i64 = connection.pragma_query_value(None, "synchronous", |r| r.get(0))?;
+        let foreign_keys: i64 =
+            connection.pragma_query_value(None, "foreign_keys", |r| r.get(0))?;
+        if (create && journal != "wal") || synchronous != 2 || foreign_keys != 1 {
+            return Err(StoreError::Incompatible);
+        }
+        let schema_version = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        Ok(Self {
+            connection,
+            schema_version,
+        })
+    }
+
+    pub fn start(&mut self) -> Result<(String, i64), StoreError> {
+        self.create_task(None)
+    }
+
+    pub fn start_spec(&mut self, spec: &TaskSpec) -> Result<(String, i64), StoreError> {
+        self.create_task(Some(spec))
+    }
+
+    fn create_task(&mut self, spec: Option<&TaskSpec>) -> Result<(String, i64), StoreError> {
+        let spec_json = spec
+            .map(serde_json::to_string)
+            .transpose()
+            .map_err(|_| StoreError::InvalidSpec)?;
+        if spec_json.as_ref().is_some_and(|value| value.len() > 131072) {
+            return Err(StoreError::InvalidSpec);
+        }
+        let task_id = Uuid::new_v4().to_string();
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let seq = transaction.query_row(
+            "INSERT INTO tasks (task_id, recorded_state, last_seq) VALUES (?1, 'running', 1) RETURNING last_seq",
+            [&task_id],
+            |r| r.get::<_, i64>(0),
+        )?;
+        transaction.execute(
+            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, 'started')",
+            params![Uuid::new_v4().to_string(), task_id, seq],
+        )?;
+        if let Some(spec_json) = spec_json {
+            transaction.execute(
+                "INSERT INTO task_specs(task_id,spec_json,spec_hash) VALUES (?1,?2,?3)",
+                params![task_id, spec_json, approvals::digest(&spec_json)],
+            )?;
+        }
+        transaction.commit()?;
+        Ok((task_id, seq))
+    }
+
+    pub fn finish(
+        &mut self,
+        task_id: &str,
+        expected_seq: i64,
+        result: &Result<TaskReport, TaskError>,
+    ) -> Result<(), StoreError> {
+        let state = match result {
+            Ok(report) => match report.artifact {
+                ArtifactState::Verified => "succeeded",
+                ArtifactState::AwaitingReview => "needs_review",
+            },
+            Err(TaskError::Cancelled { .. }) => "cancelled",
+            Err(TaskError::Timeout | TaskError::Harness(_) | TaskError::State) => "outcome_unknown",
+            Err(_) => "failed",
+        };
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let artifact_created = match result {
+            Ok(_) | Err(TaskError::IncompleteArtifact | TaskError::Verification(_)) => Some(true),
+            Err(TaskError::Cancelled { artifact_created }) => Some(*artifact_created),
+            Err(
+                TaskError::InvalidTask
+                | TaskError::InvalidInput
+                | TaskError::Input(_)
+                | TaskError::MissingArtifact,
+            ) => Some(false),
+            Err(_) => None,
+        };
+        let seq: Option<i64> = transaction.query_row(
+            "UPDATE tasks SET recorded_state = ?1, last_seq = last_seq + 1, artifact_created = ?4,
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE task_id = ?2 AND recorded_state IN ('running','waiting_approval') AND last_seq = ?3 RETURNING last_seq",
+            params![state, task_id, expected_seq, artifact_created], |r| r.get(0),
+        ).optional()?;
+        let seq = match seq {
+            Some(seq) => seq,
+            None => {
+                let exists: bool = transaction.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM tasks WHERE task_id=?1)",
+                    [task_id],
+                    |r| r.get(0),
+                )?;
+                return Err(if exists {
+                    StoreError::Conflict
+                } else {
+                    StoreError::NotFound
+                });
+            }
+        };
+        transaction.execute(
+            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, ?4)",
+            params![Uuid::new_v4().to_string(), task_id, seq, state],
+        )?;
+        approvals::close_intents(&transaction, task_id)?;
+        transaction.execute(
+            "UPDATE tool_intents SET status='cancelled' WHERE task_id=?1 AND status='prepared'",
+            [task_id],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn status(&self, task_id: &str) -> Result<TaskRecord, StoreError> {
+        self.connection
+            .query_row(
+                "SELECT task_id, schema_version, generation, recorded_state, last_seq, updated_at, artifact_created
+             FROM tasks WHERE task_id = ?1",
+                [task_id],
+                |r| {
+                    Ok(TaskRecord {
+                        task_id: r.get(0)?,
+                        schema_version: r.get(1)?,
+                        generation: r.get(2)?,
+                        recorded_state: r.get(3)?,
+                        last_seq: r.get(4)?,
+                        updated_at: r.get(5)?,
+                        artifact_created: r.get(6)?,
+                    })
+                },
+            )
+            .optional()?
+            .ok_or(StoreError::NotFound)
+    }
+
+    pub fn events(&self, task_id: &str, after_seq: i64) -> Result<Vec<TaskEvent>, StoreError> {
+        if after_seq < 0 {
+            return Err(StoreError::InvalidCursor);
+        }
+        self.status(task_id)?;
+        let related = if self.schema_version == 1 {
+            "NULL"
+        } else {
+            "related_id"
+        };
+        let mut query = self.connection.prepare(&format!(
+            "SELECT event_id, task_id, schema_version, generation, seq, event_type, created_at, {related}
+             FROM events WHERE task_id = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3"
+        ))?;
+        let rows = query.query_map(params![task_id, after_seq, EVENT_PAGE_SIZE], |r| {
+            Ok(TaskEvent {
+                event_id: r.get(0)?,
+                task_id: r.get(1)?,
+                schema_version: r.get(2)?,
+                generation: r.get(3)?,
+                seq: r.get(4)?,
+                event_type: r.get(5)?,
+                created_at: r.get(6)?,
+                related_id: r.get(7)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+### crates/agent/src/store_v3.sql
+CREATE TABLE events_v3 (
+    event_id TEXT UNIQUE NOT NULL,
+    task_id TEXT NOT NULL REFERENCES tasks(task_id),
+    schema_version INTEGER NOT NULL DEFAULT 3 CHECK (schema_version IN (1, 2, 3)),
+    generation INTEGER NOT NULL DEFAULT 1 CHECK (generation > 0),
+    seq INTEGER NOT NULL CHECK (seq > 0),
+    event_type TEXT NOT NULL CHECK (event_type IN ('started', 'succeeded', 'needs_review', 'failed', 'cancelled', 'outcome_unknown', 'approval_requested', 'approval_granted', 'approval_denied', 'approval_expired', 'approval_revoked', 'tool_dispatched', 'tool_succeeded', 'tool_failed', 'tool_rejected', 'tool_outcome_unknown')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    related_id TEXT,
+    PRIMARY KEY (task_id, seq)
+) STRICT;
+INSERT INTO events_v3 SELECT * FROM events;
+DROP TABLE events;
+ALTER TABLE events_v3 RENAME TO events;
+CREATE TABLE tool_intents_v3 (
+    intent_id TEXT PRIMARY KEY NOT NULL,
+    task_id TEXT NOT NULL REFERENCES tasks(task_id),
+    schema_version INTEGER NOT NULL DEFAULT 2 CHECK (schema_version IN (1, 2)),
+    generation INTEGER NOT NULL CHECK (generation > 0),
+    call_id TEXT NOT NULL,
+    tool_name TEXT NOT NULL CHECK (tool_name IN ('read_input', 'write_output')),
+    tool_version INTEGER NOT NULL CHECK (tool_version = 1),
+    args_json TEXT NOT NULL,
+    args_hash TEXT NOT NULL,
+    scope_path TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('prepared', 'denied', 'dispatched', 'succeeded', 'failed', 'cancelled', 'outcome_unknown')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    step_id INTEGER NOT NULL CHECK (step_id >= 0),
+    UNIQUE (task_id, generation, step_id, call_id)
+) STRICT;
+INSERT INTO tool_intents_v3 SELECT *, 0 FROM tool_intents;
+CREATE TABLE approvals_v3 (
+    approval_id TEXT PRIMARY KEY NOT NULL,
+    intent_id TEXT UNIQUE NOT NULL REFERENCES tool_intents_v3(intent_id),
+    schema_version INTEGER NOT NULL DEFAULT 1 CHECK (schema_version = 1),
+    spec_revision INTEGER NOT NULL CHECK (spec_revision > 0),
+    policy_revision INTEGER NOT NULL CHECK (policy_revision > 0),
+    spec_hash TEXT NOT NULL,
+    args_hash TEXT NOT NULL,
+    tool_version INTEGER NOT NULL CHECK (tool_version = 1),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'denied', 'revoked', 'expired')),
+    decision_source TEXT NOT NULL CHECK (decision_source IN ('task_policy', 'local_cli', 'pending')),
+    expires_at INTEGER NOT NULL,
+    uses_remaining INTEGER NOT NULL CHECK (uses_remaining IN (0, 1)),
+    decided_at TEXT
+) STRICT;
+INSERT INTO approvals_v3 SELECT * FROM approvals;
+DROP TABLE approvals;
+DROP TABLE tool_intents;
+ALTER TABLE tool_intents_v3 RENAME TO tool_intents;
+ALTER TABLE approvals_v3 RENAME TO approvals;
+
+### crates/agent/tests/approvals.rs
+use agent_platform_agent::{
+    store::{ApprovalMode, Claim, StoreError, TaskSpec, TaskStore},
+    task::{FileTask, TaskError},
+};
+use rusqlite::Connection;
+use std::path::PathBuf;
+
+fn spec(mode: ApprovalMode, allowed: bool) -> TaskSpec {
+    let workspace = std::env::temp_dir();
+    TaskSpec {
+        task: FileTask {
+            prompt: "work".into(),
+            input: workspace.join("input"),
+            output: workspace.join("output"),
+            expected: Some("result".into()),
+            allow_read: allowed,
+            allow_write: allowed,
+        },
+        workspace,
+        endpoint: "http://127.0.0.1:1/v1".into(),
+        model: "fixture-model".into(),
+        approval_mode: mode,
+    }
+}
+
+fn path() -> PathBuf {
+    std::env::temp_dir().join(format!("agent-approval-{}.sqlite3", uuid::Uuid::new_v4()))
+}
+
+#[test]
+fn approval_is_bound_to_revision_call_arguments_and_one_use()
+-> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, true))?;
+    let mut prepared =
+        store.prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"result"}"#)?;
+    assert_eq!(store.status(&id)?.recorded_state, "waiting_approval");
+    assert_eq!(store.claim(&prepared)?, Claim::Pending);
+    assert!(store.decide(&prepared.approval_id, 2, true).is_err());
+    assert_eq!(store.claim(&prepared)?, Claim::Pending);
+    store.decide(&prepared.approval_id, 1, true)?;
+    assert!(store.decide(&prepared.approval_id, 1, true).is_err());
+    let original = prepared.args_hash.clone();
+    prepared.args_hash = "other arguments".into();
+    assert!(store.claim(&prepared).is_err());
+    prepared.args_hash = original;
+    prepared.task_id = "other task".into();
+    assert!(store.claim(&prepared).is_err());
+    prepared.task_id = id.clone();
+    prepared.call_id = "other call".into();
+    assert!(store.claim(&prepared).is_err());
+    prepared.call_id = "call-1".into();
+    assert_eq!(store.claim(&prepared)?, Claim::Granted);
+    assert_eq!(store.claim(&prepared)?, Claim::Denied);
+    assert_eq!(store.approvals(&id)?[0].uses_remaining, 0);
+    assert!(store.decide(&prepared.approval_id, 1, false).is_err());
+    store.receipt(&id, 0, "call-1", true)?;
+    assert!(store.receipt(&id, 0, "call-1", true).is_err());
+    assert!(
+        store
+            .prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"changed"}"#)
+            .is_err()
+    );
+    let events = store.events(&id, 0)?;
+    assert_eq!(
+        events
+            .iter()
+            .map(|e| e.event_type.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "started",
+            "approval_requested",
+            "approval_granted",
+            "tool_dispatched",
+            "tool_succeeded"
+        ]
+    );
+    assert_eq!(
+        events.iter().map(|e| e.seq).collect::<Vec<_>>(),
+        vec![1, 2, 3, 4, 5]
+    );
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+#[test]
+fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn std::error::Error>> {
+    for case in [
+        "denied",
+        "expired",
+        "revoked",
+        "policy_denied",
+        "cancelled",
+        "spec_changed",
+        "policy_changed",
+    ] {
+        let path = path();
+        let mut store = TaskStore::open(&path)?;
+        let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, case != "policy_denied"))?;
+        let prepared =
+            store.prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"result"}"#)?;
+        let connection = Connection::open(&path)?;
+        match case {
+            "denied" => store.decide(&prepared.approval_id, 1, false)?,
+            "expired" => {
+                connection.execute("UPDATE approvals SET expires_at=0", [])?;
+                assert!(store.decide(&prepared.approval_id, 1, true).is_err());
+            }
+            "revoked" => {
+                store.decide(&prepared.approval_id, 1, true)?;
+                store.decide(&prepared.approval_id, 1, false)?;
+            }
+            "cancelled" => {
+                let seq = store.status(&id)?.last_seq;
+                store.finish(
+                    &id,
+                    seq,
+                    &Err(TaskError::Cancelled {
+                        artifact_created: false,
+                    }),
+                )?;
+                assert!(store.decide(&prepared.approval_id, 1, true).is_err());
+            }
+            "spec_changed" => {
+                store.decide(&prepared.approval_id, 1, true)?;
+                connection.execute("UPDATE task_specs SET spec_revision=2", [])?;
+            }
+            "policy_changed" => {
+                store.decide(&prepared.approval_id, 1, true)?;
+                connection.execute("UPDATE task_specs SET policy_revision=2", [])?;
+            }
+            _ => {
+                assert!(store.decide(&prepared.approval_id, 1, true).is_err());
+            }
+        }
+        assert!(
+            !matches!(store.claim(&prepared), Ok(Claim::Granted | Claim::Pending)),
+            "{case}"
+        );
+        let dispatched: i64 = connection.query_row(
+            "SELECT count(*) FROM tool_intents WHERE status='dispatched'",
+            [],
+            |r| r.get(0),
+        )?;
+        assert_eq!(dispatched, 0);
+        drop(connection);
+        drop(store);
+        std::fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+#[test]
+fn intent_and_approval_claim_roll_back_together() -> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
+    let prepared = store.prepare_intent(&id, 0, "call-1", "read_input", "{}")?;
+    let connection = Connection::open(&path)?;
+    connection.execute_batch("CREATE TRIGGER reject_dispatch BEFORE INSERT ON events WHEN NEW.event_type='tool_dispatched' BEGIN SELECT RAISE(ABORT,'injected failure'); END;")?;
+    assert!(matches!(
+        store.claim(&prepared),
+        Err(StoreError::Database(_))
+    ));
+    assert_eq!(store.approvals(&id)?[0].uses_remaining, 1);
+    let state: String =
+        connection.query_row("SELECT status FROM tool_intents", [], |r| r.get(0))?;
+    assert_eq!(state, "prepared");
+    assert_eq!(store.status(&id)?.last_seq, 2);
+    connection.execute_batch("DROP TRIGGER reject_dispatch")?;
+    assert_eq!(store.claim(&prepared)?, Claim::Granted);
+    drop(connection);
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+#[test]
+fn migration_preserves_v1_tasks_events_and_read_only_access()
+-> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let connection = Connection::open(&path)?;
+    connection.execute_batch(include_str!("../src/store_v1.sql"))?;
+    connection.execute_batch("PRAGMA application_id=1095780180; PRAGMA user_version=1; INSERT INTO tasks(task_id,recorded_state,last_seq) VALUES ('old','running',1); INSERT INTO events(event_id,task_id,seq,event_type) VALUES ('old-event','old',1,'started');")?;
+    drop(connection);
+    let reader = TaskStore::read(&path)?;
+    assert_eq!(reader.events("old", 0)?[0].event_id, "old-event");
+    assert_eq!(reader.status("old")?.schema_version, 1);
+    drop(reader);
+    let store = TaskStore::open(&path)?;
+    assert_eq!(store.events("old", 0)?[0].event_id, "old-event");
+    assert_eq!(store.events("old", 0)?[0].schema_version, 1);
+    assert_eq!(store.status("old")?.schema_version, 2);
+    let connection = Connection::open(&path)?;
+    let violations: i64 =
+        connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
+            r.get(0)
+        })?;
+    assert_eq!(violations, 0);
+    drop(connection);
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+### CLI實際批准測試
+    def test_manual_approval_controls_real_tool_execution(self):
+        cases = ['approve', 'deny', 'wrong_revision', 'expired', 'claim_failure', 'busy', 'receipt_failure']
+        if os.name != 'nt':
+            cases.append('cancel')
+        for action in cases:
+            with self.subTest(action=action), tempfile.TemporaryDirectory(prefix='agent-approval-cli-') as directory:
+                root = Path(directory)
+                os.environ['AGENT_STATE_DIR'] = str(root / 'state')
+                artifact = root / 'output.txt'
+                requests = []
+
+                class Handler(BaseHTTPRequestHandler):
+                    def log_message(self, *_args):
+                        pass
+
+                    def do_POST(self):
+                        requests.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
+                        if len(requests) == 1:
+                            message = {'role': 'assistant', 'content': None, 'tool_calls': [{
+                                'id': 'approval-write-1', 'type': 'function', 'function': {
+                                    'name': 'write_output', 'arguments': json.dumps({'content': 'APPROVED'})}}]}
+                        else:
+                            message = {'role': 'assistant', 'content': 'done'}
+                        payload = json.dumps({'id': 'approval-test', 'object': 'chat.completion',
+                            'created': 1, 'model': 'fixture-model', 'choices': [
+                            {'index': 0, 'message': message, 'finish_reason': 'tool_calls' if len(requests) == 1 else 'stop'}]}).encode()
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.send_header('Content-Length', str(len(payload)))
+                        self.end_headers()
+                        self.wfile.write(payload)
+
+                server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+                worker = threading.Thread(target=server.serve_forever, kwargs={'poll_interval': 0.01})
+                worker.start()
+                task = root / 'task.json'
+                task.write_text(json.dumps({'endpoint': f'http://127.0.0.1:{server.server_port}/v1',
+                    'model': 'fixture-model', 'approval_mode': 'manual', 'task': {
+                    'prompt': 'create approved output', 'input': 'unused', 'output': str(artifact),
+                    'allow_write': True, 'expected': 'APPROVED'}}))
+                process = subprocess.Popen([str(BINARY), 'run', str(task)], cwd=root,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+                ready = threading.Event()
+                identifiers = []
+
+                def receive_id():
+                    identifiers.append(process.stderr.readline())
+                    ready.set()
+
+                observer = threading.Thread(target=receive_id)
+                observer.start()
+
+                def decide(command, revision=1):
+                    return subprocess.run([str(BINARY), command, approval['approval_id'], str(revision)],
+                        capture_output=True, text=True, encoding='utf-8', timeout=5)
+
+                try:
+                    self.assertTrue(wait_for_boundary(process, ready, 5), 'task identifier missing')
+                    observer.join(timeout=5)
+                    self.assertTrue(identifiers[0].startswith('任務編號：'), identifiers)
+                    task_id = identifiers[0].split('：')[1].strip()
+                    pending = []
+                    deadline = time.monotonic() + 5
+                    while time.monotonic() < deadline and process.poll() is None:
+                        query = subprocess.run([str(BINARY), 'approvals', task_id], capture_output=True,
+                            text=True, encoding='utf-8', timeout=5)
+                        self.assertEqual(query.returncode, 0, query.stderr)
+                        pending = json.loads(query.stdout)
+                        if pending:
+                            break
+                        time.sleep(0.02)
+                    self.assertEqual(len(pending), 1)
+                    approval = pending[0]
+                    self.assertEqual(approval['status'], 'pending')
+                    self.assertEqual(approval['scope_path'], str(artifact))
+                    self.assertEqual(json.loads(approval['args_json']), {'content': 'APPROVED'})
+                    self.assertEqual(approval['uses_remaining'], 1)
+                    self.assertFalse(artifact.exists())
+                    status, _ = self.stored_result(task_id)
+                    self.assertEqual(status['recorded_state'], 'waiting_approval')
+                    if action == 'wrong_revision':
+                        rejected = decide('approve', 2)
+                        self.assertEqual(rejected.returncode, 1)
+                        self.assertFalse(artifact.exists())
+                    if action == 'busy':
+                        with sqlite3.connect(root / 'state/tasks.sqlite3') as database:
+                            database.execute('BEGIN IMMEDIATE')
+                            time.sleep(0.9)
+                            self.assertIsNone(process.poll(), 'temporary database lock stopped the task')
+                            self.assertFalse(artifact.exists())
+                            database.rollback()
+                    if action == 'expired':
+                        with sqlite3.connect(root / 'state/tasks.sqlite3') as database:
+                            database.execute('UPDATE approvals SET expires_at=0')
+                        self.assertEqual(decide('approve').returncode, 1)
+                    elif action == 'cancel':
+                        process.send_signal(signal.SIGINT)
+                    else:
+                        if action == 'claim_failure':
+                            with sqlite3.connect(root / 'state/tasks.sqlite3') as database:
+                                database.execute("CREATE TRIGGER reject_dispatch BEFORE INSERT ON events WHEN NEW.event_type='tool_dispatched' BEGIN SELECT RAISE(ABORT,'injected failure'); END")
+                        if action == 'receipt_failure':
+                            with sqlite3.connect(root / 'state/tasks.sqlite3') as database:
+                                database.execute("CREATE TRIGGER reject_tool_receipt BEFORE INSERT ON events WHEN NEW.event_type='tool_succeeded' BEGIN SELECT RAISE(ABORT,'injected receipt failure'); END")
+                        decision = decide('deny' if action == 'deny' else 'approve')
+                        self.assertEqual(decision.returncode, 0, decision.stderr)
+                    stdout, stderr = process.communicate(timeout=10)
+                    if action in ['approve', 'wrong_revision', 'busy']:
+                        self.assertEqual(process.returncode, 0, stderr)
+                        self.assertEqual(artifact.read_text(), 'APPROVED')
+                        self.assertEqual(json.loads(stdout)['artifact'], 'verified')
+                        self.assertEqual(len(requests), 2)
+                    else:
+                        self.assertEqual(process.returncode, 130 if action == 'cancel' else 1, stderr)
+                        if action == 'receipt_failure':
+                            self.assertEqual(artifact.read_text(), 'APPROVED')
+                            self.assertEqual(stdout, '')
+                        else:
+                            self.assertFalse(artifact.exists())
+                        self.assertEqual(len(requests), 1)
+                        if action in ['deny', 'expired']:
+                            self.assertIn('未獲批准', stderr)
+                    self.assertEqual(decide('approve').returncode, 1)
+                    query = subprocess.run([str(BINARY), 'approvals', task_id], capture_output=True,
+                        text=True, encoding='utf-8', timeout=5)
+                    saved = json.loads(query.stdout)[0]
+                    self.assertEqual(saved['uses_remaining'], 0 if action in ['approve', 'wrong_revision', 'busy', 'receipt_failure'] else 1)
+                    if action == 'receipt_failure':
+                        self.assertEqual(saved['intent_status'], 'outcome_unknown')
+                        status, events = self.stored_result(task_id)
+                        self.assertEqual(status['recorded_state'], 'outcome_unknown')
+                        self.assertEqual(events[-1]['event_type'], 'tool_outcome_unknown')
+                    if action in ['cancel', 'claim_failure']:
+                        self.assertEqual(saved['status'], 'revoked')
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.communicate(timeout=5)
+                    observer.join(timeout=5)
+                    server.shutdown()
+                    server.server_close()
+                    worker.join(timeout=5)

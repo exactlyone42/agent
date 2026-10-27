@@ -1,0 +1,257 @@
+只讀審查，不修改檔案。重點核對：覆蓋率產物與執行紀錄現在不同名；Gitleaks 例外僅指定路徑、欄位、UUID、單一規則，五案反例已通過；變異原工作區執行正常結束有雜湊比對，強制停止仍是未完成，Windows 尚未實機。檢查這次修正是否有會讓錯誤結果通過的具體問題，不要求已知尚未實作的產品發布功能。
+
+FILE scripts/check_all.py
+import hashlib
+import json
+import platform
+from pathlib import Path
+import subprocess
+import tempfile
+from datetime import datetime, timezone
+import uuid
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def source_hashes(root):
+    files = [root / name for name in ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml']]
+    for directory in ['crates', 'scripts', '.cargo']:
+        files.extend(path for path in (root / directory).rglob('*')
+                     if path.is_file() and '__pycache__' not in path.parts)
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(files)}
+
+
+def run_step(name, command, root, evidence):
+    print(f'執行 {name}', flush=True)
+    result = {'command': command, 'started': datetime.now(timezone.utc).isoformat()}
+    with (evidence / f'{name}.txt').open('x', encoding='utf-8') as log:
+        try:
+            result['exit_code'] = subprocess.run(command, cwd=root, stdout=log,
+                                                 stderr=subprocess.STDOUT).returncode
+        except OSError as error:
+            log.write(f'{type(error).__name__}: {error}\n')
+            result['exit_code'] = 127
+    result['finished'] = datetime.now(timezone.utc).isoformat()
+    (evidence / f'{name}.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    return result['exit_code']
+
+
+def secret_command(snapshot, evidence):
+    config = evidence / 'secrets-config.toml'
+    config.write_bytes((ROOT / 'scripts/policy/gitleaks.toml').read_bytes())
+    ignore = evidence / 'secrets-empty.ignore'
+    ignore.write_text('')
+    return ['gitleaks', 'dir', str(snapshot), '--redact', '--no-banner',
+            '--config', str(config), '--gitleaks-ignore-path', str(ignore),
+            '--ignore-gitleaks-allow', '--report-format', 'json',
+            '--report-path', str(evidence / 'secrets-report.json')]
+
+
+def copy_snapshot(root, snapshot, names):
+    for name in sorted(set(names) - {''}):
+        source = root / name
+        if not source.is_symlink() and not source.exists():
+            continue
+        resolved = source.resolve(strict=True)
+        if not resolved.is_relative_to(root.resolve()):
+            raise ValueError(f'秘密掃描拒絕讀取專案外連結：{name}')
+        target = snapshot / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(resolved.read_bytes())
+
+
+def validate_reports(evidence):
+    coverage = json.loads((evidence / 'coverage-report.json').read_text())
+    totals = [item['totals']['lines'] for item in coverage['data']]
+    mutation = json.loads((evidence / 'mutation/mutants.out/outcomes.json').read_text())
+    return bool(totals) and all(item['count'] > 0 and item['covered'] > 0 for item in totals) and (
+        mutation['total_mutants'] > 0 and mutation['caught'] > 0
+        and mutation['missed'] == 0 and mutation['timeout'] == 0
+        and mutation['caught'] + mutation['unviable'] == mutation['total_mutants'])
+
+
+def main():
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    evidence = ROOT / '.runtime/checks' / f'{stamp}-{uuid.uuid4().hex[:8]}'
+    evidence.mkdir(parents=True)
+    print(f'本輪原件：{evidence}', flush=True)
+    before = source_hashes(ROOT)
+    (evidence / 'source-before.json').write_text(json.dumps(before, indent=2) + '\n')
+    (evidence / 'platform.json').write_text(json.dumps({
+        'system': platform.system(), 'machine': platform.machine(),
+        'release': platform.release()}, indent=2) + '\n')
+    steps = [('gate', ['bash', 'scripts/check.sh', 'gate']),
+             ('versions-rust', ['rustc', '--version']),
+             ('versions-coverage', ['cargo', 'llvm-cov', '--version']),
+             ('versions-mutation', ['cargo', 'mutants', '--version']),
+             ('versions-secrets', ['gitleaks', 'version']),
+             ('versions-dependencies', ['cargo', 'machete', '--version'])]
+    results = {}
+    for name, command in steps:
+        results[name] = run_step(name, command, ROOT, evidence)
+    if not any(results.values()):
+        with tempfile.TemporaryDirectory(prefix='agent-secret-scan-') as directory:
+            snapshot = Path(directory)
+            names = subprocess.check_output(
+                ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT)
+            try:
+                copy_snapshot(ROOT, snapshot, names.decode('utf-8').split('\0'))
+                results['secrets'] = run_step('secrets', secret_command(snapshot, evidence), ROOT, evidence)
+            except (OSError, ValueError) as error:
+                results['secrets'] = 127
+                (evidence / 'snapshot-error.txt').write_text(f'{type(error).__name__}: {error}\n')
+        results['coverage'] = run_step('coverage', [
+            'cargo', 'llvm-cov', '--workspace', '--all-features', '--locked', '--json',
+            '--output-path', str(evidence / 'coverage-report.json')], ROOT, evidence)
+        results['mutation'] = run_step('mutation', [
+            'cargo', 'mutants', '--in-place', '--workspace', '--test-workspace', 'true',
+            '--all-features', '--timeout', '90', '--cargo-arg=--locked',
+            '--output', str(evidence / 'mutation')], ROOT, evidence)
+        try:
+            results['reports'] = 0 if validate_reports(evidence) else 1
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            results['reports'] = 1
+            (evidence / 'report-error.txt').write_text(f'{type(error).__name__}: {error}\n')
+    after = source_hashes(ROOT)
+    (evidence / 'source-after.json').write_text(json.dumps(after, indent=2) + '\n')
+    passed = not any(results.values()) and before == after
+    summary = {'passed': passed, 'checks': results, 'source_unchanged': before == after,
+               'scope': '本機工程檢查；不代表三平台實機、桌面或企業發布驗收'}
+    (evidence / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps(summary, ensure_ascii=False), flush=True)
+    return 0 if passed else 1
+
+
+if __name__ == '__main__':
+    with (ROOT / '.git/agent-platform-check.lock').open('a+b') as lock:
+        try:
+            if platform.system() == 'Windows':
+                import msvcrt
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            raise SystemExit('完整檢查已在執行；請接續原程序，不要重開。')
+        raise SystemExit(main())
+
+FILE scripts/test_check_all.py
+import json
+from pathlib import Path
+import secrets
+import string
+import sys
+import tempfile
+import unittest
+import uuid
+
+from check_all import copy_snapshot, run_step, secret_command, validate_reports
+
+
+class CheckRunnerContract(unittest.TestCase):
+    def test_cache_exception_does_not_hide_credentials(self):
+        value = str(uuid.uuid4())
+        token = 'ghp_' + ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(36))
+        cases = [('cache', {'prompt_cache_key': value}, True, 0),
+                 ('other-field', {'api_key': value}, True, 1),
+                 ('outside-path', {'prompt_cache_key': value}, False, 1),
+                 ('token-in-cache', {'prompt_cache_key': token}, True, 1),
+                 ('same-file-token', {'prompt_cache_key': value, 'api_key': token}, True, 1)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name, payload, matching, expected in cases:
+                with self.subTest(name=name):
+                    snapshot = root / name / 'snapshot'
+                    evidence = root / name / 'evidence'
+                    evidence.mkdir(parents=True)
+                    file = snapshot / ('docs/evidence/P01/sample/requests.json' if matching else 'other/requests.json')
+                    file.parent.mkdir(parents=True)
+                    file.write_text(json.dumps(payload, indent=2))
+                    self.assertEqual(run_step('secrets', secret_command(snapshot, evidence), root, evidence), expected)
+                    self.assertNotIn(token, (evidence / 'secrets.txt').read_text())
+                    self.assertNotIn(token, (evidence / 'secrets-report.json').read_text())
+
+    def test_empty_or_incomplete_reports_fail(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mutants = root / 'mutation/mutants.out'
+            mutants.mkdir(parents=True)
+            coverage = {'data': [{'totals': {'lines': {'count': 2, 'covered': 1}}}]}
+            mutation = {'total_mutants': 2, 'caught': 1, 'unviable': 1, 'missed': 0, 'timeout': 0}
+            (root / 'coverage-report.json').write_text(json.dumps(coverage))
+            (mutants / 'outcomes.json').write_text(json.dumps(mutation))
+            self.assertTrue(validate_reports(root))
+            self.assertEqual(run_step('coverage', [sys.executable, '-c', 'pass'], root, root), 0)
+            self.assertTrue(validate_reports(root))
+            self.assertEqual(json.loads((root / 'coverage-report.json').read_text()), coverage)
+            for field, value in [('total_mutants', 0), ('caught', 0), ('missed', 1), ('timeout', 1)]:
+                (mutants / 'outcomes.json').write_text(json.dumps({**mutation, field: value}))
+                self.assertFalse(validate_reports(root))
+            (mutants / 'outcomes.json').write_text(json.dumps(mutation))
+            coverage['data'][0]['totals']['lines']['covered'] = 0
+            (root / 'coverage-report.json').write_text(json.dumps(coverage))
+            self.assertFalse(validate_reports(root))
+
+    def test_snapshot_scans_internal_links_and_rejects_external_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            root = base / 'repo'
+            root.mkdir()
+            snapshot = base / 'snapshot'
+            snapshot.mkdir()
+            (root / 'source.txt').write_text('scan this content')
+            (root / 'internal.txt').symlink_to('source.txt')
+            copy_snapshot(root, snapshot, ['internal.txt', 'deleted.txt'])
+            self.assertEqual((snapshot / 'internal.txt').read_text(), 'scan this content')
+            (base / 'external.txt').write_text('private outside repo')
+            (root / 'external.txt').symlink_to(base / 'external.txt')
+            with self.assertRaises(ValueError):
+                copy_snapshot(root, snapshot, ['external.txt'])
+            self.assertFalse((snapshot / 'external.txt').exists())
+
+    def test_step_records_failure_and_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for code in [0, 7]:
+                name = f'exit-{code}'
+                result = run_step(name, [sys.executable, '-c', f'raise SystemExit({code})'], root, root)
+                self.assertEqual(result, code)
+                self.assertEqual(json.loads((root / f'{name}.json').read_text())['exit_code'], code)
+            self.assertEqual(run_step('missing', [str(root / 'missing-tool')], root, root), 127)
+
+    def test_secret_scanner_detects_canary_and_redacts_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = root / 'snapshot'
+            snapshot.mkdir()
+            for present in [False, True]:
+                evidence = root / str(present)
+                evidence.mkdir()
+                canary = 'ghp_' + ''.join(secrets.choice(string.ascii_letters + string.digits)
+                                         for _ in range(36))
+                (snapshot / 'sample.txt').write_text('token = ' + canary if present else 'ordinary document')
+                result = run_step('secrets', secret_command(snapshot, evidence), root, evidence)
+                self.assertEqual(result, 1 if present else 0)
+                self.assertNotIn(canary, (evidence / 'secrets.txt').read_text())
+                report = (evidence / 'secrets-report.json').read_text()
+                self.assertNotIn(canary, report)
+                self.assertEqual(bool(json.loads(report)), present)
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+FILE scripts/policy/gitleaks.toml
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "請求原件的 UUID 快取識別值，不是驗證憑證"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''(?:^|/)docs/evidence/P01/[^/]+/(?:[^/]+/)?requests\.json$''']
+regexTarget = "match"
+regexes = ['''^prompt_cache_key"\s*:\s*"[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}"$''']

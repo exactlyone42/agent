@@ -1,0 +1,45 @@
+{
+  "source_sha256": {
+    "crates/agent/src/lib.rs": "230535a5747530cfdbe2cd08a1ad0cc1e194653e9fdba3ccf09f3549bf92c167",
+    "crates/agent/src/verification.rs": "5797e73aec53114ec0944dbe95608b5ad3cc1ae1ecdd7edb9c9df4b5502eb9c5",
+    "crates/agent/tests/verification.rs": "e6049c5d76aab4a8cf10e86030af6cb6a2be1955567c657e35242c63684158cd",
+    "crates/harness-probe/tests/rig_contract.rs": "45164631d6c617f2ecd55fdc3c1a1b99a7ca3906f0fe24c98d6bd15c6f340be5",
+    "Cargo.lock": "ba4a328cfb49dbf98aa80ceea4df325c03b707ebb4fd6f6b76e8f133bc6c839b"
+  },
+  "tests_passed": 7,
+  "mutation_generated": 5,
+  "mutation_caught": 5,
+  "coverage": [
+    {
+      "file": "/home/cash/work_space/private/agent-platform/crates/agent/src/verification.rs",
+      "lines": {
+        "count": 13,
+        "covered": 13,
+        "percent": 100.0
+      }
+    }
+  ],
+  "review": "Claude static review completed; fixes tested, not re-reviewed",
+  "dependencies": [
+    {
+      "name": "thiserror",
+      "version": "2.0.21",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    },
+    {
+      "name": "thiserror-impl",
+      "version": "2.0.21",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index"
+    }
+  ],
+  "platform": "Linux x64 only",
+  "not_proven": [
+    "formal CLI integration",
+    "path authority and rename races",
+    "cancellation/restart",
+    "Windows/macOS",
+    "human acceptance"
+  ]
+}

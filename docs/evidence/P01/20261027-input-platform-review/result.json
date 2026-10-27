@@ -1,0 +1,84 @@
+{
+  "duration_api_ms": 131581,
+  "stop_reason": "end_turn",
+  "session_id": "100f918a-dc24-40e6-95ac-90e845b99144",
+  "total_cost_usd": 0.31635290000000005,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 43273,
+    "cache_read_input_tokens": 57329,
+    "output_tokens": 13752,
+    "output_tokens_details": { "thinking_tokens": 12588 },
+    "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43273,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 283,
+        "cache_read_input_tokens": 43419,
+        "cache_creation_input_tokens": 13764,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13764
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 13752,
+      "cacheReadInputTokens": 57329,
+      "cacheCreationInputTokens": 43273,
+      "webSearchRequests": 0,
+      "costUSD": 0.31635290000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 12588,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43273,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": { "background": 0, "foreground": 0, "unset": 0 },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": { "parent": 0, "user": 0, "system": 0 },
+    "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**結論：下一個必修是 Windows 身分比對沒有任何測試能讓它失敗。**\n\n原因：唯一的 Windows 測試只驗共用鎖，把 `file_identity` 改成永遠相等它照樣通過。Windows 也沒有「檢查後被替換」的測試。另外 `ErrorKind::InvalidInput` 會混到系統自己的錯誤，可能把磁碟不支援誤報成「不是一般檔案」。\n\n下一步：先補單元測試，不同檔案的身分必須不同，同檔硬連結必須相同。再讓 `scripts/test_cli.py` 在 Windows 指定 UTF-8 解碼，並反向斷言 `source_grew`。\n\n以上是讀碼推論，沒有跑任何測試，也沒有在 Windows 編譯。",
+  "ttft_ms": 114883,
+  "type": "result",
+  "duration_ms": 131786,
+  "uuid": "85fb8d4e-9686-43a9-bf79-f154b2593e06",
+  "ttft_stream_ms": 9605,
+  "time_to_request_ms": 123,
+  "first_content_frame_ms": 9605,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

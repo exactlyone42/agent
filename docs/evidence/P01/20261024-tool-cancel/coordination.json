@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-24T14:36:46.265631+00:00",
+  "lock": ".git/agent-platform.lock",
+  "holder_pid": 2449127,
+  "competing_flock_exit": 1,
+  "previous_terminal": "term_2e5849bc-b018-4f58-98f1-f6022ae1d582",
+  "previous_terminal_completed": true,
+  "automation": {
+    "id": "ad8983b6-1875-4762-8031-1a12b989a6aa",
+    "enabled": true,
+    "rrule": "*/5 * * * *",
+    "reuseSession": true
+  }
+}

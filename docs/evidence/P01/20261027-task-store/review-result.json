@@ -1,0 +1,84 @@
+{
+  "duration_api_ms": 79054,
+  "stop_reason": "end_turn",
+  "session_id": "88b5e4f3-df44-4d70-bd3e-6d3454cdcf6f",
+  "total_cost_usd": 0.27581,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 47594,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 8543,
+    "output_tokens_details": { "thinking_tokens": 7449 },
+    "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47594,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 8543,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 47594,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 47594
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 8543,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 47594,
+      "webSearchRequests": 0,
+      "costUSD": 0.27581,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 7449,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47594,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": { "background": 0, "foreground": 0, "unset": 0 },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": { "parent": 0, "user": 0, "system": 0 },
+    "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "僅靜態審查，未執行任何程式。嚴重度為我的判斷。\n\n**中**\n1. `finish` 失敗後無法補寫。成果已產生，但鎖逾時（500ms）或磁碟錯誤會讓記錄永遠停在 `running`。CLI 回傳錯誤後不輸出成果報告，也沒有後續路徑能補寫終態。現有測試只驗證回滾，沒驗證補救。這會擋住後續的恢復協調。\n2. 「終態不可覆寫」和「事件只增不改」只靠應用層的 `WHERE`。用 sqlite3 直接執行 `UPDATE tasks SET recorded_state='running'` 或 `DELETE FROM events` 都會成功。`last_seq` 與事件最大序號也沒有約束。建議加 trigger。\n3. 序號寫死為 1 和 2。`last_seq = 1` 的條件、`finish` 裡固定的 `seq 2`，加上 `event_type` 與終態共用同一個 CHECK，會讓任何新增事件（授權、恢復、進度）都得升到 v2。`connect` 目前也沒有 v1 到 v2 的遷移路徑。\n4. 「本機磁碟」只寫在錯誤訊息，程式沒有檢查。`AGENT_STATE_DIR` 指到 NFS/SMB 或 Windows 的 UNC 路徑也能通過 `is_absolute`，WAL 在網路檔案系統有毀損風險。只檢查最後一層是否為符號連結，父層符號連結不會被擋。\n\n**低**\n- `artifact_created` 沒存入資料庫。`cancelled` 或 `failed` 後，用 `status` 看不出成果檔是否已留下，例如 `write_failed` 會留下空檔。\n- 新建資料庫時，在 schema 提交後、切到 WAL 前崩潰，唯讀的 `status` 會回 `Incompatible`，直到再跑一次 `run`。\n- `rusqlite` 若未 bundled（我沒查 Cargo.toml），系統 SQLite 低於 3.51.3 時所有指令都失敗，錯誤訊息也看不出原因。\n- `events` 固定回傳 100 筆，沒有「還有更多」的訊號。`status` 與 `events` 也不在同一個快照。\n- 對不存在的任務呼叫 `finish`，會回「任務已有結果」，訊息誤導。\n- 測試缺口：沒有真正的 SIGKILL 崩潰測試，只測了第二次 SIGINT 的退出。也沒有兩個連線同時 `finish` 的競爭測試。測試失敗時 `-wal` 和 `-shm` 暫存檔不會清掉。\n\n**確認沒問題**\n- 狀態與事件在同一個 IMMEDIATE 交易提交，有回滾測試。\n- 查詢路徑唯讀，不會重新執行任務。\n- 資料庫不存原文與金鑰，CLI 測試有金鑰 canary 檢查。\n\nWindows ACL 和 CTRL_CLOSE 依你說明尚待驗收，沒列入缺陷。",
+  "ttft_ms": 71347,
+  "type": "result",
+  "duration_ms": 79227,
+  "uuid": "7512104a-8d3d-4b80-8e71-8981a8cbde14",
+  "ttft_stream_ms": 5770,
+  "time_to_request_ms": 130,
+  "first_content_frame_ms": 5770,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

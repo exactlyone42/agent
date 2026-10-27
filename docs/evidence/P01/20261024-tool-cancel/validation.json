@@ -1,0 +1,9 @@
+{
+  "interrupt_matches_turn": true,
+  "interrupted_status": true,
+  "no_tool_reply": true,
+  "no_followup_model_request": true,
+  "fixture_unchanged": true,
+  "negative_exits_one": true,
+  "negative_completes_instead": true
+}

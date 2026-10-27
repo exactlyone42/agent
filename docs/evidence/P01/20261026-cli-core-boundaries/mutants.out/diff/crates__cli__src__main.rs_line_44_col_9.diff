@@ -1,0 +1,21 @@
+--- crates/cli/src/main.rs
++++ replace || with && in run
+@@ -36,17 +36,17 @@
+         serde_json::from_slice(&bytes).map_err(|_| "任務 JSON 格式錯誤或包含未知欄位")?;
+     let loopback = match request.endpoint.host() {
+         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+         _ => false,
+     };
+     if !loopback
+         || !matches!(request.endpoint.scheme(), "http" | "https")
+-        || !request.endpoint.username().is_empty()
++        && /* ~ changed by cargo-mutants ~ */ !request.endpoint.username().is_empty()
+         || request.endpoint.password().is_some()
+         || request.endpoint.query().is_some()
+         || request.endpoint.fragment().is_some()
+         || request.model.trim().is_empty()
+     {
+         return Err(
+             "目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數".into(),
+         );

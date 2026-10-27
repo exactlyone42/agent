@@ -1,0 +1,32 @@
+{
+  "recorded_at": "2026-10-24T14:54:41.470682+00:00",
+  "commit": "4d6e54ef4776559bea24a32be62f5944dc2f8a22",
+  "worktree_dirty": true,
+  "toolchain": "rustc 1.98.0",
+  "rig_revision": "55cd481a2421fd5da468b5bd6afc6ac876883599",
+  "model": "MockCompletionModel",
+  "fixture": "synthetic README.md / FIXTURE_OK:README.md",
+  "prompt": "go",
+  "authorization": "local synthetic tests only",
+  "checks": {
+    "locked_tests": "pass:2",
+    "format": "pass",
+    "clippy": "pass",
+    "policy_tests": "pass:22",
+    "negative_always_allow": "expected_fail:101",
+    "schema_without_adapter": "fail:101",
+    "mutation_full": "not_run",
+    "coverage": "not_run",
+    "desktop": "not_run",
+    "full_quality": "not_run"
+  },
+  "files": {
+    "Cargo.toml": "6a7066328eca375dccb43b594f805e560c926c5334900187e96a3299d07ec71c",
+    "Cargo.lock": "bdf3dd88912a72fab218e4924b2280f5f08c4764988a094e05ca00ed079969a0",
+    "rust-toolchain.toml": "f2c82031ae793bfe2c19b2f9828259fbb6eb79081849cca5294706ab46ff2d32",
+    "crates/harness-probe/Cargo.toml": "0c0d7bf0c8520483f6a34c602fe954d4faf8580b1ba11a0430be6b32bdc2a560",
+    "crates/harness-probe/tests/rig_contract.rs": "7a6f574ce1bef12e8885fc96580fec21ca2540300158eef97542058d7b558d3f",
+    ".repo-policy/config.json": "6106858b49cb6170f14cedddaf91a541206e1e9a3a06627dc5aa6c2cc54939d2"
+  },
+  "not_proven": ["P01 completion", "full candidate comparison", "deployment"]
+}

@@ -1,0 +1,795 @@
+只讀審查，不修改來源，也不執行編譯。新增共用 CancellationToken，由 CLI Ctrl+C 取消。實際工具目前只有同步讀/寫固定檔案，尚無外部程序工具。停止時取消 pending model future，已寫入成果不刪，回報本次 artifact_created。請找取消後仍派發、誤報取消/成果或既有行為倒退的具體風險。持久任務/程序樹/實機尚未交付，不把這次當全案完成。
+
+FILE crates/agent/src/task.rs
+use crate::verification::{VerificationError, verify_file};
+use rig_agent::{
+    AgentBuilder,
+    tool::{Tool, ToolContext, ToolExecutionError},
+};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use std::{
+    fs::{File, OpenOptions},
+    io::{Read, Seek, SeekFrom, Write},
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+pub use tokio_util::sync::CancellationToken;
+
+pub const FILE_LIMIT: u64 = 1024 * 1024;
+pub const TASK_TIMEOUT: Duration = Duration::from_secs(120);
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FileTask {
+    pub prompt: String,
+    pub input: PathBuf,
+    pub output: PathBuf,
+    pub expected: Option<String>,
+    #[serde(default)]
+    pub allow_read: bool,
+    #[serde(default)]
+    pub allow_write: bool,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum ArtifactState {
+    Verified,
+    AwaitingReview,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskReport {
+    pub artifact: ArtifactState,
+    pub assistant_message: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TaskError {
+    #[error("任務已停止；若已建立成果，請核對後再接續")]
+    Cancelled { artifact_created: bool },
+    #[error("任務內容不符合長度限制")]
+    InvalidTask,
+    #[error("來源必須是大小在限制內的一般檔案")]
+    InvalidInput,
+    #[error("無法開啟獲准的來源檔案")]
+    Input(#[source] std::io::Error),
+    #[error("模型執行失敗；可能已有部分成果，請核對後再接續")]
+    Harness(#[source] Box<rig_agent::run::PromptError>),
+    #[error("任務逾時；可能已有部分成果，請核對後再接續")]
+    Timeout,
+    #[error("工具狀態異常，不能確認成果")]
+    State,
+    #[error("模型已結束，但沒有可驗證的成果檔案")]
+    MissingArtifact,
+    #[error("成果驗證未通過")]
+    Verification(#[source] VerificationError),
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReadArgs {}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WriteArgs {
+    content: String,
+}
+
+struct ReadInput(Arc<Mutex<Option<File>>>);
+struct WriteOutput {
+    path: PathBuf,
+    allowed: bool,
+    artifact: Arc<Mutex<Option<File>>>,
+}
+
+impl Tool for ReadInput {
+    const NAME: &'static str = "read_input";
+    type Args = ReadArgs;
+    type Output = String;
+    type Error = ToolExecutionError;
+
+    fn description(&self) -> String {
+        "讀取使用者指定且獲准的來源檔案".into()
+    }
+    fn parameters(&self) -> serde_json::Value {
+        json!({"type":"object","properties":{},"additionalProperties":false})
+    }
+    async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {
+        let mut guard = self
+            .0
+            .lock()
+            .map_err(|_| ToolExecutionError::refused("來源狀態異常"))?;
+        let file = guard
+            .as_mut()
+            .ok_or_else(|| ToolExecutionError::refused("使用者未授權讀取來源"))?;
+        file.seek(SeekFrom::Start(0))
+            .map_err(ToolExecutionError::from_error)?;
+        let mut content = String::new();
+        file.take(FILE_LIMIT + 1)
+            .read_to_string(&mut content)
+            .map_err(ToolExecutionError::from_error)?;
+        if content.len() as u64 > FILE_LIMIT {
+            return Err(ToolExecutionError::refused("來源超出大小限制"));
+        }
+        Ok(content)
+    }
+}
+
+impl Tool for WriteOutput {
+    const NAME: &'static str = "write_output";
+    type Args = WriteArgs;
+    type Output = String;
+    type Error = ToolExecutionError;
+
+    fn description(&self) -> String {
+        "建立使用者指定且獲准的新成果檔案，不覆寫既有資料".into()
+    }
+    fn parameters(&self) -> serde_json::Value {
+        json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false})
+    }
+    async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {
+        if !self.allowed {
+            return Err(ToolExecutionError::refused("使用者未授權寫入成果"));
+        }
+        if args.content.len() as u64 > FILE_LIMIT {
+            return Err(ToolExecutionError::refused("成果超出大小限制"));
+        }
+        let mut artifact = self
+            .artifact
+            .lock()
+            .map_err(|_| ToolExecutionError::refused("成果狀態異常"))?;
+        if artifact.is_some() {
+            return Err(ToolExecutionError::refused("成果已寫入，不重複執行"));
+        }
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&self.path)
+            .map_err(ToolExecutionError::from_error)?;
+        file.write_all(args.content.as_bytes())
+            .map_err(ToolExecutionError::from_error)?;
+        file.sync_all().map_err(ToolExecutionError::from_error)?;
+        *artifact = Some(file);
+        Ok("成果已寫入，仍須獨立驗證".into())
+    }
+}
+
+pub async fn run_file_task(
+    model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,
+    task: FileTask,
+    cancellation: CancellationToken,
+) -> Result<TaskReport, TaskError> {
+    if cancellation.is_cancelled() {
+        return Err(TaskError::Cancelled {
+            artifact_created: false,
+        });
+    }
+    if task.prompt.trim().is_empty()
+        || task.prompt.len() as u64 > FILE_LIMIT
+        || task
+            .expected
+            .as_ref()
+            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)
+    {
+        return Err(TaskError::InvalidTask);
+    }
+    let input = if task.allow_read {
+        let file =
+            crate::input::open_checked(&task.input, FILE_LIMIT).map_err(|error| match error {
+                crate::input::InputError::InvalidFile => TaskError::InvalidInput,
+                crate::input::InputError::Io(error) => TaskError::Input(error),
+            })?;
+        Some(file)
+    } else {
+        None
+    };
+    let artifact = Arc::new(Mutex::new(None));
+    let agent = AgentBuilder::new(model)
+        .tool(ReadInput(Arc::new(Mutex::new(input))))
+        .tool(WriteOutput {
+            path: task.output,
+            allowed: task.allow_write,
+            artifact: artifact.clone(),
+        })
+        .build();
+    let response = tokio::select! {
+        biased;
+        _ = cancellation.cancelled() => {
+            let artifact_created = artifact.lock().map_err(|_| TaskError::State)?.is_some();
+            return Err(TaskError::Cancelled { artifact_created });
+        }
+        response = tokio::time::timeout(TASK_TIMEOUT, agent.prompt(task.prompt).max_turns(8).run()) => {
+            response.map_err(|_| TaskError::Timeout)?
+                .map_err(|error| TaskError::Harness(Box::new(error)))?
+        }
+    };
+    let mut guard = artifact.lock().map_err(|_| TaskError::State)?;
+    let file = guard.as_mut().ok_or(TaskError::MissingArtifact)?;
+    let state = if let Some(expected) = task.expected {
+        verify_file(file, expected.as_bytes()).map_err(TaskError::Verification)?;
+        ArtifactState::Verified
+    } else {
+        ArtifactState::AwaitingReview
+    };
+    Ok(TaskReport {
+        artifact: state,
+        assistant_message: response.output().to_owned(),
+    })
+}
+
+FILE crates/cli/src/main.rs
+use agent_platform_agent::task::{
+    ArtifactState, CancellationToken, FileTask, TaskError, run_file_task,
+};
+use rig_core::providers::openai::OpenAIConfig;
+use rig_reqwest::{ReqwestClient, reqwest};
+use serde::Deserialize;
+use std::{io::Read, process::ExitCode, time::Duration};
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Request {
+    endpoint: url::Url,
+    model: String,
+    task: FileTask,
+}
+
+async fn run() -> Result<ExitCode, String> {
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.len() == 1 && args[0] == "--help" {
+        println!(
+            "用法：agent-platform run <任務.json>\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。"
+        );
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args.len() != 2 || args[0] != "run" {
+        return Err("用法：agent-platform run <任務.json>".into());
+    }
+    let mut bytes = Vec::new();
+    agent_platform_agent::input::open_checked(std::path::Path::new(&args[1]), u64::MAX)
+        .map_err(|_| "無法開啟任務檔")?
+        .take(65537)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "無法讀取任務檔")?;
+    if bytes.len() > 65536 {
+        return Err("任務檔超過 64 KiB".into());
+    }
+    let request: Request =
+        serde_json::from_slice(&bytes).map_err(|_| "任務 JSON 格式錯誤或包含未知欄位")?;
+    let loopback = match request.endpoint.host() {
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        _ => false,
+    };
+    if !loopback
+        || !matches!(request.endpoint.scheme(), "http" | "https")
+        || !request.endpoint.username().is_empty()
+        || request.endpoint.password().is_some()
+        || request.endpoint.query().is_some()
+        || request.endpoint.fragment().is_some()
+        || request.model.trim().is_empty()
+    {
+        return Err(
+            "目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數".into(),
+        );
+    }
+    let key = match std::env::var("AGENT_API_KEY") {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) => String::new(),
+        Err(_) => return Err("AGENT_API_KEY 格式錯誤".into()),
+    };
+    let http = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|_| "無法建立模型連線")?;
+    let client = OpenAIConfig::new(key)
+        .with_base_url(request.endpoint.as_str())
+        .connect(ReqwestClient::from(http));
+    let cancellation = CancellationToken::new();
+    let task = run_file_task(
+        client.chat(request.model),
+        request.task,
+        cancellation.clone(),
+    );
+    tokio::pin!(task);
+    let result = tokio::select! {
+        biased;
+        signal = tokio::signal::ctrl_c() => {
+            signal.map_err(|_| "無法接收停止要求，任務未能繼續")?;
+            cancellation.cancel();
+            task.await
+        }
+        result = &mut task => result,
+    };
+    let report = match result {
+        Err(TaskError::Cancelled { artifact_created }) => {
+            println!(
+                "{}",
+                serde_json::json!({"state": "cancelled", "artifact_created": artifact_created})
+            );
+            eprintln!("已停止本機任務；已建立的成果會保留，請核對後再接續。");
+            return Ok(ExitCode::from(130));
+        }
+        other => other.map_err(|error| error.to_string())?,
+    };
+    println!(
+        "{}",
+        serde_json::to_string(&report).map_err(|_| "無法輸出任務結果")?
+    );
+    Ok(if report.artifact == ArtifactState::Verified {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> ExitCode {
+    match run().await {
+        Ok(code) => code,
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+FILE crates/agent/tests/task.rs
+use agent_platform_agent::task::{CancellationToken, FileTask, TaskError, run_file_task};
+use rig_core::test_utils::{MockCompletionModel, MockTurn};
+use std::path::PathBuf;
+
+fn task(prompt: String, expected: Option<String>) -> FileTask {
+    FileTask {
+        prompt,
+        expected,
+        input: PathBuf::from("not-authorized-input"),
+        output: PathBuf::from("not-authorized-output"),
+        allow_read: false,
+        allow_write: false,
+    }
+}
+
+#[tokio::test]
+async fn cancelled_task_never_opens_input_or_requests_model() {
+    let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+    let cancellation = CancellationToken::new();
+    cancellation.cancel();
+    let mut request = task("work".into(), None);
+    request.allow_read = true;
+    let result = run_file_task(model.clone(), request, cancellation).await;
+    assert!(matches!(
+        result,
+        Err(TaskError::Cancelled {
+            artifact_created: false
+        })
+    ));
+    assert!(model.requests().is_empty());
+}
+
+#[tokio::test]
+async fn prompt_and_expected_limits_are_checked_before_model_requests() {
+    for (prompt, expected, valid) in [
+        (String::new(), None, false),
+        (" \n\t".into(), None, false),
+        ("x".repeat(1_048_575), None, true),
+        ("x".repeat(1_048_576), None, true),
+        ("x".repeat(1_048_577), None, false),
+        ("work".into(), Some("x".repeat(1_048_575)), true),
+        ("work".into(), Some("x".repeat(1_048_576)), true),
+        ("work".into(), Some("x".repeat(1_048_577)), false),
+    ] {
+        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let result = run_file_task(
+            model.clone(),
+            task(prompt, expected),
+            CancellationToken::new(),
+        )
+        .await;
+        if valid {
+            assert!(
+                matches!(result, Err(TaskError::MissingArtifact)),
+                "{result:?}"
+            );
+            assert_eq!(model.requests().len(), 1);
+        } else {
+            assert!(matches!(result, Err(TaskError::InvalidTask)), "{result:?}");
+            assert!(model.requests().is_empty());
+        }
+    }
+}
+
+#[tokio::test]
+async fn input_type_and_size_are_checked_before_model_requests()
+-> Result<(), Box<dyn std::error::Error>> {
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("agent-input-{}-{stamp}", std::process::id()));
+    std::fs::create_dir(&root)?;
+    let path = root.join("input");
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)?;
+    drop(file);
+    for size in [0, 1_048_575, 1_048_576, 1_048_577] {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)?
+            .set_len(size)?;
+        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let mut request = task("work".into(), None);
+        request.input = path.clone();
+        request.allow_read = true;
+        let result = run_file_task(model.clone(), request, CancellationToken::new()).await;
+        if size <= 1_048_576 {
+            assert!(
+                matches!(result, Err(TaskError::MissingArtifact)),
+                "{result:?}"
+            );
+            assert_eq!(model.requests().len(), 1);
+        } else {
+            assert!(matches!(result, Err(TaskError::InvalidInput)), "{result:?}");
+            assert!(model.requests().is_empty());
+        }
+    }
+    for (input, exists) in [(root.clone(), true), (root.join("missing"), false)] {
+        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let mut request = task("work".into(), None);
+        request.input = input;
+        request.allow_read = true;
+        let result = run_file_task(model.clone(), request, CancellationToken::new()).await;
+        if exists {
+            assert!(matches!(result, Err(TaskError::InvalidInput)), "{result:?}");
+        } else {
+            assert!(matches!(result, Err(TaskError::Input(_))), "{result:?}");
+        }
+        assert!(model.requests().is_empty());
+    }
+    std::fs::remove_file(path)?;
+    std::fs::remove_dir(root)?;
+    Ok(())
+}
+
+FILE scripts/test_cli.py
+import json
+import os
+import signal
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+
+ROOT = Path(__file__).resolve().parents[1]
+BINARY = Path(os.environ.get('AGENT_CLI_BINARY', str(ROOT / 'target/debug' / ('agent-platform.exe' if os.name == 'nt' else 'agent-platform'))))
+
+
+class CliContract(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt', 'Windows 控制台停止事件須實機驗收')
+    def test_interrupt_stops_pending_model_and_preserves_prior_output(self):
+        for already_written in [False, True]:
+            with self.subTest(already_written=already_written), tempfile.TemporaryDirectory(prefix='agent-cancel-') as directory:
+                root = Path(directory)
+                artifact = root / 'output.txt'
+                ready = threading.Event()
+                disconnected = threading.Event()
+                requests = []
+
+                class Handler(BaseHTTPRequestHandler):
+                    def log_message(self, *_args):
+                        pass
+
+                    def do_POST(self):
+                        requests.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
+                        if already_written and len(requests) == 1:
+                            message = {'role': 'assistant', 'content': None, 'tool_calls': [{
+                                'id': 'write-once', 'type': 'function', 'function': {
+                                    'name': 'write_output', 'arguments': json.dumps({'content': 'preserve this'})}}]}
+                            payload = json.dumps({'id': 'pending-test', 'object': 'chat.completion',
+                                'created': 1, 'model': 'fixture-model', 'choices': [
+                                {'index': 0, 'message': message, 'finish_reason': 'tool_calls'}]}).encode()
+                            self.send_response(200)
+                            self.send_header('Content-Type', 'application/json')
+                            self.send_header('Content-Length', str(len(payload)))
+                            self.end_headers()
+                            self.wfile.write(payload)
+                            return
+                        self.connection.settimeout(5)
+                        ready.set()
+                        try:
+                            if self.connection.recv(1) == b'':
+                                disconnected.set()
+                        except ConnectionResetError:
+                            disconnected.set()
+
+                server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+                worker = threading.Thread(target=server.serve_forever)
+                worker.start()
+                path = root / 'task.json'
+                path.write_text(json.dumps({'endpoint': f'http://127.0.0.1:{server.server_port}/v1',
+                    'model': 'fixture-model', 'task': {'prompt': 'produce output', 'input': 'unused.txt',
+                    'output': str(artifact), 'allow_write': True, 'expected': 'preserve this'}}))
+                process = subprocess.Popen([str(BINARY), 'run', str(path)], cwd=root,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+                try:
+                    self.assertTrue(ready.wait(10), 'model request did not reach cancellation boundary')
+                    process.send_signal(signal.SIGINT)
+                    stdout, stderr = process.communicate(timeout=5)
+                    self.assertEqual(process.returncode, 130, stderr)
+                    self.assertEqual(json.loads(stdout), {'state': 'cancelled', 'artifact_created': already_written})
+                    self.assertIn('已停止本機任務', stderr)
+                    self.assertTrue(disconnected.wait(5), 'model connection remained open')
+                    self.assertEqual(artifact.exists(), already_written)
+                    if already_written:
+                        self.assertEqual(artifact.read_text(), 'preserve this')
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                        process.communicate(timeout=5)
+                    server.shutdown()
+                    server.server_close()
+                    worker.join(timeout=5)
+
+    @unittest.skipUnless(sys.platform == 'linux', 'Linux isolated file replacement fixture')
+    def test_source_replaced_after_precheck_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix='agent-cli-race-') as directory:
+            workspace = Path(directory)
+            library = workspace / 'race.so'
+            subprocess.run(['cc', '-shared', '-fPIC', '-Wall', '-Wextra', '-Werror',
+                            str(ROOT / 'scripts/fixtures/open_race.c'), '-o', str(library)],
+                           check=True, capture_output=True, timeout=20)
+            for kind in ['directory', 'fifo', 'file', 'symlink']:
+                with self.subTest(kind=kind):
+                    case = workspace / kind
+                    case.mkdir()
+                    source, backup = case / 'input', case / 'original'
+                    source.write_text('unchanged original')
+                    replacement = case / 'other'
+                    replacement.write_text('not authorized')
+                    request = {'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
+                               'task': {'input': str(source), 'output': str(case / 'output'),
+                                        'prompt': 'work', 'allow_read': True}}
+                    path = case / 'task.json'
+                    path.write_text(json.dumps(request))
+                    result = subprocess.run([str(BINARY), 'run', str(path)], text=True, encoding="utf-8",
+                                            capture_output=True, timeout=5,
+                                            env={**os.environ, 'LD_PRELOAD': str(library),
+                                                 'AGENT_TEST_REPLACE_INPUT': str(source),
+                                                 'AGENT_TEST_ORIGINAL_INPUT': str(backup),
+                                                 'AGENT_TEST_REPLACEMENT_KIND': kind,
+                                                 'AGENT_TEST_REPLACEMENT_FILE': str(replacement)})
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertIn('來源必須是', result.stderr)
+                    self.assertEqual(backup.read_text(), 'unchanged original')
+                    self.assertEqual(replacement.read_text(), 'not authorized')
+                    self.assertNotIn('not authorized', result.stdout + result.stderr)
+                    self.assertFalse((case / 'output').exists())
+
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'FIFO is a Unix fixture')
+    def test_fifo_source_is_rejected_without_waiting_for_a_writer(self):
+        with tempfile.TemporaryDirectory(prefix='agent-cli-fifo-') as directory:
+            workspace = Path(directory)
+            source = workspace / 'source'
+            os.mkfifo(source)
+            request = {'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
+                       'task': {'input': str(source), 'output': str(workspace / 'output'),
+                                'prompt': 'work', 'allow_read': True}}
+            task = workspace / 'task.json'
+            task.write_text(json.dumps(request))
+            result = subprocess.run([str(BINARY), 'run', str(task)],
+                                    text=True, encoding="utf-8", capture_output=True, timeout=2)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('來源必須是', result.stderr)
+            self.assertFalse((workspace / 'output').exists())
+            config_result = subprocess.run([str(BINARY), 'run', str(source)],
+                                           text=True, encoding="utf-8", capture_output=True, timeout=2)
+            self.assertEqual(config_result.returncode, 1)
+            self.assertIn('無法開啟任務檔', config_result.stderr)
+
+    def test_command_arguments(self):
+        for args, expected in [(['--help'], 0), ([], 1), (['run'], 1),
+                               (['other', 'missing.json'], 1), (['--help', 'extra'], 1)]:
+            with self.subTest(args=args):
+                result = subprocess.run([str(BINARY), *args], text=True, encoding="utf-8",
+                                        capture_output=True, timeout=5)
+                self.assertEqual(result.returncode, expected)
+                self.assertIn('用法：', result.stdout if expected == 0 else result.stderr)
+
+    def test_url_policy_and_json_size(self):
+        with tempfile.TemporaryDirectory(prefix='agent-cli-policy-') as directory:
+            workspace = Path(directory)
+            path = workspace / 'task.json'
+            request = {'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
+                       'task': {'input': 'missing.txt', 'output': 'output.txt',
+                                'prompt': 'work', 'allow_read': True}}
+            rejected = ['http://localhost:1/v1', 'http://192.0.2.1/v1',
+                        'http://[2001:db8::1]/v1', 'ftp://127.0.0.1/v1',
+                        'http://user@127.0.0.1/v1', 'http://:secret@127.0.0.1/v1',
+                        'http://127.0.0.1/v1?key=value', 'http://127.0.0.1/v1#fragment']
+            for endpoint in rejected + ['http://127.0.0.1:1/v1', 'http://[::1]:1/v1']:
+                with self.subTest(endpoint=endpoint):
+                    request['endpoint'] = endpoint
+                    path.write_text(json.dumps(request))
+                    result = subprocess.run([str(BINARY), 'run', str(path)], cwd=workspace,
+                                            text=True, encoding="utf-8", capture_output=True, timeout=5)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn('目前只接受' if endpoint in rejected else '無法開啟獲准的來源',
+                                  result.stderr)
+            request['endpoint'] = 'http://127.0.0.1:1/v1'
+            payload = json.dumps(request)
+            for size in [65535, 65536, 65537]:
+                with self.subTest(size=size):
+                    path.write_text(payload + ' ' * (size - len(payload)))
+                    result = subprocess.run([str(BINARY), 'run', str(path)], cwd=workspace,
+                                            text=True, encoding="utf-8", capture_output=True, timeout=5)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn('任務檔超過' if size > 65536 else '無法開啟獲准的來源', result.stderr)
+
+    def test_file_tasks_through_real_cli_and_http(self):
+        for case, exit_code in [('correct', 0), ('wrong', 1), ('missing', 1),
+                                ('denied', 1), ('existing', 1), ('review', 2),
+                                ('malformed', 1), ('redirect', 1), ('existing_equal', 1),
+                                ('read_limit', 0), ('write_limit', 2), ('write_oversize', 1),
+                                ('source_grew', 0), ('duplicate_write', 0)]:
+            with self.subTest(case=case), tempfile.TemporaryDirectory(prefix='agent-cli-test-') as directory:
+                workspace = Path(directory)
+                source, artifact = workspace / 'input.txt', workspace / 'output.txt'
+                source_content = 'x' * 1048576 if case in ['read_limit', 'source_grew'] else 'original fixture'
+                output_content = ('x' * (1048576 if case == 'write_limit' else 1048577)
+                                  if case in ['write_limit', 'write_oversize'] else 'ORIGINAL FIXTURE')
+                source.write_text(source_content)
+                if case == 'existing':
+                    artifact.write_text('keep existing')
+                if case == 'existing_equal':
+                    artifact.write_text('ORIGINAL FIXTURE')
+                requests = []
+
+                class Handler(BaseHTTPRequestHandler):
+                    def log_message(self, *_args):
+                        pass
+
+                    def do_POST(self):
+                        requests.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
+                        if case == 'redirect':
+                            self.send_response(307)
+                            self.send_header('Location', f'http://127.0.0.1:{self.server.server_port}/redirected')
+                            self.send_header('Content-Length', '0')
+                            self.end_headers()
+                            return
+                        index = len(requests)
+                        if index == 1:
+                            if case == 'source_grew':
+                                with source.open('a') as changed:
+                                    changed.write('y')
+                            name, args = 'read_input', {}
+                        elif index == 2 and case != 'missing':
+                            name = 'write_output'
+                            args = {'content': 'incorrect content' if case == 'wrong' else output_content}
+                            if case == 'malformed':
+                                args['path'] = 'unapproved.txt'
+                        elif index == 3 and case == 'duplicate_write':
+                            name, args = 'write_output', {'content': 'unexpected second write'}
+                        else:
+                            name, args = None, None
+                        message = {'role': 'assistant', 'content': 'done'}
+                        if name:
+                            message = {'role': 'assistant', 'content': None, 'tool_calls': [
+                                {'id': f'call_{index}', 'type': 'function',
+                                 'function': {'name': name, 'arguments': json.dumps(args)}}]}
+                        response = {'id': f'chat_{index}', 'object': 'chat.completion', 'created': 1,
+                                    'model': 'fixture-model', 'choices': [{'index': 0, 'message': message,
+                                    'finish_reason': 'tool_calls' if name else 'stop'}],
+                                    'usage': {'prompt_tokens': 1, 'completion_tokens': 1, 'total_tokens': 2}}
+                        payload = json.dumps(response).encode()
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.send_header('Content-Length', str(len(payload)))
+                        self.end_headers()
+                        self.wfile.write(payload)
+
+                server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+                worker = threading.Thread(target=server.serve_forever)
+                worker.start()
+                request = {'endpoint': f'http://127.0.0.1:{server.server_port}/v1', 'model': 'fixture-model',
+                           'task': {'prompt': '讀來源並寫入大寫成果', 'input': str(source), 'output': str(artifact),
+                                    'allow_read': case != 'denied', 'allow_write': case != 'denied',
+                                    'expected': None if case in ['review', 'write_limit'] else 'ORIGINAL FIXTURE'}}
+                task_file = workspace / 'task.json'
+                task_file.write_text(json.dumps(request))
+                try:
+                    result = subprocess.run([str(BINARY), 'run', str(task_file)], cwd=workspace,
+                                            env={**os.environ, 'AGENT_API_KEY': 'test-secret-canary'},
+                                            text=True, encoding="utf-8", capture_output=True, timeout=20)
+                finally:
+                    server.shutdown()
+                    server.server_close()
+                    worker.join(timeout=5)
+                self.assertEqual(result.returncode, exit_code, result.stderr)
+                if exit_code == 1:
+                    message = ('成果驗證未通過' if case == 'wrong' else
+                               '模型執行失敗' if case == 'redirect' else
+                               '沒有可驗證的成果檔案')
+                    self.assertIn(message, result.stderr)
+                self.assertNotIn('test-secret-canary', result.stdout + result.stderr)
+                self.assertEqual(source.read_text(), source_content + ('y' if case == 'source_grew' else ''))
+                if case in ['correct', 'review', 'read_limit', 'write_limit', 'source_grew', 'duplicate_write']:
+                    report = json.loads(result.stdout)
+                    self.assertEqual(report['artifact'], 'verified' if exit_code == 0 else 'awaiting_review')
+                    self.assertEqual(artifact.read_text(), output_content)
+                    if case == 'duplicate_write':
+                        self.assertEqual(len(requests), 4)
+                        messages = [m for m in requests[3]['messages'] if m['role'] == 'tool']
+                        self.assertIn('成果已寫入，不重複執行', messages[-1]['content'])
+                elif case == 'wrong':
+                    self.assertEqual(artifact.read_text(), 'incorrect content')
+                elif case == 'existing':
+                    self.assertEqual(artifact.read_text(), 'keep existing')
+                elif case == 'existing_equal':
+                    self.assertEqual(artifact.read_text(), 'ORIGINAL FIXTURE')
+                else:
+                    self.assertFalse(artifact.exists())
+                if case == 'redirect':
+                    self.assertEqual(len(requests), 1)
+                else:
+                    self.assertGreaterEqual(len(requests), 2)
+                    tool_messages = [m for m in requests[1]['messages'] if m['role'] == 'tool']
+                    if case == 'denied':
+                        self.assertNotIn('original fixture', json.dumps(tool_messages))
+                    elif case == 'source_grew':
+                        self.assertTrue(any('來源超出大小限制' in m['content'] for m in tool_messages))
+                        self.assertFalse(any(source_content in m['content'] for m in tool_messages))
+                    else:
+                        self.assertTrue(any(m['content'] == source_content for m in tool_messages))
+                    definitions = {tool['function']['name']: tool['function'] for tool in requests[0]['tools']}
+                    self.assertEqual(definitions['read_input']['description'], '讀取使用者指定且獲准的來源檔案')
+                    self.assertEqual(definitions['write_output']['description'], '建立使用者指定且獲准的新成果檔案，不覆寫既有資料')
+                    self.assertEqual(definitions['read_input']['parameters'],
+                                     {'type': 'object', 'properties': {}, 'additionalProperties': False})
+                    self.assertEqual(definitions['write_output']['parameters'],
+                                     {'type': 'object', 'properties': {'content': {'type': 'string'}},
+                                      'required': ['content'], 'additionalProperties': False})
+                self.assertFalse((workspace / 'unapproved.txt').exists())
+
+    @unittest.skipUnless(os.supports_bytes_environ, '作業系統不支援位元組環境變數')
+    def test_invalid_key_encoding_fails_before_connection(self):
+        with tempfile.TemporaryDirectory(prefix='agent-cli-key-') as directory:
+            root = Path(directory)
+            path = root / 'task.json'
+            path.write_text(json.dumps({'endpoint': 'http://127.0.0.1:1/v1', 'model': 'fixture-model',
+                'task': {'prompt': 'work', 'input': 'missing.txt', 'output': 'new.txt'}}))
+            result = subprocess.run([str(BINARY), 'run', str(path)], cwd=root,
+                env={**os.environb, b'AGENT_API_KEY': b'\xff'}, text=True, encoding='utf-8',
+                capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('AGENT_API_KEY 格式錯誤', result.stderr)
+            self.assertFalse((root / 'new.txt').exists())
+
+    def test_invalid_configuration_does_not_start_task(self):
+        with tempfile.TemporaryDirectory(prefix='agent-cli-config-') as directory:
+            workspace = Path(directory)
+            path = workspace / 'task.json'
+            for value in ['{', 'x' * 65537, json.dumps({'endpoint': 'https://example.com/v1',
+                    'model': 'fixture-model', 'task': {'input': 'missing.txt', 'output': 'new.txt',
+                    'prompt': 'do work', 'allow_read': True, 'allow_write': True}})]:
+                with self.subTest(value_length=len(value)):
+                    path.write_text(value)
+                    result = subprocess.run([str(BINARY), 'run', str(path)], cwd=workspace,
+                                            text=True, encoding="utf-8", capture_output=True, timeout=5)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertFalse((workspace / 'new.txt').exists())
+                    self.assertNotIn('無法開啟獲准的來源', result.stderr)
+
+
+if __name__ == '__main__':
+    unittest.main()

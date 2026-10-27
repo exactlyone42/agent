@@ -1,0 +1,82 @@
+{
+  "duration_api_ms": 40542,
+  "stop_reason": "end_turn",
+  "session_id": "0bccbc1b-c962-42e8-bbae-feb644358313",
+  "total_cost_usd": 0.256108,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 52871,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 4462,
+    "output_tokens_details": { "thinking_tokens": 3560 },
+    "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52871,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4462,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 52871,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 52871
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 4462,
+      "cacheReadInputTokens": 0,
+      "cacheCreationInputTokens": 52871,
+      "webSearchRequests": 0,
+      "costUSD": 0.256108,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3560,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": { "background": 0, "foreground": 0, "unset": 0 },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": { "parent": 0, "user": 0, "system": 0 },
+    "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**結論：可有條件進入 P01 試接**（Codex／Rig 比較＋SQLite 壓測）。整機 RAG、GUI、電腦操作現在不可試接。我沒開任何來源連結，所以各來源是否支持主張，我都沒查證。\n\n1. **完成條件沒人負責。** 任務規格由 AI 整理，卻要求獨立驗證器判成功。開放式任務（寫報告、研究）沒有驗證器，也沒有「無法驗證」這個終態。請補：完成條件誰定、驗證器分幾類、無法驗證時算什麼。\n2. **核心未定，卻有兩套進度來源。** 選 Codex 時進度歸它，取消、恢復、授權攔截可能不在平台手上。P01 要先訂必過門檻：能攔截全部工具、能在派發點注入授權、能由外部取消，不過就淘汰。\n3. **隔離只有原則，沒有機制。** 沒選 Shell 沙箱（bwrap、Landlock 或容器）、網路控制、憑證存放處。「常駐只在容器」也與要操作主機檔案或桌面的 worker 位置衝突，沒解決。\n4. **沒有具體契約。** 任務、事件、授權、回執沒有欄位定義，也沒有合法狀態轉移表、寫入者，更沒有 CLI 指令面與事件協定。P01 前至少交一份 schema。\n5. **模型協定空白。** 「能力契約」沒定義。Gateway 提供哪種協定、串流與工具呼叫是否相容 Codex，都沒寫。\n6. **記憶無契約。** 存哪、怎麼取回、如何防止不可信內容被寫進記憶，都沒寫。\n7. **RAG 範圍過大。** Docling、LlamaIndex、PostgreSQL、容器、E5 疊四層，再加全機權限映射，卻沒有權限資料表設計。2 CPU／4 GiB 能否跑 OCR 沒有依據。P05a 請先縮到工作區。knowledge-plan 抬頭寫「已審查修訂」，內文卻說新章節未審，狀態自相矛盾。\n8. **驗收與介面未決。** 30 題×5 次樣本小，沒有判定規則或信賴區間。CLI 與 Tauri 桌面的關係、Linux 顯示環境（X11 或 Wayland）也未決。\n\n**來源與保證：** 方法文件大多已標明「論文結果不外推」，我沒看到明顯把論文當保證的偷換。但「常見工程做法」的說法沒有證據。",
+  "ttft_ms": 34836,
+  "type": "result",
+  "duration_ms": 40692,
+  "uuid": "0b2a003a-e79a-4406-8f79-c51f566ac871",
+  "ttft_stream_ms": 2799,
+  "time_to_request_ms": 108,
+  "first_content_frame_ms": 2799,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

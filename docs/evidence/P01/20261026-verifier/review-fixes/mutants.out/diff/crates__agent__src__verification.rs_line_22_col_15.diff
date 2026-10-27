@@ -1,0 +1,17 @@
+--- crates/agent/src/verification.rs
++++ replace != with == in verify_file
+@@ -14,13 +14,13 @@
+ pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {
+     if !file.metadata()?.is_file() {
+         return Err(VerificationError::UnsupportedFile);
+     }
+     file.seek(SeekFrom::Start(0))?;
+     let mut actual = Vec::new();
+     file.take(expected.len() as u64 + 1)
+         .read_to_end(&mut actual)?;
+-    if actual != expected {
++    if actual == /* ~ changed by cargo-mutants ~ */ expected {
+         return Err(VerificationError::ContentMismatch);
+     }
+     Ok(())
+ }

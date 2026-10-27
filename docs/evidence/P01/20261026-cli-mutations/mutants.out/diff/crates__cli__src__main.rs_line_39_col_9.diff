@@ -1,0 +1,21 @@
+--- crates/cli/src/main.rs
++++ delete match arm Some(url::Host::Ipv6(ip)) in run
+@@ -31,17 +31,17 @@
+         .map_err(|_| "無法讀取任務檔")?;
+     if bytes.len() > 65536 {
+         return Err("任務檔超過 64 KiB".into());
+     }
+     let request: Request =
+         serde_json::from_slice(&bytes).map_err(|_| "任務 JSON 格式錯誤或包含未知欄位")?;
+     let loopback = match request.endpoint.host() {
+         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+-        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
++         /* ~ changed by cargo-mutants ~ */
+         _ => false,
+     };
+     if !loopback
+         || !matches!(request.endpoint.scheme(), "http" | "https")
+         || !request.endpoint.username().is_empty()
+         || request.endpoint.password().is_some()
+         || request.endpoint.query().is_some()
+         || request.endpoint.fragment().is_some()

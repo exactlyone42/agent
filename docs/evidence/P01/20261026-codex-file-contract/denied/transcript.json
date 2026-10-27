@@ -1,0 +1,730 @@
+[
+  {
+    "sent": {
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "clientInfo": {
+          "name": "file_contract",
+          "version": "0.1.0"
+        },
+        "capabilities": {
+          "experimentalApi": true
+        }
+      }
+    }
+  },
+  {
+    "received": {
+      "id": 1,
+      "result": {
+        "userAgent": "file_contract/0.164.0 (Ubuntu 26.4.0; x86_64) unknown (file_contract; 0.1.0)",
+        "codexHome": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    }
+  },
+  {
+    "sent": {
+      "method": "initialized",
+      "params": {}
+    }
+  },
+  {
+    "sent": {
+      "id": 2,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "untrusted",
+        "sandbox": "read-only",
+        "ephemeral": true,
+        "dynamicTools": [
+          {
+            "type": "function",
+            "name": "read_fixture",
+            "description": "Synthetic file task",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": ["path"],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "write_fixture",
+            "description": "Synthetic file task",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string"
+                }
+              },
+              "required": ["content"],
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "Essence",
+        "installationId": "f78c0408-8c4b-45d2-b3d2-684607f1e643",
+        "environmentId": null
+      },
+      "emittedAtMs": 1793007358234
+    }
+  },
+  {
+    "received": {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1793007358,
+          "updatedAt": 1793007358,
+          "recencyAt": 1793007358,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+          "cliVersion": "0.164.0",
+          "originator": "file_contract",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+        "runtimeWorkspaceRoots": [
+          "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "untrusted",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 3,
+      "method": "turn/start",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "input": [
+          {
+            "type": "text",
+            "text": "讀取 README.md，將大寫內容寫入成果檔"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1793007358,
+          "updatedAt": 1793007358,
+          "recencyAt": 1793007358,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-file-contract-k9d_6c84",
+          "cliVersion": "0.164.0",
+          "originator": "file_contract",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1793007358250
+    }
+  },
+  {
+    "received": {
+      "method": "warning",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "message": "Model metadata for `fixture-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+      },
+      "emittedAtMs": 1793007358251
+    }
+  },
+  {
+    "received": {
+      "id": 3,
+      "result": {
+        "turn": {
+          "id": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "rootTurnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null
+        }
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "status": {
+          "type": "active",
+          "activeFlags": []
+        }
+      },
+      "emittedAtMs": 1793007358252
+    }
+  },
+  {
+    "received": {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turn": {
+          "id": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "rootTurnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1793007358,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1793007358252
+    }
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a17791-112e-7961-9923-548ac985d346",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "讀取 README.md，將大寫內容寫入成果檔",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "startedAtMs": 1793007358254
+      },
+      "emittedAtMs": 1793007358254
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a17791-112e-7961-9923-548ac985d346",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "讀取 README.md，將大寫內容寫入成果檔",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "completedAtMs": 1793007358254
+      },
+      "emittedAtMs": 1793007358254
+    }
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_1",
+          "namespace": null,
+          "tool": "read_fixture",
+          "arguments": {
+            "path": "README.md"
+          },
+          "status": "inProgress",
+          "contentItems": null,
+          "success": null,
+          "durationMs": null
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "startedAtMs": 1793007358262
+      },
+      "emittedAtMs": 1793007358262
+    }
+  },
+  {
+    "received": {
+      "method": "item/tool/call",
+      "id": 0,
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "callId": "call_1",
+        "namespace": null,
+        "tool": "read_fixture",
+        "arguments": {
+          "path": "README.md"
+        }
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 0,
+      "result": {
+        "contentItems": [
+          {
+            "type": "inputText",
+            "text": "使用者拒絕工具操作"
+          }
+        ],
+        "success": false
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_1",
+          "namespace": null,
+          "tool": "read_fixture",
+          "arguments": {
+            "path": "README.md"
+          },
+          "status": "failed",
+          "contentItems": [
+            {
+              "type": "inputText",
+              "text": "使用者拒絕工具操作"
+            }
+          ],
+          "success": false,
+          "durationMs": 0
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "completedAtMs": 1793007358262
+      },
+      "emittedAtMs": 1793007358262
+    }
+  },
+  {
+    "received": {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1793007358262
+    }
+  },
+  {
+    "received": {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1793007358262
+    }
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_2",
+          "namespace": null,
+          "tool": "write_fixture",
+          "arguments": {
+            "content": "ORIGINAL FIXTURE"
+          },
+          "status": "inProgress",
+          "contentItems": null,
+          "success": null,
+          "durationMs": null
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "startedAtMs": 1793007358272
+      },
+      "emittedAtMs": 1793007358272
+    }
+  },
+  {
+    "received": {
+      "method": "item/tool/call",
+      "id": 1,
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "callId": "call_2",
+        "namespace": null,
+        "tool": "write_fixture",
+        "arguments": {
+          "content": "ORIGINAL FIXTURE"
+        }
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 1,
+      "result": {
+        "contentItems": [
+          {
+            "type": "inputText",
+            "text": "使用者拒絕工具操作"
+          }
+        ],
+        "success": false
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_2",
+          "namespace": null,
+          "tool": "write_fixture",
+          "arguments": {
+            "content": "ORIGINAL FIXTURE"
+          },
+          "status": "failed",
+          "contentItems": [
+            {
+              "type": "inputText",
+              "text": "使用者拒絕工具操作"
+            }
+          ],
+          "success": false,
+          "durationMs": 0
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "completedAtMs": 1793007358272
+      },
+      "emittedAtMs": 1793007358272
+    }
+  },
+  {
+    "received": {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 4,
+            "inputTokens": 2,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 2,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1793007358272
+    }
+  },
+  {
+    "received": {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1793007358272
+    }
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_3",
+          "text": "done",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "startedAtMs": 1793007358279
+      },
+      "emittedAtMs": 1793007358279
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "agentMessage",
+          "id": "msg_3",
+          "text": "done",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null
+        },
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "completedAtMs": 1793007358279
+      },
+      "emittedAtMs": 1793007358279
+    }
+  },
+  {
+    "received": {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 6,
+            "inputTokens": 3,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 3,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1793007358279
+    }
+  },
+  {
+    "received": {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1793007358279
+    }
+  },
+  {
+    "received": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "emittedAtMs": 1793007358279
+    }
+  },
+  {
+    "received": {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a17791-111c-7b71-abfc-4a1026bd9da7",
+        "turn": {
+          "id": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "rootTurnId": "01a17791-112b-75b2-9d2d-94c4ac713c5b",
+          "items": [
+            {
+              "type": "agentMessage",
+              "id": "msg_3",
+              "text": "done",
+              "phase": null,
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null
+            }
+          ],
+          "itemsView": "summary",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1793007358,
+          "completedAt": 1793007358,
+          "durationMs": 28
+        }
+      },
+      "emittedAtMs": 1793007358280
+    }
+  }
+]

@@ -1,0 +1,10 @@
+   Compiling harness-probe v0.1.0 (/home/cash/work_space/private/agent-platform/crates/harness-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.46s
+     Running tests/rig_contract.rs (target/debug/deps/rig_contract-a0e9a051d2b6d2a2)
+
+running 3 tests
+test malformed_arguments_do_not_execute_tool ... ok
+test unauthorized_path_does_not_read_fixture ... ok
+test approval_controls_actual_tool_execution ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s

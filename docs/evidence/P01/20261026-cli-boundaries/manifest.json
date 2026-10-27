@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "sha256": {
+    "scripts/test_cli.py": "b0e73307a59a6ec948befe2c543c3274776cd4ca7e7cc70efa9bbfd26940fb19",
+    "crates/agent/src/task.rs": "8ba2e5396b33fbbcbde2b73f11277c6c36ce65ceeab689436c4344eed3b0da08",
+    "crates/cli/src/main.rs": "5d1c75a20bac78d4d144683596d65929fe864da0c530ff44866d6fea67e68c0c"
+  },
+  "scope": "Linux actual CLI with synthetic local HTTP; mutation recheck pending"
+}

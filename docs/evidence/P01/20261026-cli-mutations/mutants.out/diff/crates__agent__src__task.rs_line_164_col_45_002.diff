@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace > with >= in run_file_task
+@@ -156,17 +156,17 @@
+     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,
+     task: FileTask,
+ ) -> Result<TaskReport, TaskError> {
+     if task.prompt.trim().is_empty()
+         || task.prompt.len() as u64 > FILE_LIMIT
+         || task
+             .expected
+             .as_ref()
+-            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)
++            .is_some_and(|s| s.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT)
+     {
+         return Err(TaskError::InvalidTask);
+     }
+     let input = if task.allow_read {
+         let file = File::open(&task.input).map_err(TaskError::Input)?;
+         let metadata = file.metadata().map_err(TaskError::Input)?;
+         if !metadata.is_file() || metadata.len() > FILE_LIMIT {
+             return Err(TaskError::InvalidInput);

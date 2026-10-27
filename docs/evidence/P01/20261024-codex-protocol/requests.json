@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "clientInfo": {
+        "name": "agent_platform_probe",
+        "version": "0.1.0"
+      }
+    }
+  },
+  {
+    "method": "initialized",
+    "params": {}
+  },
+  {
+    "id": 2,
+    "method": "thread/read",
+    "params": {
+      "threadId": 42
+    }
+  },
+  {
+    "id": 3,
+    "method": "agent_platform_invalid_method",
+    "params": {}
+  }
+]

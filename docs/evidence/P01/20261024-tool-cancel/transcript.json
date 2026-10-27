@@ -1,0 +1,473 @@
+[
+  {
+    "sent": {
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "clientInfo": {
+          "name": "cancel_probe",
+          "version": "0.1.0"
+        },
+        "capabilities": {
+          "experimentalApi": true
+        }
+      }
+    }
+  },
+  {
+    "received": {
+      "id": 1,
+      "result": {
+        "userAgent": "cancel_probe/0.163.0 (Ubuntu 26.4.0; x86_64) unknown (cancel_probe; 0.1.0)",
+        "codexHome": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    }
+  },
+  {
+    "sent": {
+      "method": "initialized",
+      "params": {}
+    }
+  },
+  {
+    "sent": {
+      "id": 2,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "untrusted",
+        "sandbox": "read-only",
+        "ephemeral": true,
+        "dynamicTools": [
+          {
+            "type": "function",
+            "name": "fixture_write",
+            "description": "Write synthetic fixture",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "Essence",
+        "installationId": "8c04ecfe-577b-4d8d-8217-16b870f4e9ba",
+        "environmentId": null
+      },
+      "emittedAtMs": 1792852578279
+    }
+  },
+  {
+    "received": {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1792852578,
+          "updatedAt": 1792852578,
+          "recencyAt": 1792852578,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+          "cliVersion": "0.163.0",
+          "originator": "cancel_probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+        "runtimeWorkspaceRoots": [
+          "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "untrusted",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 3,
+      "method": "turn/start",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "input": [
+          {
+            "type": "text",
+            "text": "Write fixture_write once."
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1792852578,
+          "updatedAt": 1792852578,
+          "recencyAt": 1792852578,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-platform-execution-ufu1jeq4",
+          "cliVersion": "0.163.0",
+          "originator": "cancel_probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1792852578287
+    }
+  },
+  {
+    "received": {
+      "method": "warning",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "message": "Model metadata for `fixture-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+      },
+      "emittedAtMs": 1792852578288
+    }
+  },
+  {
+    "received": {
+      "id": 3,
+      "result": {
+        "turn": {
+          "id": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "rootTurnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": null,
+          "completedAt": null,
+          "durationMs": null
+        }
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "status": {
+          "type": "active",
+          "activeFlags": []
+        }
+      },
+      "emittedAtMs": 1792852578290
+    }
+  },
+  {
+    "received": {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turn": {
+          "id": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "rootTurnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1792852578,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1792852578290
+    }
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a16e57-4ff2-7381-998b-e454ad5f9d8c",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Write fixture_write once.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "startedAtMs": 1792852578290
+      },
+      "emittedAtMs": 1792852578291
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "userMessage",
+          "id": "01a16e57-4ff2-7381-998b-e454ad5f9d8c",
+          "clientId": null,
+          "content": [
+            {
+              "type": "text",
+              "text": "Write fixture_write once.",
+              "text_elements": []
+            }
+          ]
+        },
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "completedAtMs": 1792852578290
+      },
+      "emittedAtMs": 1792852578291
+    }
+  },
+  {
+    "http": "\"POST /v1/responses HTTP/1.1\" 200 -"
+  },
+  {
+    "received": {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_1",
+          "namespace": null,
+          "tool": "fixture_write",
+          "arguments": {},
+          "status": "inProgress",
+          "contentItems": null,
+          "success": null,
+          "durationMs": null
+        },
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "startedAtMs": 1792852578298
+      },
+      "emittedAtMs": 1792852578298
+    }
+  },
+  {
+    "received": {
+      "method": "item/tool/call",
+      "id": 0,
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "callId": "call_1",
+        "namespace": null,
+        "tool": "fixture_write",
+        "arguments": {}
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 4,
+      "method": "turn/interrupt",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86"
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "dynamicToolCall",
+          "id": "call_1",
+          "namespace": null,
+          "tool": "fixture_write",
+          "arguments": {},
+          "status": "failed",
+          "contentItems": [],
+          "success": false,
+          "durationMs": 0
+        },
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "completedAtMs": 1792852578298
+      },
+      "emittedAtMs": 1792852578298
+    }
+  },
+  {
+    "received": {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 2,
+            "inputTokens": 1,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 1,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1792852578298
+    }
+  },
+  {
+    "received": {
+      "method": "account/rateLimits/updated",
+      "params": {
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": null,
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": null,
+          "rateLimitReachedType": null
+        }
+      },
+      "emittedAtMs": 1792852578298
+    }
+  },
+  {
+    "received": {
+      "id": 4,
+      "result": {}
+    }
+  },
+  {
+    "received": {
+      "method": "thread/status/changed",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "status": {
+          "type": "idle"
+        }
+      },
+      "emittedAtMs": 1792852578298
+    }
+  },
+  {
+    "received": {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a16e57-4fe9-7f00-a02e-99d8a3f7f8d2",
+        "turn": {
+          "id": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "rootTurnId": "01a16e57-4ff0-7072-8a2b-a7409926cf86",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "interrupted",
+          "error": null,
+          "startedAt": 1792852578,
+          "completedAt": 1792852578,
+          "durationMs": 10
+        }
+      },
+      "emittedAtMs": 1792852578298
+    }
+  }
+]

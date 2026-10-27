@@ -1,0 +1,290 @@
+[
+  {
+    "sent": {
+      "id": 1,
+      "method": "initialize",
+      "params": {
+        "clientInfo": {
+          "name": "agent_platform_probe",
+          "version": "0.1.0"
+        },
+        "capabilities": {
+          "experimentalApi": true
+        }
+      }
+    }
+  },
+  {
+    "received": {
+      "id": 1,
+      "result": {
+        "userAgent": "agent_platform_probe/0.163.0 (Ubuntu 26.4.0; x86_64) unknown (agent_platform_probe; 0.1.0)",
+        "codexHome": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 2,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "untrusted",
+        "sandbox": "read-only",
+        "ephemeral": true,
+        "dynamicTools": [
+          {
+            "type": "function",
+            "name": "fixture_read",
+            "description": "Read synthetic fixture",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "remoteControl/status/changed",
+      "params": {
+        "status": "disabled",
+        "serverName": "Essence",
+        "installationId": "ff7a8a64-deb8-456a-a9a2-99e34c24df24",
+        "environmentId": null
+      },
+      "emittedAtMs": 1792851119494
+    }
+  },
+  {
+    "received": {
+      "id": 2,
+      "result": {
+        "thread": {
+          "id": "01a16e41-0d8c-7120-aeb3-0bf3e25331c6",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a16e41-0d8c-7120-aeb3-0bf3e25331c6",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1792851119,
+          "updatedAt": 1792851119,
+          "recencyAt": 1792851119,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+          "cliVersion": "0.163.0",
+          "originator": "agent_platform_probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        },
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "serviceTier": null,
+        "disabledPluginIds": [],
+        "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "runtimeWorkspaceRoots": [
+          "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v"
+        ],
+        "instructionSources": [],
+        "approvalPolicy": "untrusted",
+        "approvalsReviewer": "user",
+        "sandbox": {
+          "type": "readOnly",
+          "networkAccess": false
+        },
+        "activePermissionProfile": null,
+        "reasoningEffort": null,
+        "multiAgentMode": "explicitRequestOnly"
+      }
+    }
+  },
+  {
+    "sent": {
+      "id": 3,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "untrusted",
+        "sandbox": "read-only",
+        "ephemeral": true,
+        "dynamicTools": [
+          {
+            "type": "invalid",
+            "name": "fixture_read",
+            "description": "Read synthetic fixture",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "method": "thread/started",
+      "params": {
+        "thread": {
+          "id": "01a16e41-0d8c-7120-aeb3-0bf3e25331c6",
+          "environments": [
+            {
+              "environmentId": "local",
+              "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+              "runtimeWorkspaceRoots": [
+                "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v"
+              ]
+            }
+          ],
+          "extra": null,
+          "sessionId": "01a16e41-0d8c-7120-aeb3-0bf3e25331c6",
+          "forkedFromId": null,
+          "parentThreadId": null,
+          "preview": "",
+          "ephemeral": true,
+          "section": null,
+          "sectionEnteredAt": null,
+          "projectId": null,
+          "historyMode": "paginated",
+          "modelProvider": "fixture",
+          "model": "fixture-model",
+          "reasoningEffort": null,
+          "createdAt": 1792851119,
+          "updatedAt": 1792851119,
+          "recencyAt": 1792851119,
+          "status": {
+            "type": "idle"
+          },
+          "path": null,
+          "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+          "cliVersion": "0.163.0",
+          "originator": "agent_platform_probe",
+          "source": "vscode",
+          "canAcceptDirectInput": true,
+          "threadSource": null,
+          "agentNickname": null,
+          "agentRole": null,
+          "gitInfo": null,
+          "name": null,
+          "daybreakEnabled": null,
+          "turns": []
+        }
+      },
+      "emittedAtMs": 1792851119553
+    }
+  },
+  {
+    "received": {
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `invalid`, expected `function` or `namespace`"
+      },
+      "id": 3
+    }
+  },
+  {
+    "sent": {
+      "id": 4,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "allow-everything",
+        "sandbox": "read-only",
+        "ephemeral": true
+      }
+    }
+  },
+  {
+    "received": {
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `allow-everything`, expected one of `untrusted`, `on-request`, `granular`, `never`"
+      },
+      "id": 4
+    }
+  },
+  {
+    "sent": {
+      "id": 5,
+      "method": "thread/start",
+      "params": {
+        "cwd": "/home/cash/.cache/tmp/agent-platform-tools-n6tmx40v",
+        "model": "fixture-model",
+        "modelProvider": "fixture",
+        "approvalPolicy": "untrusted",
+        "sandbox": "read-only",
+        "ephemeral": true,
+        "dynamicTools": [
+          {
+            "type": "function",
+            "name": "fixture_read",
+            "description": "Read synthetic fixture",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "fixture_read",
+            "description": "Read synthetic fixture",
+            "inputSchema": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "received": {
+      "error": {
+        "code": -32600,
+        "message": "duplicate dynamic tool name: fixture_read"
+      },
+      "id": 5
+    }
+  }
+]

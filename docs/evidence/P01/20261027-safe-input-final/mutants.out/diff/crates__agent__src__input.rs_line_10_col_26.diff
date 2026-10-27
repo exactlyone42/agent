@@ -1,0 +1,21 @@
+--- crates/agent/src/input.rs
++++ replace || with && in open_checked
+@@ -2,17 +2,17 @@
+     fs::{File, OpenOptions},
+     io,
+     path::Path,
+ };
+
+ pub fn open_checked(path: &Path, limit: u64) -> io::Result<File> {
+     let before = std::fs::metadata(path)?;
+     #[cfg(windows)]
+-    if !before.is_file() || before.len() > limit {
++    if !before.is_file() && /* ~ changed by cargo-mutants ~ */ before.len() > limit {
+         return Err(io::Error::from(io::ErrorKind::InvalidInput));
+     }
+     let mut options = OpenOptions::new();
+     options.read(true);
+     #[cfg(unix)]
+     {
+         use std::os::unix::fs::OpenOptionsExt;
+         options.custom_flags(libc::O_NONBLOCK | libc::O_NOCTTY);

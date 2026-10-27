@@ -1,0 +1,80 @@
+只讀審查，不修改檔案。請檢查這三個品質檢查檔案是否會漏檢或誤判、測試是否有效。這只是 gate 快檢，all 尚未實作；不把 Linux 證據當三平台證據。請只指出有直接依據的問題。
+
+FILE scripts/check.sh
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+if [[ "${1:-}" != "gate" || "$#" != 1 ]]; then
+  printf '%s\n' '用法：bash scripts/check.sh gate；完整 all 入口尚未交付。' >&2
+  exit 2
+fi
+
+cargo fmt --all --check
+python3 scripts/test_policy.py
+cargo machete
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+CLIPPY_CONF_DIR="$PWD/scripts/policy" cargo clippy --workspace --lib --bins --all-features --locked -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic -D clippy::todo -D clippy::unimplemented -D clippy::unreachable -D clippy::disallowed_macros -D clippy::mod_module_files
+cargo test --workspace --all-features --locked
+
+FILE scripts/test_policy.py
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+LINTS = ['unwrap_used', 'expect_used', 'panic', 'todo', 'unimplemented',
+         'unreachable', 'disallowed_macros', 'mod_module_files']
+
+
+class PolicyContract(unittest.TestCase):
+    def test_compiler_rejects_each_banned_construct(self):
+        driver = subprocess.check_output(['rustup', 'which', 'clippy-driver'], text=True).strip()
+        fixtures = {
+            'valid': 'pub fn value(x: Option<u8>) -> Result<u8, String> { x.ok_or("missing".into()) }',
+            'unwrap_used': 'pub fn value(x: Option<u8>) -> u8 { x.unwrap() }',
+            'expect_used': 'pub fn value(x: Option<u8>) -> u8 { x.expect("missing") }',
+            'panic': 'pub fn value() { panic!("failed") }',
+            'todo': 'pub fn value() { todo!() }',
+            'unimplemented': 'pub fn value() { unimplemented!() }',
+            'unreachable': 'pub fn value() { unreachable!() }',
+            'assert': 'pub fn value(x: bool) { assert!(x); }',
+            'assert_eq': 'pub fn value(x: u8, y: u8) { assert_eq!(x, y); }',
+            'assert_ne': 'pub fn value(x: u8, y: u8) { assert_ne!(x, y); }',
+            'mod_module_files': 'pub mod nested;',
+        }
+        with tempfile.TemporaryDirectory(prefix='agent-policy-') as directory:
+            workspace = Path(directory)
+            nested = workspace / 'nested'
+            nested.mkdir()
+            (nested / 'mod.rs').write_text('pub fn value() -> u8 { 1 }')
+            for name, content in fixtures.items():
+                with self.subTest(name=name):
+                    source = workspace / f'{name}.rs'
+                    source.write_text(content)
+                    command = [driver, '--crate-type=lib', '--edition=2024', '--emit=metadata',
+                               str(source), '-o', str(workspace / f'{name}.rmeta'), '-Dwarnings']
+                    command += [f'-Dclippy::{lint}' for lint in LINTS]
+                    result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8',
+                                            timeout=20, cwd=workspace, env={**os.environ,
+                                            'CLIPPY_CONF_DIR': str(ROOT / 'scripts/policy')})
+                    if name == 'valid':
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                    else:
+                        self.assertNotEqual(result.returncode, 0, name)
+                        lint = 'disallowed_macros' if name.startswith('assert') else name
+                        self.assertIn(lint.replace('_', '-'), result.stderr)
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+FILE scripts/policy/clippy.toml
+disallowed-macros = [
+  { path = "std::assert", reason = "生產錯誤必須回傳，不可直接中止程序" },
+  { path = "std::assert_eq", reason = "生產錯誤必須回傳，不可直接中止程序" },
+  { path = "std::assert_ne", reason = "生產錯誤必須回傳，不可直接中止程序" },
+]

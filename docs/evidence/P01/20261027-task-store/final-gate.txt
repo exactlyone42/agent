@@ -1,0 +1,108 @@
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.235s
+
+OK
+執行 secrets
+執行 secrets
+執行 secrets
+執行 secrets
+執行 secrets
+.執行 coverage
+..執行 secrets
+執行 secrets
+..執行 exit-0
+執行 exit-7
+執行 missing
+.
+----------------------------------------------------------------------
+Ran 6 tests in 1.942s
+
+OK
+Analyzing dependencies of crates in this directory...
+cargo-machete didn't find any unused dependencies in this directory. Good job!
+Done!
+    Checking agent-platform-agent v0.1.0 (/home/cash/work_space/private/agent-platform/crates/agent)
+    Checking agent-platform v0.1.0 (/home/cash/work_space/private/agent-platform/crates/cli)
+    Checking harness-probe v0.1.0 (/home/cash/work_space/private/agent-platform/crates/harness-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.60s
+    Checking agent-platform-agent v0.1.0 (/home/cash/work_space/private/agent-platform/crates/agent)
+    Checking agent-platform v0.1.0 (/home/cash/work_space/private/agent-platform/crates/cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.39s
+   Compiling agent-platform-agent v0.1.0 (/home/cash/work_space/private/agent-platform/crates/agent)
+   Compiling agent-platform v0.1.0 (/home/cash/work_space/private/agent-platform/crates/cli)
+   Compiling harness-probe v0.1.0 (/home/cash/work_space/private/agent-platform/crates/harness-probe)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.95s
+     Running unittests src/main.rs (target/debug/deps/agent_platform-673ca5a0bc5cbd60)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/http_contract.rs (target/debug/deps/http_contract-8e82b4d7c78979fa)
+
+running 1 test
+test cli_contract_uses_real_binary_and_local_http ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.31s
+
+     Running unittests src/lib.rs (target/debug/deps/agent_platform_agent-e8298d43f2d9e23e)
+
+running 1 test
+test task::tests::cancelled_tools_refuse_before_touching_files ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input.rs (target/debug/deps/input-92551689793dcd6d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/store.rs (target/debug/deps/store-495fa2d5390d852b)
+
+running 8 tests
+test foreign_and_newer_databases_are_not_migrated ... ok
+test read_only_connection_never_creates_or_changes_task_data ... ok
+test concurrent_results_cannot_overwrite_each_other ... ok
+test event_pages_are_bounded_and_use_the_task_sequence_index ... ok
+test read_only_query_survives_exit_before_wal_configuration ... ok
+test event_failure_rolls_back_state_and_start ... ok
+test results_and_ordered_events_survive_reopen ... ok
+test competing_writer_times_out_without_partial_record ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/task.rs (target/debug/deps/task-894a7c0682df8bac)
+
+running 3 tests
+test cancelled_task_never_opens_input_or_requests_model ... ok
+test input_type_and_size_are_checked_before_model_requests ... ok
+test prompt_and_expected_limits_are_checked_before_model_requests ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/verification.rs (target/debug/deps/verification-154b553e02817da5)
+
+running 2 tests
+test special_file_is_not_an_artifact ... ok
+test file_verification_checks_exact_bytes_and_bounds_reads ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rig_contract.rs (target/debug/deps/rig_contract-6e2360be4bc60451)
+
+running 5 tests
+test malformed_arguments_do_not_execute_tool ... ok
+test missing_file_is_a_tool_error_not_content ... ok
+test unauthorized_path_does_not_read_fixture ... ok
+test approval_controls_actual_tool_execution ... ok
+test artifact_readback_distinguishes_completion_from_model_claims ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+   Doc-tests agent_platform_agent
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

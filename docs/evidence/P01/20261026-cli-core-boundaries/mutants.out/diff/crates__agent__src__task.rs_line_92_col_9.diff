@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace <impl Tool for ReadInput>::parameters -> serde_json::Value with Default::default()
+@@ -84,17 +84,17 @@
+     type Args = ReadArgs;
+     type Output = String;
+     type Error = ToolExecutionError;
+
+     fn description(&self) -> String {
+         "讀取使用者指定且獲准的來源檔案".into()
+     }
+     fn parameters(&self) -> serde_json::Value {
+-        json!({"type":"object","properties":{},"additionalProperties":false})
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {
+         let mut guard = self
+             .0
+             .lock()
+             .map_err(|_| ToolExecutionError::refused("來源狀態異常"))?;
+         let file = guard
+             .as_mut()

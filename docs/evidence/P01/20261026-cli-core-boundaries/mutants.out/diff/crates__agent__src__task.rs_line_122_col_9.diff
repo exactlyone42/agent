@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace <impl Tool for WriteOutput>::description -> String with String::new()
+@@ -114,17 +114,17 @@
+
+ impl Tool for WriteOutput {
+     const NAME: &'static str = "write_output";
+     type Args = WriteArgs;
+     type Output = String;
+     type Error = ToolExecutionError;
+
+     fn description(&self) -> String {
+-        "建立使用者指定且獲准的新成果檔案，不覆寫既有資料".into()
++        String::new() /* ~ changed by cargo-mutants ~ */
+     }
+     fn parameters(&self) -> serde_json::Value {
+         json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false})
+     }
+     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {
+         if !self.allowed {
+             return Err(ToolExecutionError::refused("使用者未授權寫入成果"));
+         }

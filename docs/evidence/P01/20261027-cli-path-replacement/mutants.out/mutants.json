@@ -1,0 +1,34 @@
+[
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace || with && in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() && /* ~ changed by cargo-mutants ~ */ metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:175:32: replace || with && in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 175
+      },
+      "start": {
+        "column": 32,
+        "line": 175
+      }
+    }
+  }
+]

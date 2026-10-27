@@ -1,0 +1,5 @@
+disallowed-macros = [
+  { path = "std::assert", reason = "生產錯誤必須回傳，不可直接中止程序" },
+  { path = "std::assert_eq", reason = "生產錯誤必須回傳，不可直接中止程序" },
+  { path = "std::assert_ne", reason = "生產錯誤必須回傳，不可直接中止程序" },
+]

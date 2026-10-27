@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace > with == in run_file_task
+@@ -163,17 +163,17 @@
+             .as_ref()
+             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)
+     {
+         return Err(TaskError::InvalidTask);
+     }
+     let input = if task.allow_read {
+         let file = File::open(&task.input).map_err(TaskError::Input)?;
+         let metadata = file.metadata().map_err(TaskError::Input)?;
+-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {
++        if !metadata.is_file() || metadata.len() == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {
+             return Err(TaskError::InvalidInput);
+         }
+         Some(file)
+     } else {
+         None
+     };
+     let artifact = Arc::new(Mutex::new(None));
+     let agent = AgentBuilder::new(model)

@@ -1,0 +1,1 @@
+crates/agent/src/input.rs:8:5: replace open_checked -> io::Result<File> with Ok(Default::default())

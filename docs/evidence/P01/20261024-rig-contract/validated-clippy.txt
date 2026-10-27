@@ -1,0 +1,2 @@
+    Checking harness-probe v0.1.0 (/home/cash/work_space/private/agent-platform/crates/harness-probe)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s

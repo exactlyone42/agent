@@ -1,0 +1,19 @@
+[workspace]
+members = ["crates/agent", "crates/cli", "crates/harness-probe"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[workspace.dependencies]
+agent-platform-agent = { path = "crates/agent" }
+thiserror = "2.0.21"
+rig-reqwest = { git = "https://github.com/0xPlaygrounds/rig", rev = "55cd481a2421fd5da468b5bd6afc6ac876883599" }
+url = { version = "2.5", features = ["serde"] }
+rig-agent = { git = "https://github.com/0xPlaygrounds/rig", rev = "55cd481a2421fd5da468b5bd6afc6ac876883599", default-features = false }
+rig-core = { git = "https://github.com/0xPlaygrounds/rig", rev = "55cd481a2421fd5da468b5bd6afc6ac876883599", default-features = false, features = ["test-utils"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt", "time"] }

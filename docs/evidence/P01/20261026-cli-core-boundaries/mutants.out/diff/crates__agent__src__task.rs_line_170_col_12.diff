@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ delete ! in run_file_task
+@@ -162,17 +162,17 @@
+             .expected
+             .as_ref()
+             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)
+     {
+         return Err(TaskError::InvalidTask);
+     }
+     let input = if task.allow_read {
+         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;
+-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {
++        if  /* ~ changed by cargo-mutants ~ */metadata.is_file() || metadata.len() > FILE_LIMIT {
+             return Err(TaskError::InvalidInput);
+         }
+         let file = File::open(&task.input).map_err(TaskError::Input)?;
+         let metadata = file.metadata().map_err(TaskError::Input)?;
+         if !metadata.is_file() || metadata.len() > FILE_LIMIT {
+             return Err(TaskError::InvalidInput);
+         }
+         Some(file)

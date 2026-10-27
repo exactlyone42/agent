@@ -1,0 +1,25 @@
+{
+  "scope": "Linux x86_64 only",
+  "raw_results": {
+    "caught": 9,
+    "missed": 6,
+    "unviable": 1
+  },
+  "missed_classification": {
+    "windows_only_not_executed": 5,
+    "equivalent_flag_operator": 1
+  },
+  "flag_values": {
+    "O_NONBLOCK": 2048,
+    "O_NOCTTY": 256,
+    "or": 2304,
+    "xor": 2304
+  },
+  "source_sha256": "498b1c1d5c80236c86f25a7957bf434fffb6c635faedd15b4f82a444c88037a9",
+  "limits": [
+    "Windows identity comparison incomplete",
+    "Windows/macOS real execution not performed",
+    "full workspace mutation rerun pending",
+    "independent review of new input module pending"
+  ]
+}

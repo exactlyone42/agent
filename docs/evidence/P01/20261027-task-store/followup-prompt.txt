@@ -1,0 +1,502 @@
+請複審以下修改，只讀提供文字，禁止工具與改檔。前次審查指出：結果交易失敗、序號寫死、SIGKILL、競爭寫入、WAL 設定前崩潰、網路磁碟與 ACL。已補正反測試並按 decisions 裁決。請找仍存在的可重現錯誤，不重複列已明確保留的完整恢復、三平台實機、網路磁碟辨識與 ACL 未完成門檻；如現有行為誤稱完成則應指出。請附位置、原因與最小修正。
+
+### crates/agent/src/store.rs
+use crate::task::{ArtifactState, TaskError, TaskReport};
+use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
+use serde::Serialize;
+use std::{path::Path, time::Duration};
+use uuid::Uuid;
+
+const APPLICATION_ID: i64 = 0x41504754;
+const SCHEMA_VERSION: i64 = 1;
+pub const EVENT_PAGE_SIZE: i64 = 100;
+
+#[derive(Debug, thiserror::Error)]
+pub enum StoreError {
+    #[error("無法保存或讀取任務紀錄")]
+    Database(#[from] rusqlite::Error),
+    #[error("任務資料庫版本或設定不相容")]
+    Incompatible,
+    #[error("找不到任務")]
+    NotFound,
+    #[error("任務紀錄已變動，不可用舊狀態保存結果或重複執行")]
+    Conflict,
+    #[error("事件位置不可小於零")]
+    InvalidCursor,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskRecord {
+    pub task_id: String,
+    pub schema_version: i64,
+    pub generation: i64,
+    pub recorded_state: String,
+    pub artifact_created: Option<bool>,
+    pub last_seq: i64,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskEvent {
+    pub event_id: String,
+    pub task_id: String,
+    pub schema_version: i64,
+    pub generation: i64,
+    pub seq: i64,
+    pub event_type: String,
+    pub created_at: String,
+}
+
+pub struct TaskStore {
+    connection: Connection,
+}
+
+impl TaskStore {
+    pub fn open(path: &Path) -> Result<Self, StoreError> {
+        Self::connect(path, true)
+    }
+
+    pub fn read(path: &Path) -> Result<Self, StoreError> {
+        Self::connect(path, false)
+    }
+
+    fn connect(path: &Path, create: bool) -> Result<Self, StoreError> {
+        if rusqlite::version_number() < 3_051_003 {
+            return Err(StoreError::Incompatible);
+        }
+        let flags = if create {
+            OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE
+        } else {
+            OpenFlags::SQLITE_OPEN_READ_ONLY
+        };
+        let mut connection = Connection::open_with_flags(
+            path,
+            flags | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )?;
+        connection.busy_timeout(Duration::from_millis(500))?;
+        let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let application: i64 =
+            connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
+        if !matches!(
+            (application, version),
+            (0, 0) | (APPLICATION_ID, SCHEMA_VERSION)
+        ) {
+            return Err(StoreError::Incompatible);
+        }
+        if version == 0 && !create {
+            return Err(StoreError::Incompatible);
+        }
+        if version == 0 {
+            let transaction =
+                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+            let current_version: i64 =
+                transaction.pragma_query_value(None, "user_version", |r| r.get(0))?;
+            let current_application: i64 =
+                transaction.pragma_query_value(None, "application_id", |r| r.get(0))?;
+            if (current_application, current_version) == (0, 0) {
+                let tables: i64 = transaction.query_row(
+                    "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
+                    [],
+                    |r| r.get(0),
+                )?;
+                if tables != 0 {
+                    return Err(StoreError::Incompatible);
+                }
+                transaction.execute_batch(include_str!("store_v1.sql"))?;
+                transaction.pragma_update(None, "application_id", APPLICATION_ID)?;
+                transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+            } else if (current_application, current_version) != (APPLICATION_ID, SCHEMA_VERSION) {
+                return Err(StoreError::Incompatible);
+            }
+            transaction.commit()?;
+        }
+        let journal: String = if create {
+            connection.pragma_update_and_check(None, "journal_mode", "wal", |r| r.get(0))?
+        } else {
+            connection.pragma_query_value(None, "journal_mode", |r| r.get(0))?
+        };
+        connection.pragma_update(None, "synchronous", "FULL")?;
+        connection.pragma_update(None, "foreign_keys", true)?;
+        connection.pragma_update(None, "trusted_schema", false)?;
+        let synchronous: i64 = connection.pragma_query_value(None, "synchronous", |r| r.get(0))?;
+        let foreign_keys: i64 =
+            connection.pragma_query_value(None, "foreign_keys", |r| r.get(0))?;
+        if (create && journal != "wal") || synchronous != 2 || foreign_keys != 1 {
+            return Err(StoreError::Incompatible);
+        }
+        Ok(Self { connection })
+    }
+
+    pub fn start(&mut self) -> Result<String, StoreError> {
+        let task_id = Uuid::new_v4().to_string();
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        transaction.execute(
+            "INSERT INTO tasks (task_id, recorded_state, last_seq) VALUES (?1, 'running', 1)",
+            [&task_id],
+        )?;
+        transaction.execute(
+            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, 1, 'started')",
+            params![Uuid::new_v4().to_string(), task_id],
+        )?;
+        transaction.commit()?;
+        Ok(task_id)
+    }
+
+    pub fn finish(
+        &mut self,
+        task_id: &str,
+        expected_seq: i64,
+        result: &Result<TaskReport, TaskError>,
+    ) -> Result<(), StoreError> {
+        let state = match result {
+            Ok(report) => match report.artifact {
+                ArtifactState::Verified => "succeeded",
+                ArtifactState::AwaitingReview => "needs_review",
+            },
+            Err(TaskError::Cancelled { .. }) => "cancelled",
+            Err(TaskError::Timeout | TaskError::Harness(_) | TaskError::State) => "outcome_unknown",
+            Err(_) => "failed",
+        };
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let artifact_created = match result {
+            Ok(_) | Err(TaskError::IncompleteArtifact | TaskError::Verification(_)) => Some(true),
+            Err(TaskError::Cancelled { artifact_created }) => Some(*artifact_created),
+            Err(
+                TaskError::InvalidTask
+                | TaskError::InvalidInput
+                | TaskError::Input(_)
+                | TaskError::MissingArtifact,
+            ) => Some(false),
+            Err(_) => None,
+        };
+        let seq: Option<i64> = transaction.query_row(
+            "UPDATE tasks SET recorded_state = ?1, last_seq = last_seq + 1, artifact_created = ?4,
+             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE task_id = ?2 AND recorded_state = 'running' AND last_seq = ?3 RETURNING last_seq",
+            params![state, task_id, expected_seq, artifact_created], |r| r.get(0),
+        ).optional()?;
+        let seq = match seq {
+            Some(seq) => seq,
+            None => {
+                let exists: bool = transaction.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM tasks WHERE task_id=?1)",
+                    [task_id],
+                    |r| r.get(0),
+                )?;
+                return Err(if exists {
+                    StoreError::Conflict
+                } else {
+                    StoreError::NotFound
+                });
+            }
+        };
+        transaction.execute(
+            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, ?4)",
+            params![Uuid::new_v4().to_string(), task_id, seq, state],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    pub fn status(&self, task_id: &str) -> Result<TaskRecord, StoreError> {
+        self.connection
+            .query_row(
+                "SELECT task_id, schema_version, generation, recorded_state, last_seq, updated_at, artifact_created
+             FROM tasks WHERE task_id = ?1",
+                [task_id],
+                |r| {
+                    Ok(TaskRecord {
+                        task_id: r.get(0)?,
+                        schema_version: r.get(1)?,
+                        generation: r.get(2)?,
+                        recorded_state: r.get(3)?,
+                        last_seq: r.get(4)?,
+                        updated_at: r.get(5)?,
+                        artifact_created: r.get(6)?,
+                    })
+                },
+            )
+            .optional()?
+            .ok_or(StoreError::NotFound)
+    }
+
+    pub fn events(&self, task_id: &str, after_seq: i64) -> Result<Vec<TaskEvent>, StoreError> {
+        if after_seq < 0 {
+            return Err(StoreError::InvalidCursor);
+        }
+        self.status(task_id)?;
+        let mut query = self.connection.prepare(
+            "SELECT event_id, task_id, schema_version, generation, seq, event_type, created_at
+             FROM events WHERE task_id = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3",
+        )?;
+        let rows = query.query_map(params![task_id, after_seq, EVENT_PAGE_SIZE], |r| {
+            Ok(TaskEvent {
+                event_id: r.get(0)?,
+                task_id: r.get(1)?,
+                schema_version: r.get(2)?,
+                generation: r.get(3)?,
+                seq: r.get(4)?,
+                event_type: r.get(5)?,
+                created_at: r.get(6)?,
+            })
+        })?;
+        Ok(rows.collect::<Result<Vec<_>, _>>()?)
+    }
+}
+
+### crates/agent/src/store_v1.sql
+CREATE TABLE tasks (
+    task_id TEXT PRIMARY KEY NOT NULL,
+    schema_version INTEGER NOT NULL DEFAULT 1 CHECK (schema_version = 1),
+    generation INTEGER NOT NULL DEFAULT 1 CHECK (generation > 0),
+    recorded_state TEXT NOT NULL CHECK (recorded_state IN ('running', 'succeeded', 'needs_review', 'failed', 'cancelled', 'outcome_unknown')),
+    last_seq INTEGER NOT NULL CHECK (last_seq > 0),
+    artifact_created INTEGER CHECK (artifact_created IN (0, 1)),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+CREATE TABLE events (
+    event_id TEXT UNIQUE NOT NULL,
+    task_id TEXT NOT NULL REFERENCES tasks(task_id),
+    schema_version INTEGER NOT NULL DEFAULT 1 CHECK (schema_version = 1),
+    generation INTEGER NOT NULL DEFAULT 1 CHECK (generation > 0),
+    seq INTEGER NOT NULL CHECK (seq > 0),
+    event_type TEXT NOT NULL CHECK (event_type IN ('started', 'succeeded', 'needs_review', 'failed', 'cancelled', 'outcome_unknown')),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    PRIMARY KEY (task_id, seq)
+) STRICT;
+
+### crates/cli/src/main.rs
+use agent_platform_agent::store::TaskStore;
+use agent_platform_agent::task::{
+    ArtifactState, CancellationToken, FileTask, TaskError, run_file_task,
+};
+use rig_core::providers::openai::OpenAIConfig;
+use rig_reqwest::{ReqwestClient, reqwest};
+use serde::Deserialize;
+use std::{io::Read, path::PathBuf, process::ExitCode, time::Duration};
+
+fn open_store(create: bool) -> Result<TaskStore, String> {
+    let directory = match std::env::var_os("AGENT_STATE_DIR") {
+        Some(path) if !path.is_empty() => PathBuf::from(path),
+        Some(_) => return Err("AGENT_STATE_DIR 不可為空".into()),
+        None => directories::ProjectDirs::from("", "", "agent-platform")
+            .map(|dirs| dirs.data_local_dir().to_path_buf())
+            .ok_or("找不到使用者資料目錄，請設定 AGENT_STATE_DIR")?,
+    };
+    if !directory.is_absolute() {
+        return Err("AGENT_STATE_DIR 必須是本機磁碟的絕對路徑".into());
+    }
+    if create {
+        let mut builder = std::fs::DirBuilder::new();
+        builder.recursive(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::DirBuilderExt;
+            builder.mode(0o700);
+        }
+        builder
+            .create(&directory)
+            .map_err(|_| "無法建立任務資料目錄")?;
+    }
+    let metadata = std::fs::symlink_metadata(&directory).map_err(|_| "找不到任務資料目錄")?;
+    if !metadata.is_dir() {
+        return Err("任務資料目錄必須是一般目錄，不可使用符號連結".into());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if metadata.permissions().mode() & 0o077 != 0 {
+            return Err("任務資料目錄不可讓其他使用者存取，請設定權限為 700".into());
+        }
+    }
+    let path = directory.join("tasks.sqlite3");
+    match std::fs::symlink_metadata(&path) {
+        Ok(metadata) => {
+            if !metadata.is_file() {
+                return Err("任務資料庫必須是一般檔案，不可使用符號連結".into());
+            }
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::MetadataExt;
+                if metadata.nlink() != 1 {
+                    return Err("任務資料庫不可使用硬連結".into());
+                }
+            }
+        }
+        Err(error) if create && error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(_) => return Err("找不到或無法讀取任務資料庫".into()),
+    }
+    if create {
+        TaskStore::open(&path)
+    } else {
+        TaskStore::read(&path)
+    }
+    .map_err(|error| error.to_string())
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Request {
+    endpoint: url::Url,
+    model: String,
+    task: FileTask,
+}
+
+async fn run() -> Result<ExitCode, String> {
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.len() == 1 && args[0] == "--help" {
+        println!(
+            "用法：agent-platform run <任務.json>\n      agent-platform status <任務編號>\n      agent-platform events <任務編號> [已讀序號]\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。"
+        );
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args.len() == 2 && args[0] == "status" {
+        let task_id = args[1].to_str().ok_or("任務編號格式錯誤")?;
+        let record = open_store(false)?
+            .status(task_id)
+            .map_err(|error| error.to_string())?;
+        if record.recorded_state == "running" {
+            eprintln!("這是最後保存的狀態，不能確認程序仍在執行；請先核對成果，不要直接重跑。");
+        }
+        println!(
+            "{}",
+            serde_json::to_string(&record).map_err(|_| "無法輸出任務狀態")?
+        );
+        return Ok(ExitCode::SUCCESS);
+    }
+    if (args.len() == 2 || args.len() == 3) && args[0] == "events" {
+        let task_id = args[1].to_str().ok_or("任務編號格式錯誤")?;
+        let after_seq = match args.get(2) {
+            Some(value) => value
+                .to_str()
+                .and_then(|value| value.parse::<i64>().ok())
+                .ok_or("事件位置格式錯誤")?,
+            None => 0,
+        };
+        for event in open_store(false)?
+            .events(task_id, after_seq)
+            .map_err(|error| error.to_string())?
+        {
+            println!(
+                "{}",
+                serde_json::to_string(&event).map_err(|_| "無法輸出任務事件")?
+            );
+        }
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args.len() != 2 || args[0] != "run" {
+        return Err("用法：agent-platform run <任務.json>".into());
+    }
+    let mut bytes = Vec::new();
+    agent_platform_agent::input::open_checked(std::path::Path::new(&args[1]), u64::MAX)
+        .map_err(|_| "無法開啟任務檔")?
+        .take(65537)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "無法讀取任務檔")?;
+    if bytes.len() > 65536 {
+        return Err("任務檔超過 64 KiB".into());
+    }
+    let request: Request =
+        serde_json::from_slice(&bytes).map_err(|_| "任務 JSON 格式錯誤或包含未知欄位")?;
+    let loopback = match request.endpoint.host() {
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        _ => false,
+    };
+    if !loopback
+        || !matches!(request.endpoint.scheme(), "http" | "https")
+        || !request.endpoint.username().is_empty()
+        || request.endpoint.password().is_some()
+        || request.endpoint.query().is_some()
+        || request.endpoint.fragment().is_some()
+        || request.model.trim().is_empty()
+    {
+        return Err(
+            "目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數".into(),
+        );
+    }
+    let key = match std::env::var("AGENT_API_KEY") {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) => String::new(),
+        Err(_) => return Err("AGENT_API_KEY 格式錯誤".into()),
+    };
+    let http = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(60))
+        .build()
+        .map_err(|_| "無法建立模型連線")?;
+    let client = OpenAIConfig::new(key)
+        .with_base_url(request.endpoint.as_str())
+        .connect(ReqwestClient::from(http));
+    let cancellation = CancellationToken::new();
+    let signal_cancellation = cancellation.clone();
+    let mut interrupted = false;
+    ctrlc::try_set_handler(move || {
+        if interrupted {
+            std::process::exit(130);
+        }
+        interrupted = true;
+        signal_cancellation.cancel();
+    })
+    .map_err(|_| "無法接收停止要求，任務未啟動")?;
+    let mut store = open_store(true)?;
+    let task_id = store.start().map_err(|error| error.to_string())?;
+    eprintln!("任務編號：{task_id}");
+    let result = run_file_task(client.chat(request.model), request.task, cancellation).await;
+    store
+        .finish(&task_id, 1, &result)
+        .map_err(|error| format!("{error}；任務結果未確認，請勿直接重跑"))?;
+    let report = match result {
+        Err(TaskError::Cancelled { artifact_created }) => {
+            println!(
+                "{}",
+                serde_json::json!({"task_id": task_id, "state": "cancelled", "artifact_created": artifact_created})
+            );
+            eprintln!("已停止本機任務；已建立的成果會保留，請核對後再接續。");
+            return Ok(ExitCode::from(130));
+        }
+        other => other.map_err(|error| error.to_string())?,
+    };
+    println!(
+        "{}",
+        serde_json::json!({"task_id": task_id, "artifact": report.artifact, "assistant_message": report.assistant_message})
+    );
+    Ok(if report.artifact == ArtifactState::Verified {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(2)
+    })
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> ExitCode {
+    match run().await {
+        Ok(code) => code,
+        Err(error) => {
+            eprintln!("{error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+### docs/evidence/P01/20261027-task-store/decisions.md
+# 任務紀錄審查與裁決
+
+本輪接上真實 CLI 的開始／結果保存及 status／events 查詢，不宣稱完整 TaskSpec、授權或恢復已交付。原件 review-result.json 為 Claude Code 靜態審查；本機 localai review 在 45 秒逾時，沒有採用任何本機模型輸出，依任務授權由現有執行者實作並請 Claude 審查。
+
+採納：結束交易失敗必須可辨識。新增實際 HTTP 任務的事件插入失敗案例：成果保留，狀態與事件一起回滾，CLI 不回成功；恢復協調仍是後續必要工作，不能因此直接重跑。新增同任務兩個結果寫入競爭、過時序號拒絕及 SIGKILL 後重開查詢。成果是否建立改存 true／false／未知，並保留其觀察時間的含義。
+
+採納：序號不再固定用 2，更新以 expected_seq 比對並在交易內遞增。現有 CLI 只有開始與結果兩類階段；授權、驗證過程及恢復事件仍須接真實核心生命週期，不在這輪偽造事件。此次 schema v1 只在隔離測試建立，尚未正式發布；後續已發布版本不得原位修改遷移。未知資料庫版本或其他應用資料庫直接拒絕。
+
+採納：資料庫 schema 已完成但 WAL 尚未設定時，唯讀查詢仍可讀；不要求另跑有副作用的任務來修復。不存在任務與過時結果改為不同錯誤。事件每頁上限與下一頁位置已寫入 CLI 使用說明，查詢不承諾跨命令同一快照。
+
+未採納以 trigger 當防竄改保證：擁有資料庫寫入權的人也能刪 trigger，不能用它聲稱企業稽核安全。應用 API 的狀態與事件原子性已有故障測試；作業系統隔離、備份及防竄改仍需各自驗收。測試用 SQL 故障注入只操作臨時資料，不開放產品通用 SQL 入口。
+
+保留未完成：網路磁碟辨識、父層路徑替換與 Windows ACL。只檢查路徑絕對性、最末層類型及 Unix 目錄權限並不足夠；目前僅支持已確認的本機測試目錄，尚不可正式發布。完整任務規格、工具意圖與批准同交易、取消請求保存、程序存活證明及恢復補寫，依原契約接續，不刪驗收要求。
+
+新增依賴沿用成熟方案：[rusqlite 0.41.0](https://docs.rs/rusqlite/0.41.0/rusqlite/) 提供明確交易與唯讀開啟；[directories 6.0.0](https://docs.rs/directories/6.0.0/directories/struct.ProjectDirs.html) 依三平台慣例選本機資料目錄。內附 SQLite 版本及授權另保存原件；實機、斷電耐久與 10 萬任務／100 萬事件壓測尚未跑，索引查詢測試不代表容量門檻通過。

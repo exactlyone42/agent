@@ -1,0 +1,6 @@
+{
+  "crates/agent/src/task.rs": "c64590c13684da35a487fc0e1d9464cef625a0a10bb41c2f14e084037b0249dd",
+  "crates/cli/src/main.rs": "5fc7b9671ea8ed73282fde9ad39fa1e3db7e34bd3b955c68c793ecc50358a215",
+  "crates/agent/tests/task.rs": "bec8b40c4825dbbc49e38194064e0c52f10ca9dc50f046f8ba280c94c695e682",
+  "scripts/test_cli.py": "779ef86422f65e533415518eb9245b6de0724fcfc452870a4531f1be48ccfd62"
+}

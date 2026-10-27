@@ -1,0 +1,171 @@
+只讀審查，不修改檔案，也不要啟動編譯或測試（同工作區正執行變異測試）。以下是工程檢查入口，不代表企業產品已通過驗收。找出會誤判成功、遺失失敗證據或有害副作用的具體問題，請簡短列出。
+
+FILE scripts/check_all.py
+import hashlib
+import json
+import platform
+from pathlib import Path
+import subprocess
+import tempfile
+from datetime import datetime, timezone
+import uuid
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def source_hashes(root):
+    files = [root / name for name in ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml']]
+    for directory in ['crates', 'scripts', '.cargo']:
+        files.extend(path for path in (root / directory).rglob('*')
+                     if path.is_file() and '__pycache__' not in path.parts)
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(files)}
+
+
+def run_step(name, command, root, evidence):
+    print(f'執行 {name}', flush=True)
+    result = {'command': command, 'started': datetime.now(timezone.utc).isoformat()}
+    with (evidence / f'{name}.txt').open('x', encoding='utf-8') as log:
+        try:
+            result['exit_code'] = subprocess.run(command, cwd=root, stdout=log,
+                                                 stderr=subprocess.STDOUT).returncode
+        except OSError as error:
+            log.write(f'{type(error).__name__}: {error}\n')
+            result['exit_code'] = 127
+    result['finished'] = datetime.now(timezone.utc).isoformat()
+    (evidence / f'{name}.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    return result['exit_code']
+
+
+def secret_command(snapshot, evidence):
+    config = evidence / 'secrets-config.toml'
+    config.write_text('[extend]\nuseDefault = true\n')
+    ignore = evidence / 'secrets-empty.ignore'
+    ignore.write_text('')
+    return ['gitleaks', 'dir', str(snapshot), '--redact', '--no-banner',
+            '--config', str(config), '--gitleaks-ignore-path', str(ignore),
+            '--ignore-gitleaks-allow', '--report-format', 'json',
+            '--report-path', str(evidence / 'secrets-report.json')]
+
+
+def main():
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    evidence = ROOT / '.runtime/checks' / f'{stamp}-{uuid.uuid4().hex[:8]}'
+    evidence.mkdir(parents=True)
+    print(f'本輪原件：{evidence}', flush=True)
+    before = source_hashes(ROOT)
+    (evidence / 'source-before.json').write_text(json.dumps(before, indent=2) + '\n')
+    (evidence / 'platform.json').write_text(json.dumps({
+        'system': platform.system(), 'machine': platform.machine(),
+        'release': platform.release()}, indent=2) + '\n')
+    steps = [('gate', ['bash', 'scripts/check.sh', 'gate']),
+             ('versions-rust', ['rustc', '--version']),
+             ('versions-coverage', ['cargo', 'llvm-cov', '--version']),
+             ('versions-mutation', ['cargo', 'mutants', '--version']),
+             ('versions-secrets', ['gitleaks', 'version']),
+             ('versions-dependencies', ['cargo', 'machete', '--version'])]
+    results = {}
+    for name, command in steps:
+        results[name] = run_step(name, command, ROOT, evidence)
+    if not any(results.values()):
+        with tempfile.TemporaryDirectory(prefix='agent-secret-scan-') as directory:
+            snapshot = Path(directory)
+            names = subprocess.check_output(
+                ['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], cwd=ROOT)
+            for name in set(names.decode('utf-8').split('\0')) - {''}:
+                source = ROOT / name
+                if not source.exists():
+                    continue
+                if source.is_symlink():
+                    raise ValueError(f'秘密掃描不接受連結，須人工核對：{name}')
+                target = snapshot / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
+            results['secrets'] = run_step('secrets', secret_command(snapshot, evidence), ROOT, evidence)
+        results['coverage'] = run_step('coverage', [
+            'cargo', 'llvm-cov', '--workspace', '--all-features', '--locked', '--json',
+            '--output-path', str(evidence / 'coverage.json')], ROOT, evidence)
+        results['mutation'] = run_step('mutation', [
+            'cargo', 'mutants', '--in-place', '--workspace', '--test-workspace', 'true',
+            '--all-features', '--timeout', '90', '--cargo-arg=--locked',
+            '--output', str(evidence / 'mutation')], ROOT, evidence)
+    after = source_hashes(ROOT)
+    (evidence / 'source-after.json').write_text(json.dumps(after, indent=2) + '\n')
+    passed = not any(results.values()) and before == after
+    summary = {'passed': passed, 'checks': results, 'source_unchanged': before == after,
+               'scope': '本機工程檢查；不代表三平台實機、桌面或企業發布驗收'}
+    (evidence / 'summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps(summary, ensure_ascii=False), flush=True)
+    return 0 if passed else 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
+
+FILE scripts/test_check_all.py
+import json
+from pathlib import Path
+import secrets
+import string
+import sys
+import tempfile
+import unittest
+
+from check_all import run_step, secret_command
+
+
+class CheckRunnerContract(unittest.TestCase):
+    def test_step_records_failure_and_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for code in [0, 7]:
+                name = f'exit-{code}'
+                result = run_step(name, [sys.executable, '-c', f'raise SystemExit({code})'], root, root)
+                self.assertEqual(result, code)
+                self.assertEqual(json.loads((root / f'{name}.json').read_text())['exit_code'], code)
+            self.assertEqual(run_step('missing', [str(root / 'missing-tool')], root, root), 127)
+
+    def test_secret_scanner_detects_canary_and_redacts_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            snapshot = root / 'snapshot'
+            snapshot.mkdir()
+            for present in [False, True]:
+                evidence = root / str(present)
+                evidence.mkdir()
+                canary = 'ghp_' + ''.join(secrets.choice(string.ascii_letters + string.digits)
+                                         for _ in range(36))
+                (snapshot / 'sample.txt').write_text('token = ' + canary if present else 'ordinary document')
+                result = run_step('secrets', secret_command(snapshot, evidence), root, evidence)
+                self.assertEqual(result, 1 if present else 0)
+                self.assertNotIn(canary, (evidence / 'secrets.txt').read_text())
+                report = (evidence / 'secrets-report.json').read_text()
+                self.assertNotIn(canary, report)
+                self.assertEqual(bool(json.loads(report)), present)
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+FILE scripts/check.sh
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+if [[ "$#" != 1 || ( "${1:-}" != "gate" && "${1:-}" != "all" ) ]]; then
+  printf '%s\n' '用法：bash scripts/check.sh gate 或 all' >&2
+  exit 2
+fi
+
+if [[ "$1" == "all" ]]; then
+  exec python3 scripts/check_all.py
+fi
+
+cargo fmt --all --check
+python3 scripts/test_policy.py
+python3 scripts/test_check_all.py
+cargo machete
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+CLIPPY_CONF_DIR="$PWD/scripts/policy" cargo clippy --workspace --lib --bins --all-features --locked -- -D warnings -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic -D clippy::todo -D clippy::unimplemented -D clippy::unreachable -D clippy::disallowed_macros -D clippy::mod_module_files
+cargo test --workspace --all-features --locked

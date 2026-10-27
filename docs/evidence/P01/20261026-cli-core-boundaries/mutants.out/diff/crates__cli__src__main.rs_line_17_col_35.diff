@@ -1,0 +1,21 @@
+--- crates/cli/src/main.rs
++++ replace == with != in run
+@@ -9,17 +9,17 @@
+ struct Request {
+     endpoint: url::Url,
+     model: String,
+     task: FileTask,
+ }
+
+ async fn run() -> Result<ExitCode, String> {
+     let args: Vec<_> = std::env::args_os().skip(1).collect();
+-    if args.len() == 1 && args[0] == "--help" {
++    if args.len() == 1 && args[0] != /* ~ changed by cargo-mutants ~ */ "--help" {
+         println!(
+             "用法：agent-platform run <任務.json>\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。"
+         );
+         return Ok(ExitCode::SUCCESS);
+     }
+     if args.len() != 2 || args[0] != "run" {
+         return Err("用法：agent-platform run <任務.json>".into());
+     }

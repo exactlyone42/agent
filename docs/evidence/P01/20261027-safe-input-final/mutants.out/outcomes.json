@@ -1,0 +1,1127 @@
+{
+  "outcomes": [
+    {
+      "scenario": "Baseline",
+      "summary": "Success",
+      "log_path": "log/baseline.log",
+      "diff_path": null,
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.551159174,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=agent-platform-agent@0.1.0",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.201657379,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=agent-platform-agent@0.1.0",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:8:5: replace open_checked -> io::Result<File> with Ok(Default::default())",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 8,
+              "column": 5
+            },
+            "end": {
+              "line": 38,
+              "column": 13
+            }
+          },
+          "replacement": "Ok(Default::default())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "Unviable",
+      "log_path": "log/crates__agent__src__input.rs_line_8_col_5.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_8_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.201140103,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:10:26: replace || with && in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 10,
+              "column": 26
+            },
+            "end": {
+              "line": 10,
+              "column": 28
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_10_col_26.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_10_col_26.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651509895,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.200373482,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:10:8: delete ! in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 10,
+              "column": 8
+            },
+            "end": {
+              "line": 10,
+              "column": 9
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_10_col_8.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_10_col_8.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.652276632,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.262015863,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:10:42: replace > with == in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 10,
+              "column": 42
+            },
+            "end": {
+              "line": 10,
+              "column": 43
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_10_col_42.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_10_col_42.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651590253,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.216937971,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:10:42: replace > with < in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 10,
+              "column": 42
+            },
+            "end": {
+              "line": 10,
+              "column": 43
+            }
+          },
+          "replacement": "<",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_10_col_42_001.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_10_col_42_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.601371844,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.261448523,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:10:42: replace > with >= in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 10,
+              "column": 42
+            },
+            "end": {
+              "line": 10,
+              "column": 43
+            }
+          },
+          "replacement": ">=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_10_col_42_002.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_10_col_42_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.652118238,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.287899503,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:18:47: replace | with & in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 18,
+              "column": 47
+            },
+            "end": {
+              "line": 18,
+              "column": 48
+            }
+          },
+          "replacement": "&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_18_col_47.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_18_col_47.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.601565852,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 15.045173807,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:18:47: replace | with ^ in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 18,
+              "column": 47
+            },
+            "end": {
+              "line": 18,
+              "column": 48
+            }
+          },
+          "replacement": "^",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "MissedMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_18_col_47_001.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_18_col_47_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.601726138,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.261645346,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:28:25: replace || with && in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 28,
+              "column": 25
+            },
+            "end": {
+              "line": 28,
+              "column": 27
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_28_col_25.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_28_col_25.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651732306,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.161772842,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:28:8: delete ! in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 28,
+              "column": 8
+            },
+            "end": {
+              "line": 28,
+              "column": 9
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_28_col_8.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_28_col_8.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.605992312,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 6.759415291,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:28:40: replace > with == in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 28,
+              "column": 40
+            },
+            "end": {
+              "line": 28,
+              "column": 41
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_28_col_40.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_28_col_40.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651428685,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 7.867345548,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:28:40: replace > with < in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 28,
+              "column": 40
+            },
+            "end": {
+              "line": 28,
+              "column": 41
+            }
+          },
+          "replacement": "<",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_28_col_40_001.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_28_col_40_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651683837,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 6.764258951,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:28:40: replace > with >= in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 28,
+              "column": 40
+            },
+            "end": {
+              "line": 28,
+              "column": 41
+            }
+          },
+          "replacement": ">=",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_28_col_40_002.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_28_col_40_002.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651590845,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 7.914386101,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:34:40: replace || with && in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 34,
+              "column": 40
+            },
+            "end": {
+              "line": 34,
+              "column": 42
+            }
+          },
+          "replacement": "&&",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_34_col_40.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_34_col_40.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.601492834,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 8.214089209,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:34:25: replace != with == in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 34,
+              "column": 25
+            },
+            "end": {
+              "line": 34,
+              "column": 27
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_34_col_25.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_34_col_25.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651788022,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 6.761366674,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/input.rs:34:56: replace != with == in open_checked",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/input.rs",
+          "function": {
+            "function_name": "open_checked",
+            "return_type": "-> io::Result<File>",
+            "span": {
+              "start": {
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "line": 39,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 34,
+              "column": 56
+            },
+            "end": {
+              "line": 34,
+              "column": 58
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__input.rs_line_34_col_56.log",
+      "diff_path": "diff/crates__agent__src__input.rs_line_34_col_56.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.651964698,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 6.761969531,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_mutants": 16,
+  "missed": 6,
+  "caught": 9,
+  "timeout": 0,
+  "unviable": 1,
+  "success": 0,
+  "start_time": "2026-10-27T03:15:48.425300389Z",
+  "end_time": "2026-10-27T03:18:02.660357069Z",
+  "cargo_mutants_version": "27.1.0"
+}

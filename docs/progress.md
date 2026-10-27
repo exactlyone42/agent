@@ -1,21 +1,23 @@
 # 已完成與停點
 
-## 本次交付
+2026-10-27：P01 進行中，P02–P10 尚未完成。目標仍是先正式 CLI、後 Tauri Desktop，Windows、macOS、Linux 全部交付。目前只有 Linux 開發與局部驗證證據，尚無正式產品。
 
-- 已建立獨立私人 repo `DnaBoss/agent-platform`，本機 `/home/cash/work_space/private/agent-platform`，已匯入 Orca。
-- 已寫 PLAN：10個實作步驟、依賴、成果、驗收、長任務接手與停止條件；每個產品步驟仍為 PENDING。
-- 已查14個現成專案的固定版本、授權及原始碼/介面文件，包含大公司 Harness；已產生目標架構圖。
-- 已訂 Evaluation 的正常案例、15類故障、陰性對照與結果判斷；資料集與runner尚未實作。
-- 已復用private的Git規範與policy程式，安裝文件格式工具並鎖版本；Rust/桌面產品依賴留P01試接後安裝，不預裝未選定框架。
+## 已實作與實測
 
-實際檢查與遠端交付證據放 `docs/evidence/plan-validation.json`；文件內容不能取代那份執行結果，也不能證明Agent產品已完成。
+CLI 經本機 HTTP 模型介面執行明確授權的文字讀寫，拒絕覆寫既有檔案並獨立核對成果；未提供核對條件時回報待驗收。使用方式及限制見 [CLI 開發入口](cli.md)。Codex 與 Rig 均做了合成檔案比較；模型宣稱完成仍可能沒有正確成果，不能直接算任務成功。
 
-## 舊證據只代表局部能力
+已接 SQLite 的任務開始與結果紀錄，CLI 可用 status／events 在結束後查詢。Linux 實際 CLI 測試涵蓋正常完成、取消、SIGKILL、結果保存失敗；資料層測試涵蓋交易回滾、競爭寫入、過時序號拒絕及唯讀查詢。原件與未完成邊界見 [任務紀錄審查](evidence/P01/20261027-task-store/decisions.md)。這不是完整 TaskSpec、持久授權或自動接續，不能將 running 當作程序存活證明。
 
-原研究工作區 `/home/cash/.cache/agent-platform-decisions/docs/evidence/agent-platform/` 的 followup/cancellation/decision-review 保留。曾有模型讀檔、摘要禁止條件與容器取消正反結果，但未整合到本repo；不算 P02/P04 完成，也沒有產品UI、RAG、Memory、Computer Use或完整任務驗收。
+格式、靜態檢查與 workspace 測試曾通過。新增測試涵蓋核心長度、來源大小、命名管線拒絕、來源執行途中變大及 Linux 開檔時換成目錄；最後一項只驗隔離臨時資料，不代表完整路徑隔離。Claude Code 審查與處理見 [審查紀錄](evidence/P01/20261026-cli-review/decisions.md)。
 
-## 下一步
+## 品質證據及缺口
 
-依PLAN P01比較Codex現成Rust Harness與Rig組件，先接本機假模型及測試工具，再建必要Rust/Tauri骨架與全套品質入口。本次交付計畫，沒有啟動產品實作排程；原排程停用狀態要以宿主讀回為準。
+完整第二輪故意改壞程式的檢查共有 68 項：61 項被攔住、2 項漏測、5 項無法編譯，見 [原始結果](evidence/P01/20261026-cli-core-boundaries/mutants.out/outcomes.json)。兩個漏測已補案例：來源變大重驗 2 項全抓到，路徑替換重驗 1 項抓到；正常版本全 workspace 測試亦通過。原件見 evidence/P01/20261027-cli-source-growth 與 20261027-cli-path-replacement；完整同版重測仍待執行，不將原始失敗改成通過。先前局部函式的滿分與行覆蓋，不代表整個產品品質。
 
-正式環境未動，未使用付費API、未部署、未刪資料。Rust全套、桌面、模型任務、故障注入與產品Evaluation均未跑；只跑規劃交付適用檢查。Linux為首版驗收平台，其他OS保留未驗狀態。
+完整品質入口已實作並實跑，但新增程式尚未通過全部整檔變異與跨平台門檻。仍缺完整任務與授權保存、可靠接續、工具隔離、安裝、三塊 RAG、記憶、電腦操作、Tauri、三平台實機及真人簽收。上述均未完成企業驗收；局部本機模型與取消測試不替代整體驗收。
+
+## 接續入口
+
+唯一任務沿用 `/home/cash/work_space/private/agent-pool-gateway-completion/loops/agent-platform-decisions.loop.md`，見 [長任務接手](longrun.md)。原 `.cache` 路徑已失效，不新建第二份。原生 goal 接續；舊 Orca 排程先前已讀回停用，接手仍須核對目前程序及鎖。
+
+下一步沿用同一 SQLite 資料庫，接完整任務規格、批准與工具意圖的原子保存，再做可靠恢復；資料目錄隔離與網路磁碟拒絕亦須補齊。未提交、推送或部署，正式環境未改。提交仍須通過品質門檻，不把未完成項目改成產品完成。

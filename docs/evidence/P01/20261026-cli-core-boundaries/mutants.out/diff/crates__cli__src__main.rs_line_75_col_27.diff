@@ -1,0 +1,21 @@
+--- crates/cli/src/main.rs
++++ replace == with != in run
+@@ -67,17 +67,17 @@
+         .connect(ReqwestClient::from(http));
+     let report = run_file_task(client.chat(request.model), request.task)
+         .await
+         .map_err(|e| e.to_string())?;
+     println!(
+         "{}",
+         serde_json::to_string(&report).map_err(|_| "無法輸出任務結果")?
+     );
+-    Ok(if report.artifact == ArtifactState::Verified {
++    Ok(if report.artifact != /* ~ changed by cargo-mutants ~ */ ArtifactState::Verified {
+         ExitCode::SUCCESS
+     } else {
+         ExitCode::from(2)
+     })
+ }
+
+ #[tokio::main(flavor = "current_thread")]
+ async fn main() -> ExitCode {

@@ -1,0 +1,84 @@
+{
+  "duration_api_ms": 41238,
+  "stop_reason": "end_turn",
+  "session_id": "a37305c5-78a0-4ffc-bf30-8d65d3d449f3",
+  "total_cost_usd": 0.2431743,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 49027,
+    "cache_read_input_tokens": 42483,
+    "output_tokens": 4281,
+    "output_tokens_details": { "thinking_tokens": 3279 },
+    "server_tool_use": { "web_search_requests": 0, "web_fetch_requests": 0 },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49027,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 652,
+        "cache_read_input_tokens": 42483,
+        "cache_creation_input_tokens": 6544,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6544
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 4281,
+      "cacheReadInputTokens": 42483,
+      "cacheCreationInputTokens": 49027,
+      "webSearchRequests": 0,
+      "costUSD": 0.2431743,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3279,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49027,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": { "background": 0, "foreground": 0, "unset": 0 },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": { "parent": 0, "user": 0, "system": 0 },
+    "refused": { "depth_limit": 0, "concurrency_limit": 0, "budget": 0 },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "有直接依據的問題如下（只讀，未改檔；我另用 clippy-driver 實測過）：\n\n1. **`debug_assert!` 系列沒被擋，實測確認。** `clippy.toml` 只列 `std::assert`、`assert_eq`、`assert_ne`。實測 `debug_assert!`、`debug_assert_eq!` 被回報成 `std::assert`、`std::assert_eq`，所以目前會被擋。但 `test_policy.py` 沒有這兩個的 fixture（測試用的小段樣本程式），日後有人把規則改窄也不會被發現。\n\n2. **測試與 `check.sh` 的規則清單各抄一份，沒有連動。** `LINTS` 與 `check.sh` 第二次 clippy 的 `-D` 清單是兩份手抄。只改其中一份，測試仍會通過，但實際執行的規則已經不同。\n\n3. **斷言太寬鬆。** 測試只檢查 stderr 含 `panic`、`todo`、`unreachable` 這類短字串，沒檢查完整的 `clippy::panic`。換成別的 lint 或訊息也可能碰巧通過。\n\n4. **工具鏈與逾時有風險。** `rustup which` 從呼叫時的目前目錄解析，不在專案根目錄直接跑 `test_policy.py` 時，可能選到別的工具鏈。`timeout=20` 在冷啟動或慢機器上可能誤報失敗。這種失敗是誤擋，不是漏檢。\n\n5. **只有 Linux 證據。** 腳本用 `python3`、bash、`rustup which` 直接呼叫 driver，沒有 Windows 與 macOS 的證據，也不能代表三平台。\n\n未查證：`cargo machete` 的漏報範圍，以及 `--lib --bins` 排除 examples 與 benches 是否符合你的意圖。",
+  "ttft_ms": 32062,
+  "type": "result",
+  "duration_ms": 41550,
+  "uuid": "a2792e9a-896c-47cc-8b83-0ac01ba89475",
+  "ttft_stream_ms": 5449,
+  "time_to_request_ms": 112,
+  "first_content_frame_ms": 5449,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,11 @@
+{
+  "positive_exit": 0,
+  "negative_write_exit": 1,
+  "validator_exit": 0,
+  "python_syntax_files": 3,
+  "sha256": {
+    "probe.py": "f849d7b8dca355972c8372f6bf4694d8a2ede095b71beff001c56f91878e06ba",
+    "validate.py": "a811642c39386edc6600481b03d4aeb0398fd8b20d09339f4d91225bc7b9e57e",
+    "negative-write/probe.py": "a93045305f9cebcc15bb1e7bc321029fba7df43c778b4fd53d67b5a4a1f9ffce"
+  }
+}

@@ -1,0 +1,9 @@
+crates/agent/src/input.rs:18:47: replace | with & in open_checked
+crates/agent/src/input.rs:28:25: replace || with && in open_checked
+crates/agent/src/input.rs:28:8: delete ! in open_checked
+crates/agent/src/input.rs:28:40: replace > with == in open_checked
+crates/agent/src/input.rs:28:40: replace > with < in open_checked
+crates/agent/src/input.rs:28:40: replace > with >= in open_checked
+crates/agent/src/input.rs:34:40: replace || with && in open_checked
+crates/agent/src/input.rs:34:25: replace != with == in open_checked
+crates/agent/src/input.rs:34:56: replace != with == in open_checked

@@ -1,0 +1,393 @@
+{
+  "outcomes": [
+    {
+      "scenario": "Baseline",
+      "summary": "Success",
+      "log_path": "log/baseline.log",
+      "diff_path": null,
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.200616766,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--package=agent-platform-agent@0.1.0",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100780289,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--package=agent-platform-agent@0.1.0",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/verification.rs:15:5: replace verify_file -> Result<(), VerificationError> with Ok(())",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/verification.rs",
+          "function": {
+            "function_name": "verify_file",
+            "return_type": "-> Result<(), VerificationError>",
+            "span": {
+              "start": {
+                "line": 14,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 15,
+              "column": 5
+            },
+            "end": {
+              "line": 25,
+              "column": 11
+            }
+          },
+          "replacement": "Ok(())",
+          "genre": "FnValue"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__verification.rs_line_15_col_5.log",
+      "diff_path": "diff/crates__agent__src__verification.rs_line_15_col_5.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.501343282,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100849909,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/verification.rs:15:8: delete ! in verify_file",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/verification.rs",
+          "function": {
+            "function_name": "verify_file",
+            "return_type": "-> Result<(), VerificationError>",
+            "span": {
+              "start": {
+                "line": 14,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 15,
+              "column": 8
+            },
+            "end": {
+              "line": 15,
+              "column": 9
+            }
+          },
+          "replacement": "",
+          "genre": "UnaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__verification.rs_line_15_col_8.log",
+      "diff_path": "diff/crates__agent__src__verification.rs_line_15_col_8.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.501197392,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100814413,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/verification.rs:20:37: replace + with - in verify_file",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/verification.rs",
+          "function": {
+            "function_name": "verify_file",
+            "return_type": "-> Result<(), VerificationError>",
+            "span": {
+              "start": {
+                "line": 14,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 20,
+              "column": 37
+            },
+            "end": {
+              "line": 20,
+              "column": 38
+            }
+          },
+          "replacement": "-",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__verification.rs_line_20_col_37.log",
+      "diff_path": "diff/crates__agent__src__verification.rs_line_20_col_37.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.401043931,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100703548,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/verification.rs:20:37: replace + with * in verify_file",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/verification.rs",
+          "function": {
+            "function_name": "verify_file",
+            "return_type": "-> Result<(), VerificationError>",
+            "span": {
+              "start": {
+                "line": 14,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 20,
+              "column": 37
+            },
+            "end": {
+              "line": 20,
+              "column": 38
+            }
+          },
+          "replacement": "*",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__verification.rs_line_20_col_37_001.log",
+      "diff_path": "diff/crates__agent__src__verification.rs_line_20_col_37_001.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.401009367,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100872911,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    },
+    {
+      "scenario": {
+        "Mutant": {
+          "name": "crates/agent/src/verification.rs:22:15: replace != with == in verify_file",
+          "package": "agent-platform-agent",
+          "file": "crates/agent/src/verification.rs",
+          "function": {
+            "function_name": "verify_file",
+            "return_type": "-> Result<(), VerificationError>",
+            "span": {
+              "start": {
+                "line": 14,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "start": {
+              "line": 22,
+              "column": 15
+            },
+            "end": {
+              "line": 22,
+              "column": 17
+            }
+          },
+          "replacement": "==",
+          "genre": "BinaryOperator"
+        }
+      },
+      "summary": "CaughtMutant",
+      "log_path": "log/crates__agent__src__verification.rs_line_22_col_15.log",
+      "diff_path": "diff/crates__agent__src__verification.rs_line_22_col_15.diff",
+      "phase_results": [
+        {
+          "phase": "Build",
+          "duration": 0.400975264,
+          "process_status": "Success",
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--no-run",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        },
+        {
+          "phase": "Test",
+          "duration": 0.100741688,
+          "process_status": {
+            "Failure": 101
+          },
+          "argv": [
+            "/home/cash/.rustup/toolchains/1.98.0-x86_64-unknown-linux-gnu/bin/cargo",
+            "test",
+            "--verbose",
+            "--workspace",
+            "--all-features",
+            "--locked"
+          ]
+        }
+      ]
+    }
+  ],
+  "total_mutants": 5,
+  "missed": 0,
+  "caught": 5,
+  "timeout": 0,
+  "unviable": 0,
+  "success": 0,
+  "start_time": "2026-10-26T09:33:05.643637534Z",
+  "end_time": "2026-10-26T09:33:08.657089548Z",
+  "cargo_mutants_version": "27.1.0"
+}

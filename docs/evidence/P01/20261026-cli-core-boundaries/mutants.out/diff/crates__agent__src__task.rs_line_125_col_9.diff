@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace <impl Tool for WriteOutput>::parameters -> serde_json::Value with Default::default()
+@@ -117,17 +117,17 @@
+     type Args = WriteArgs;
+     type Output = String;
+     type Error = ToolExecutionError;
+
+     fn description(&self) -> String {
+         "建立使用者指定且獲准的新成果檔案，不覆寫既有資料".into()
+     }
+     fn parameters(&self) -> serde_json::Value {
+-        json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false})
++        Default::default() /* ~ changed by cargo-mutants ~ */
+     }
+     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {
+         if !self.allowed {
+             return Err(ToolExecutionError::refused("使用者未授權寫入成果"));
+         }
+         if args.content.len() as u64 > FILE_LIMIT {
+             return Err(ToolExecutionError::refused("成果超出大小限制"));
+         }

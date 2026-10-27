@@ -1,15 +1,15 @@
 {
   "version": 1,
   "scope": "agent-first-release",
-  "execution_started": false,
-  "authoritative_loop": "/home/cash/.cache/agent-platform-decisions/loops/agent-platform-decisions.loop.md",
+  "execution_started": true,
+  "authoritative_loop": "/home/cash/work_space/private/agent-pool-gateway-completion/loops/agent-platform-decisions.loop.md",
   "steps": [
     {
       "id": "P01",
-      "status": "PENDING",
+      "status": "RUNNING",
       "depends_on": [],
       "plan": "PLAN.md",
-      "evidence_directory": "docs/evidence/p01",
+      "evidence_directory": "docs/evidence/P01",
       "done_requires": [
         "positive_control",
         "negative_control",

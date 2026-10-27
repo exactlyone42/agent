@@ -1,0 +1,44 @@
+--- crates/agent/src/task.rs
++++ replace <impl Tool for WriteOutput>::call -> Result<String, Self::Error> with Ok("xyzzy".into())
+@@ -120,40 +120,17 @@
+
+     fn description(&self) -> String {
+         "建立使用者指定且獲准的新成果檔案，不覆寫既有資料".into()
+     }
+     fn parameters(&self) -> serde_json::Value {
+         json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false})
+     }
+     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {
+-        if !self.allowed {
+-            return Err(ToolExecutionError::refused("使用者未授權寫入成果"));
+-        }
+-        if args.content.len() as u64 > FILE_LIMIT {
+-            return Err(ToolExecutionError::refused("成果超出大小限制"));
+-        }
+-        let mut artifact = self
+-            .artifact
+-            .lock()
+-            .map_err(|_| ToolExecutionError::refused("成果狀態異常"))?;
+-        if artifact.is_some() {
+-            return Err(ToolExecutionError::refused("成果已寫入，不重複執行"));
+-        }
+-        let mut file = OpenOptions::new()
+-            .read(true)
+-            .write(true)
+-            .create_new(true)
+-            .open(&self.path)
+-            .map_err(ToolExecutionError::from_error)?;
+-        file.write_all(args.content.as_bytes())
+-            .map_err(ToolExecutionError::from_error)?;
+-        file.sync_all().map_err(ToolExecutionError::from_error)?;
+-        *artifact = Some(file);
+-        Ok("成果已寫入，仍須獨立驗證".into())
++        Ok("xyzzy".into()) /* ~ changed by cargo-mutants ~ */
+     }
+ }
+
+ pub async fn run_file_task(
+     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,
+     task: FileTask,
+ ) -> Result<TaskReport, TaskError> {
+     if task.prompt.trim().is_empty()

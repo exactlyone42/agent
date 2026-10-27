@@ -1,0 +1,2152 @@
+[
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace run -> Result<ExitCode, String> with Ok(Default::default())\n@@ -8,80 +8,17 @@\n #[serde(deny_unknown_fields)]\n struct Request {\n     endpoint: url::Url,\n     model: String,\n     task: FileTask,\n }\n \n async fn run() -> Result<ExitCode, String> {\n-    let args: Vec<_> = std::env::args_os().skip(1).collect();\n-    if args.len() == 1 && args[0] == \"--help\" {\n-        println!(\n-            \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n-        );\n-        return Ok(ExitCode::SUCCESS);\n-    }\n-    if args.len() != 2 || args[0] != \"run\" {\n-        return Err(\"用法：agent-platform run <任務.json>\".into());\n-    }\n-    let mut bytes = Vec::new();\n-    File::open(&args[1])\n-        .map_err(|_| \"無法開啟任務檔\")?\n-        .take(65537)\n-        .read_to_end(&mut bytes)\n-        .map_err(|_| \"無法讀取任務檔\")?;\n-    if bytes.len() > 65536 {\n-        return Err(\"任務檔超過 64 KiB\".into());\n-    }\n-    let request: Request =\n-        serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n-    let loopback = match request.endpoint.host() {\n-        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n-        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n-        _ => false,\n-    };\n-    if !loopback\n-        || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n-        || !request.endpoint.username().is_empty()\n-        || request.endpoint.password().is_some()\n-        || request.endpoint.query().is_some()\n-        || request.endpoint.fragment().is_some()\n-        || request.model.trim().is_empty()\n-    {\n-        return Err(\n-            \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n-        );\n-    }\n-    let key = match std::env::var(\"AGENT_API_KEY\") {\n-        Ok(value) => value,\n-        Err(std::env::VarError::NotPresent) => String::new(),\n-        Err(_) => return Err(\"AGENT_API_KEY 格式錯誤\".into()),\n-    };\n-    let http = reqwest::Client::builder()\n-        .no_proxy()\n-        .redirect(reqwest::redirect::Policy::none())\n-        .timeout(Duration::from_secs(60))\n-        .build()\n-        .map_err(|_| \"無法建立模型連線\")?;\n-    let client = OpenAIConfig::new(key)\n-        .with_base_url(request.endpoint.as_str())\n-        .connect(ReqwestClient::from(http));\n-    let report = run_file_task(client.chat(request.model), request.task)\n-        .await\n-        .map_err(|e| e.to_string())?;\n-    println!(\n-        \"{}\",\n-        serde_json::to_string(&report).map_err(|_| \"無法輸出任務結果\")?\n-    );\n-    Ok(if report.artifact == ArtifactState::Verified {\n-        ExitCode::SUCCESS\n-    } else {\n-        ExitCode::from(2)\n-    })\n+    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */\n }\n \n #[tokio::main(flavor = \"current_thread\")]\n async fn main() -> ExitCode {\n     match run().await {\n         Ok(code) => code,\n         Err(error) => {\n             eprintln!(\"{error}\");\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/cli/src/main.rs:16:5: replace run -> Result<ExitCode, String> with Ok(Default::default())",
+    "package": "agent-platform",
+    "replacement": "Ok(Default::default())",
+    "span": {
+      "end": {
+        "column": 7,
+        "line": 79
+      },
+      "start": {
+        "column": 5,
+        "line": 16
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace && with || in run\n@@ -9,17 +9,17 @@\n struct Request {\n     endpoint: url::Url,\n     model: String,\n     task: FileTask,\n }\n \n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n-    if args.len() == 1 && args[0] == \"--help\" {\n+    if args.len() == 1 || /* ~ changed by cargo-mutants ~ */ args[0] == \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n     if args.len() != 2 || args[0] != \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:17:24: replace && with || in run",
+    "package": "agent-platform",
+    "replacement": "||",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 17
+      },
+      "start": {
+        "column": 24,
+        "line": 17
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace == with != in run\n@@ -9,17 +9,17 @@\n struct Request {\n     endpoint: url::Url,\n     model: String,\n     task: FileTask,\n }\n \n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n-    if args.len() == 1 && args[0] == \"--help\" {\n+    if args.len() != /* ~ changed by cargo-mutants ~ */ 1 && args[0] == \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n     if args.len() != 2 || args[0] != \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:17:19: replace == with != in run",
+    "package": "agent-platform",
+    "replacement": "!=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 17
+      },
+      "start": {
+        "column": 19,
+        "line": 17
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace == with != in run\n@@ -9,17 +9,17 @@\n struct Request {\n     endpoint: url::Url,\n     model: String,\n     task: FileTask,\n }\n \n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n-    if args.len() == 1 && args[0] == \"--help\" {\n+    if args.len() == 1 && args[0] != /* ~ changed by cargo-mutants ~ */ \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n     if args.len() != 2 || args[0] != \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:17:35: replace == with != in run",
+    "package": "agent-platform",
+    "replacement": "!=",
+    "span": {
+      "end": {
+        "column": 37,
+        "line": 17
+      },
+      "start": {
+        "column": 35,
+        "line": 17
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -15,17 +15,17 @@\n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n     if args.len() == 1 && args[0] == \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n-    if args.len() != 2 || args[0] != \"run\" {\n+    if args.len() != 2 && /* ~ changed by cargo-mutants ~ */ args[0] != \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:23:24: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 26,
+        "line": 23
+      },
+      "start": {
+        "column": 24,
+        "line": 23
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace != with == in run\n@@ -15,17 +15,17 @@\n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n     if args.len() == 1 && args[0] == \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n-    if args.len() != 2 || args[0] != \"run\" {\n+    if args.len() == /* ~ changed by cargo-mutants ~ */ 2 || args[0] != \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:23:19: replace != with == in run",
+    "package": "agent-platform",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 23
+      },
+      "start": {
+        "column": 19,
+        "line": 23
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace != with == in run\n@@ -15,17 +15,17 @@\n async fn run() -> Result<ExitCode, String> {\n     let args: Vec<_> = std::env::args_os().skip(1).collect();\n     if args.len() == 1 && args[0] == \"--help\" {\n         println!(\n             \"用法：agent-platform run <任務.json>\\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。\"\n         );\n         return Ok(ExitCode::SUCCESS);\n     }\n-    if args.len() != 2 || args[0] != \"run\" {\n+    if args.len() != 2 || args[0] == /* ~ changed by cargo-mutants ~ */ \"run\" {\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:23:35: replace != with == in run",
+    "package": "agent-platform",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 37,
+        "line": 23
+      },
+      "start": {
+        "column": 35,
+        "line": 23
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace > with == in run\n@@ -24,17 +24,17 @@\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n-    if bytes.len() > 65536 {\n+    if bytes.len() == /* ~ changed by cargo-mutants ~ */ 65536 {\n         return Err(\"任務檔超過 64 KiB\".into());\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:32:20: replace > with == in run",
+    "package": "agent-platform",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 32
+      },
+      "start": {
+        "column": 20,
+        "line": 32
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace > with < in run\n@@ -24,17 +24,17 @@\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n-    if bytes.len() > 65536 {\n+    if bytes.len() < /* ~ changed by cargo-mutants ~ */ 65536 {\n         return Err(\"任務檔超過 64 KiB\".into());\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:32:20: replace > with < in run",
+    "package": "agent-platform",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 32
+      },
+      "start": {
+        "column": 20,
+        "line": 32
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace > with >= in run\n@@ -24,17 +24,17 @@\n         return Err(\"用法：agent-platform run <任務.json>\".into());\n     }\n     let mut bytes = Vec::new();\n     File::open(&args[1])\n         .map_err(|_| \"無法開啟任務檔\")?\n         .take(65537)\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n-    if bytes.len() > 65536 {\n+    if bytes.len() >= /* ~ changed by cargo-mutants ~ */ 65536 {\n         return Err(\"任務檔超過 64 KiB\".into());\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:32:20: replace > with >= in run",
+    "package": "agent-platform",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 21,
+        "line": 32
+      },
+      "start": {
+        "column": 20,
+        "line": 32
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ delete match arm Some(url::Host::Ipv4(ip)) in run\n@@ -30,17 +30,17 @@\n         .read_to_end(&mut bytes)\n         .map_err(|_| \"無法讀取任務檔\")?;\n     if bytes.len() > 65536 {\n         return Err(\"任務檔超過 64 KiB\".into());\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n-        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n+         /* ~ changed by cargo-mutants ~ */\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/cli/src/main.rs:38:9: delete match arm Some(url::Host::Ipv4(ip)) in run",
+    "package": "agent-platform",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 55,
+        "line": 38
+      },
+      "start": {
+        "column": 9,
+        "line": 38
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ delete match arm Some(url::Host::Ipv6(ip)) in run\n@@ -31,17 +31,17 @@\n         .map_err(|_| \"無法讀取任務檔\")?;\n     if bytes.len() > 65536 {\n         return Err(\"任務檔超過 64 KiB\".into());\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n-        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n+         /* ~ changed by cargo-mutants ~ */\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "MatchArm",
+    "name": "crates/cli/src/main.rs:39:9: delete match arm Some(url::Host::Ipv6(ip)) in run",
+    "package": "agent-platform",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 55,
+        "line": 39
+      },
+      "start": {
+        "column": 9,
+        "line": 39
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -40,17 +40,17 @@\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n-        || request.model.trim().is_empty()\n+        && /* ~ changed by cargo-mutants ~ */ request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n     }\n     let key = match std::env::var(\"AGENT_API_KEY\") {\n         Ok(value) => value,\n         Err(std::env::VarError::NotPresent) => String::new(),\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:48:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 48
+      },
+      "start": {
+        "column": 9,
+        "line": 48
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -39,17 +39,17 @@\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n-        || request.endpoint.fragment().is_some()\n+        && /* ~ changed by cargo-mutants ~ */ request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n     }\n     let key = match std::env::var(\"AGENT_API_KEY\") {\n         Ok(value) => value,\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:47:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 47
+      },
+      "start": {
+        "column": 9,
+        "line": 47
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -38,17 +38,17 @@\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n-        || request.endpoint.query().is_some()\n+        && /* ~ changed by cargo-mutants ~ */ request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n     }\n     let key = match std::env::var(\"AGENT_API_KEY\") {\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:46:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 46
+      },
+      "start": {
+        "column": 9,
+        "line": 46
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -37,17 +37,17 @@\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n-        || request.endpoint.password().is_some()\n+        && /* ~ changed by cargo-mutants ~ */ request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n     }\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:45:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 45
+      },
+      "start": {
+        "column": 9,
+        "line": 45
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -36,17 +36,17 @@\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n-        || !request.endpoint.username().is_empty()\n+        && /* ~ changed by cargo-mutants ~ */ !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:44:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 44
+      },
+      "start": {
+        "column": 9,
+        "line": 44
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace || with && in run\n@@ -35,17 +35,17 @@\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n-        || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n+        && /* ~ changed by cargo-mutants ~ */ !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:43:9: replace || with && in run",
+    "package": "agent-platform",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 43
+      },
+      "start": {
+        "column": 9,
+        "line": 43
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ delete ! in run\n@@ -34,17 +34,17 @@\n     }\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n-    if !loopback\n+    if  /* ~ changed by cargo-mutants ~ */loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/cli/src/main.rs:42:8: delete ! in run",
+    "package": "agent-platform",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 9,
+        "line": 42
+      },
+      "start": {
+        "column": 8,
+        "line": 42
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ delete ! in run\n@@ -35,17 +35,17 @@\n     let request: Request =\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n-        || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n+        ||  /* ~ changed by cargo-mutants ~ */matches!(request.endpoint.scheme(), \"http\" | \"https\")\n         || !request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/cli/src/main.rs:43:12: delete ! in run",
+    "package": "agent-platform",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 13,
+        "line": 43
+      },
+      "start": {
+        "column": 12,
+        "line": 43
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ delete ! in run\n@@ -36,17 +36,17 @@\n         serde_json::from_slice(&bytes).map_err(|_| \"任務 JSON 格式錯誤或包含未知欄位\")?;\n     let loopback = match request.endpoint.host() {\n         Some(url::Host::Ipv4(ip)) => ip.is_loopback(),\n         Some(url::Host::Ipv6(ip)) => ip.is_loopback(),\n         _ => false,\n     };\n     if !loopback\n         || !matches!(request.endpoint.scheme(), \"http\" | \"https\")\n-        || !request.endpoint.username().is_empty()\n+        ||  /* ~ changed by cargo-mutants ~ */request.endpoint.username().is_empty()\n         || request.endpoint.password().is_some()\n         || request.endpoint.query().is_some()\n         || request.endpoint.fragment().is_some()\n         || request.model.trim().is_empty()\n     {\n         return Err(\n             \"目前只接受明確的本機 IP 模型入口與非空模型名稱；網址不得夾帶憑證或查詢參數\".into(),\n         );\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/cli/src/main.rs:44:12: delete ! in run",
+    "package": "agent-platform",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 13,
+        "line": 44
+      },
+      "start": {
+        "column": 12,
+        "line": 44
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace == with != in run\n@@ -67,17 +67,17 @@\n         .connect(ReqwestClient::from(http));\n     let report = run_file_task(client.chat(request.model), request.task)\n         .await\n         .map_err(|e| e.to_string())?;\n     println!(\n         \"{}\",\n         serde_json::to_string(&report).map_err(|_| \"無法輸出任務結果\")?\n     );\n-    Ok(if report.artifact == ArtifactState::Verified {\n+    Ok(if report.artifact != /* ~ changed by cargo-mutants ~ */ ArtifactState::Verified {\n         ExitCode::SUCCESS\n     } else {\n         ExitCode::from(2)\n     })\n }\n \n #[tokio::main(flavor = \"current_thread\")]\n async fn main() -> ExitCode {\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "run",
+      "return_type": "-> Result<ExitCode, String>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 80
+        },
+        "start": {
+          "column": 1,
+          "line": 15
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/cli/src/main.rs:75:27: replace == with != in run",
+    "package": "agent-platform",
+    "replacement": "!=",
+    "span": {
+      "end": {
+        "column": 29,
+        "line": 75
+      },
+      "start": {
+        "column": 27,
+        "line": 75
+      }
+    }
+  },
+  {
+    "diff": "--- crates/cli/src/main.rs\n+++ replace main -> ExitCode with Default::default()\n@@ -76,16 +76,10 @@\n         ExitCode::SUCCESS\n     } else {\n         ExitCode::from(2)\n     })\n }\n \n #[tokio::main(flavor = \"current_thread\")]\n async fn main() -> ExitCode {\n-    match run().await {\n-        Ok(code) => code,\n-        Err(error) => {\n-            eprintln!(\"{error}\");\n-            ExitCode::FAILURE\n-        }\n-    }\n+    Default::default() /* ~ changed by cargo-mutants ~ */\n }\n",
+    "file": "crates/cli/src/main.rs",
+    "function": {
+      "function_name": "main",
+      "return_type": "-> ExitCode",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 91
+        },
+        "start": {
+          "column": 1,
+          "line": 82
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/cli/src/main.rs:84:5: replace main -> ExitCode with Default::default()",
+    "package": "agent-platform",
+    "replacement": "Default::default()",
+    "span": {
+      "end": {
+        "column": 6,
+        "line": 90
+      },
+      "start": {
+        "column": 5,
+        "line": 84
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace * with +\n@@ -8,17 +8,17 @@\n use std::{\n     fs::{File, OpenOptions},\n     io::{Read, Seek, SeekFrom, Write},\n     path::PathBuf,\n     sync::{Arc, Mutex},\n     time::Duration,\n };\n \n-pub const FILE_LIMIT: u64 = 1024 * 1024;\n+pub const FILE_LIMIT: u64 = 1024 + /* ~ changed by cargo-mutants ~ */ 1024;\n pub const TASK_TIMEOUT: Duration = Duration::from_secs(120);\n \n #[derive(Deserialize)]\n #[serde(deny_unknown_fields)]\n pub struct FileTask {\n     pub prompt: String,\n     pub input: PathBuf,\n     pub output: PathBuf,\n",
+    "file": "crates/agent/src/task.rs",
+    "function": null,
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:16:34: replace * with +",
+    "package": "agent-platform-agent",
+    "replacement": "+",
+    "span": {
+      "end": {
+        "column": 35,
+        "line": 16
+      },
+      "start": {
+        "column": 34,
+        "line": 16
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace * with /\n@@ -8,17 +8,17 @@\n use std::{\n     fs::{File, OpenOptions},\n     io::{Read, Seek, SeekFrom, Write},\n     path::PathBuf,\n     sync::{Arc, Mutex},\n     time::Duration,\n };\n \n-pub const FILE_LIMIT: u64 = 1024 * 1024;\n+pub const FILE_LIMIT: u64 = 1024 / /* ~ changed by cargo-mutants ~ */ 1024;\n pub const TASK_TIMEOUT: Duration = Duration::from_secs(120);\n \n #[derive(Deserialize)]\n #[serde(deny_unknown_fields)]\n pub struct FileTask {\n     pub prompt: String,\n     pub input: PathBuf,\n     pub output: PathBuf,\n",
+    "file": "crates/agent/src/task.rs",
+    "function": null,
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:16:34: replace * with /",
+    "package": "agent-platform-agent",
+    "replacement": "/",
+    "span": {
+      "end": {
+        "column": 35,
+        "line": 16
+      },
+      "start": {
+        "column": 34,
+        "line": 16
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for ReadInput>::description -> String with String::new()\n@@ -81,17 +81,17 @@\n \n impl Tool for ReadInput {\n     const NAME: &'static str = \"read_input\";\n     type Args = ReadArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n-        \"讀取使用者指定且獲准的來源檔案\".into()\n+        String::new() /* ~ changed by cargo-mutants ~ */\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{},\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {\n         let mut guard = self\n             .0\n             .lock()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::description",
+      "return_type": "-> String",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 90
+        },
+        "start": {
+          "column": 5,
+          "line": 88
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:89:9: replace <impl Tool for ReadInput>::description -> String with String::new()",
+    "package": "agent-platform-agent",
+    "replacement": "String::new()",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 89
+      },
+      "start": {
+        "column": 9,
+        "line": 89
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for ReadInput>::description -> String with \"xyzzy\".into()\n@@ -81,17 +81,17 @@\n \n impl Tool for ReadInput {\n     const NAME: &'static str = \"read_input\";\n     type Args = ReadArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n-        \"讀取使用者指定且獲准的來源檔案\".into()\n+        \"xyzzy\".into() /* ~ changed by cargo-mutants ~ */\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{},\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {\n         let mut guard = self\n             .0\n             .lock()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::description",
+      "return_type": "-> String",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 90
+        },
+        "start": {
+          "column": 5,
+          "line": 88
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:89:9: replace <impl Tool for ReadInput>::description -> String with \"xyzzy\".into()",
+    "package": "agent-platform-agent",
+    "replacement": "\"xyzzy\".into()",
+    "span": {
+      "end": {
+        "column": 33,
+        "line": 89
+      },
+      "start": {
+        "column": 9,
+        "line": 89
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for ReadInput>::parameters -> serde_json::Value with Default::default()\n@@ -84,17 +84,17 @@\n     type Args = ReadArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n         \"讀取使用者指定且獲准的來源檔案\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n-        json!({\"type\":\"object\",\"properties\":{},\"additionalProperties\":false})\n+        Default::default() /* ~ changed by cargo-mutants ~ */\n     }\n     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {\n         let mut guard = self\n             .0\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n         let file = guard\n             .as_mut()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::parameters",
+      "return_type": "-> serde_json::Value",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 93
+        },
+        "start": {
+          "column": 5,
+          "line": 91
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:92:9: replace <impl Tool for ReadInput>::parameters -> serde_json::Value with Default::default()",
+    "package": "agent-platform-agent",
+    "replacement": "Default::default()",
+    "span": {
+      "end": {
+        "column": 78,
+        "line": 92
+      },
+      "start": {
+        "column": 9,
+        "line": 92
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for ReadInput>::call -> Result<String, Self::Error> with Ok(String::new())\n@@ -87,33 +87,17 @@\n \n     fn description(&self) -> String {\n         \"讀取使用者指定且獲准的來源檔案\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{},\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {\n-        let mut guard = self\n-            .0\n-            .lock()\n-            .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n-        let file = guard\n-            .as_mut()\n-            .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n-        file.seek(SeekFrom::Start(0))\n-            .map_err(ToolExecutionError::from_error)?;\n-        let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n-            .read_to_string(&mut content)\n-            .map_err(ToolExecutionError::from_error)?;\n-        if content.len() as u64 > FILE_LIMIT {\n-            return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n-        }\n-        Ok(content)\n+        Ok(String::new()) /* ~ changed by cargo-mutants ~ */\n     }\n }\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n     type Args = WriteArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:95:9: replace <impl Tool for ReadInput>::call -> Result<String, Self::Error> with Ok(String::new())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(String::new())",
+    "span": {
+      "end": {
+        "column": 20,
+        "line": 111
+      },
+      "start": {
+        "column": 9,
+        "line": 95
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for ReadInput>::call -> Result<String, Self::Error> with Ok(\"xyzzy\".into())\n@@ -87,33 +87,17 @@\n \n     fn description(&self) -> String {\n         \"讀取使用者指定且獲准的來源檔案\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{},\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, _: ReadArgs) -> Result<String, Self::Error> {\n-        let mut guard = self\n-            .0\n-            .lock()\n-            .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n-        let file = guard\n-            .as_mut()\n-            .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n-        file.seek(SeekFrom::Start(0))\n-            .map_err(ToolExecutionError::from_error)?;\n-        let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n-            .read_to_string(&mut content)\n-            .map_err(ToolExecutionError::from_error)?;\n-        if content.len() as u64 > FILE_LIMIT {\n-            return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n-        }\n-        Ok(content)\n+        Ok(\"xyzzy\".into()) /* ~ changed by cargo-mutants ~ */\n     }\n }\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n     type Args = WriteArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:95:9: replace <impl Tool for ReadInput>::call -> Result<String, Self::Error> with Ok(\"xyzzy\".into())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(\"xyzzy\".into())",
+    "span": {
+      "end": {
+        "column": 20,
+        "line": 111
+      },
+      "start": {
+        "column": 9,
+        "line": 95
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace + with - in <impl Tool for ReadInput>::call\n@@ -97,17 +97,17 @@\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n         let file = guard\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n+        file.take(FILE_LIMIT - /* ~ changed by cargo-mutants ~ */ 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n         if content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:105:30: replace + with - in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "-",
+    "span": {
+      "end": {
+        "column": 31,
+        "line": 105
+      },
+      "start": {
+        "column": 30,
+        "line": 105
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace + with * in <impl Tool for ReadInput>::call\n@@ -97,17 +97,17 @@\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n         let file = guard\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n+        file.take(FILE_LIMIT * /* ~ changed by cargo-mutants ~ */ 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n         if content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:105:30: replace + with * in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "*",
+    "span": {
+      "end": {
+        "column": 31,
+        "line": 105
+      },
+      "start": {
+        "column": 30,
+        "line": 105
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in <impl Tool for ReadInput>::call\n@@ -100,17 +100,17 @@\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n         file.take(FILE_LIMIT + 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n-        if content.len() as u64 > FILE_LIMIT {\n+        if content.len() as u64 == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:108:33: replace > with == in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 108
+      },
+      "start": {
+        "column": 33,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in <impl Tool for ReadInput>::call\n@@ -100,17 +100,17 @@\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n         file.take(FILE_LIMIT + 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n-        if content.len() as u64 > FILE_LIMIT {\n+        if content.len() as u64 < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:108:33: replace > with < in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 108
+      },
+      "start": {
+        "column": 33,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in <impl Tool for ReadInput>::call\n@@ -100,17 +100,17 @@\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n         file.take(FILE_LIMIT + 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n-        if content.len() as u64 > FILE_LIMIT {\n+        if content.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:108:33: replace > with >= in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 108
+      },
+      "start": {
+        "column": 33,
+        "line": 108
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for WriteOutput>::description -> String with String::new()\n@@ -114,17 +114,17 @@\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n     type Args = WriteArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n-        \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n+        String::new() /* ~ changed by cargo-mutants ~ */\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::description",
+      "return_type": "-> String",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 123
+        },
+        "start": {
+          "column": 5,
+          "line": 121
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:122:9: replace <impl Tool for WriteOutput>::description -> String with String::new()",
+    "package": "agent-platform-agent",
+    "replacement": "String::new()",
+    "span": {
+      "end": {
+        "column": 42,
+        "line": 122
+      },
+      "start": {
+        "column": 9,
+        "line": 122
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for WriteOutput>::description -> String with \"xyzzy\".into()\n@@ -114,17 +114,17 @@\n \n impl Tool for WriteOutput {\n     const NAME: &'static str = \"write_output\";\n     type Args = WriteArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n-        \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n+        \"xyzzy\".into() /* ~ changed by cargo-mutants ~ */\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::description",
+      "return_type": "-> String",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 123
+        },
+        "start": {
+          "column": 5,
+          "line": 121
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:122:9: replace <impl Tool for WriteOutput>::description -> String with \"xyzzy\".into()",
+    "package": "agent-platform-agent",
+    "replacement": "\"xyzzy\".into()",
+    "span": {
+      "end": {
+        "column": 42,
+        "line": 122
+      },
+      "start": {
+        "column": 9,
+        "line": 122
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for WriteOutput>::parameters -> serde_json::Value with Default::default()\n@@ -117,17 +117,17 @@\n     type Args = WriteArgs;\n     type Output = String;\n     type Error = ToolExecutionError;\n \n     fn description(&self) -> String {\n         \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n-        json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n+        Default::default() /* ~ changed by cargo-mutants ~ */\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n         if args.content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::parameters",
+      "return_type": "-> serde_json::Value",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 126
+        },
+        "start": {
+          "column": 5,
+          "line": 124
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:125:9: replace <impl Tool for WriteOutput>::parameters -> serde_json::Value with Default::default()",
+    "package": "agent-platform-agent",
+    "replacement": "Default::default()",
+    "span": {
+      "end": {
+        "column": 128,
+        "line": 125
+      },
+      "start": {
+        "column": 9,
+        "line": 125
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for WriteOutput>::call -> Result<String, Self::Error> with Ok(String::new())\n@@ -120,40 +120,17 @@\n \n     fn description(&self) -> String {\n         \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n-        if !self.allowed {\n-            return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n-        }\n-        if args.content.len() as u64 > FILE_LIMIT {\n-            return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n-        }\n-        let mut artifact = self\n-            .artifact\n-            .lock()\n-            .map_err(|_| ToolExecutionError::refused(\"成果狀態異常\"))?;\n-        if artifact.is_some() {\n-            return Err(ToolExecutionError::refused(\"成果已寫入，不重複執行\"));\n-        }\n-        let mut file = OpenOptions::new()\n-            .read(true)\n-            .write(true)\n-            .create_new(true)\n-            .open(&self.path)\n-            .map_err(ToolExecutionError::from_error)?;\n-        file.write_all(args.content.as_bytes())\n-            .map_err(ToolExecutionError::from_error)?;\n-        file.sync_all().map_err(ToolExecutionError::from_error)?;\n-        *artifact = Some(file);\n-        Ok(\"成果已寫入，仍須獨立驗證\".into())\n+        Ok(String::new()) /* ~ changed by cargo-mutants ~ */\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:128:9: replace <impl Tool for WriteOutput>::call -> Result<String, Self::Error> with Ok(String::new())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(String::new())",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 151
+      },
+      "start": {
+        "column": 9,
+        "line": 128
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace <impl Tool for WriteOutput>::call -> Result<String, Self::Error> with Ok(\"xyzzy\".into())\n@@ -120,40 +120,17 @@\n \n     fn description(&self) -> String {\n         \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n-        if !self.allowed {\n-            return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n-        }\n-        if args.content.len() as u64 > FILE_LIMIT {\n-            return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n-        }\n-        let mut artifact = self\n-            .artifact\n-            .lock()\n-            .map_err(|_| ToolExecutionError::refused(\"成果狀態異常\"))?;\n-        if artifact.is_some() {\n-            return Err(ToolExecutionError::refused(\"成果已寫入，不重複執行\"));\n-        }\n-        let mut file = OpenOptions::new()\n-            .read(true)\n-            .write(true)\n-            .create_new(true)\n-            .open(&self.path)\n-            .map_err(ToolExecutionError::from_error)?;\n-        file.write_all(args.content.as_bytes())\n-            .map_err(ToolExecutionError::from_error)?;\n-        file.sync_all().map_err(ToolExecutionError::from_error)?;\n-        *artifact = Some(file);\n-        Ok(\"成果已寫入，仍須獨立驗證\".into())\n+        Ok(\"xyzzy\".into()) /* ~ changed by cargo-mutants ~ */\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:128:9: replace <impl Tool for WriteOutput>::call -> Result<String, Self::Error> with Ok(\"xyzzy\".into())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(\"xyzzy\".into())",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 151
+      },
+      "start": {
+        "column": 9,
+        "line": 128
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ delete ! in <impl Tool for WriteOutput>::call\n@@ -120,17 +120,17 @@\n \n     fn description(&self) -> String {\n         \"建立使用者指定且獲准的新成果檔案，不覆寫既有資料\".into()\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n-        if !self.allowed {\n+        if  /* ~ changed by cargo-mutants ~ */self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n         if args.content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n         }\n         let mut artifact = self\n             .artifact\n             .lock()\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/agent/src/task.rs:128:12: delete ! in <impl Tool for WriteOutput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 13,
+        "line": 128
+      },
+      "start": {
+        "column": 12,
+        "line": 128
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in <impl Tool for WriteOutput>::call\n@@ -123,17 +123,17 @@\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n-        if args.content.len() as u64 > FILE_LIMIT {\n+        if args.content.len() as u64 == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n         }\n         let mut artifact = self\n             .artifact\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"成果狀態異常\"))?;\n         if artifact.is_some() {\n             return Err(ToolExecutionError::refused(\"成果已寫入，不重複執行\"));\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:131:38: replace > with == in <impl Tool for WriteOutput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 39,
+        "line": 131
+      },
+      "start": {
+        "column": 38,
+        "line": 131
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in <impl Tool for WriteOutput>::call\n@@ -123,17 +123,17 @@\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n-        if args.content.len() as u64 > FILE_LIMIT {\n+        if args.content.len() as u64 < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n         }\n         let mut artifact = self\n             .artifact\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"成果狀態異常\"))?;\n         if artifact.is_some() {\n             return Err(ToolExecutionError::refused(\"成果已寫入，不重複執行\"));\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:131:38: replace > with < in <impl Tool for WriteOutput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 39,
+        "line": 131
+      },
+      "start": {
+        "column": 38,
+        "line": 131
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in <impl Tool for WriteOutput>::call\n@@ -123,17 +123,17 @@\n     }\n     fn parameters(&self) -> serde_json::Value {\n         json!({\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false})\n     }\n     async fn call(&self, _: &mut ToolContext, args: WriteArgs) -> Result<String, Self::Error> {\n         if !self.allowed {\n             return Err(ToolExecutionError::refused(\"使用者未授權寫入成果\"));\n         }\n-        if args.content.len() as u64 > FILE_LIMIT {\n+        if args.content.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"成果超出大小限制\"));\n         }\n         let mut artifact = self\n             .artifact\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"成果狀態異常\"))?;\n         if artifact.is_some() {\n             return Err(ToolExecutionError::refused(\"成果已寫入，不重複執行\"));\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for WriteOutput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 152
+        },
+        "start": {
+          "column": 5,
+          "line": 127
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:131:38: replace > with >= in <impl Tool for WriteOutput>::call",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 39,
+        "line": 131
+      },
+      "start": {
+        "column": 38,
+        "line": 131
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace run_file_task -> Result<TaskReport, TaskError> with Ok(Default::default())\n@@ -151,57 +151,10 @@\n         Ok(\"成果已寫入，仍須獨立驗證\".into())\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n-    if task.prompt.trim().is_empty()\n-        || task.prompt.len() as u64 > FILE_LIMIT\n-        || task\n-            .expected\n-            .as_ref()\n-            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n-    {\n-        return Err(TaskError::InvalidTask);\n-    }\n-    let input = if task.allow_read {\n-        let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n-            return Err(TaskError::InvalidInput);\n-        }\n-        let file = File::open(&task.input).map_err(TaskError::Input)?;\n-        let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n-            return Err(TaskError::InvalidInput);\n-        }\n-        Some(file)\n-    } else {\n-        None\n-    };\n-    let artifact = Arc::new(Mutex::new(None));\n-    let agent = AgentBuilder::new(model)\n-        .tool(ReadInput(Arc::new(Mutex::new(input))))\n-        .tool(WriteOutput {\n-            path: task.output,\n-            allowed: task.allow_write,\n-            artifact: artifact.clone(),\n-        })\n-        .build();\n-    let response = tokio::time::timeout(TASK_TIMEOUT, agent.prompt(task.prompt).max_turns(8).run())\n-        .await\n-        .map_err(|_| TaskError::Timeout)?\n-        .map_err(|error| TaskError::Harness(Box::new(error)))?;\n-    let mut guard = artifact.lock().map_err(|_| TaskError::State)?;\n-    let file = guard.as_mut().ok_or(TaskError::MissingArtifact)?;\n-    let state = if let Some(expected) = task.expected {\n-        verify_file(file, expected.as_bytes()).map_err(TaskError::Verification)?;\n-        ArtifactState::Verified\n-    } else {\n-        ArtifactState::AwaitingReview\n-    };\n-    Ok(TaskReport {\n-        artifact: state,\n-        assistant_message: response.output().to_owned(),\n-    })\n+    Ok(Default::default()) /* ~ changed by cargo-mutants ~ */\n }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/task.rs:159:5: replace run_file_task -> Result<TaskReport, TaskError> with Ok(Default::default())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(Default::default())",
+    "span": {
+      "end": {
+        "column": 7,
+        "line": 206
+      },
+      "start": {
+        "column": 5,
+        "line": 159
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace || with && in run_file_task\n@@ -153,17 +153,17 @@\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n         || task.prompt.len() as u64 > FILE_LIMIT\n-        || task\n+        && /* ~ changed by cargo-mutants ~ */ task\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:161:9: replace || with && in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 161
+      },
+      "start": {
+        "column": 9,
+        "line": 161
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace || with && in run_file_task\n@@ -152,17 +152,17 @@\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n-        || task.prompt.len() as u64 > FILE_LIMIT\n+        && /* ~ changed by cargo-mutants ~ */ task.prompt.len() as u64 > FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:160:9: replace || with && in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 160
+      },
+      "start": {
+        "column": 9,
+        "line": 160
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in run_file_task\n@@ -152,17 +152,17 @@\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n-        || task.prompt.len() as u64 > FILE_LIMIT\n+        || task.prompt.len() as u64 == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:160:37: replace > with == in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 160
+      },
+      "start": {
+        "column": 37,
+        "line": 160
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in run_file_task\n@@ -152,17 +152,17 @@\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n-        || task.prompt.len() as u64 > FILE_LIMIT\n+        || task.prompt.len() as u64 < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:160:37: replace > with < in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 160
+      },
+      "start": {
+        "column": 37,
+        "line": 160
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in run_file_task\n@@ -152,17 +152,17 @@\n     }\n }\n \n pub async fn run_file_task(\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n-        || task.prompt.len() as u64 > FILE_LIMIT\n+        || task.prompt.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:160:37: replace > with >= in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 160
+      },
+      "start": {
+        "column": 37,
+        "line": 160
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in run_file_task\n@@ -156,17 +156,17 @@\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n         || task.prompt.len() as u64 > FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n-            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n+            .is_some_and(|s| s.len() as u64 == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:164:45: replace > with == in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 46,
+        "line": 164
+      },
+      "start": {
+        "column": 45,
+        "line": 164
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in run_file_task\n@@ -156,17 +156,17 @@\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n         || task.prompt.len() as u64 > FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n-            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n+            .is_some_and(|s| s.len() as u64 < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:164:45: replace > with < in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 46,
+        "line": 164
+      },
+      "start": {
+        "column": 45,
+        "line": 164
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in run_file_task\n@@ -156,17 +156,17 @@\n     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,\n     task: FileTask,\n ) -> Result<TaskReport, TaskError> {\n     if task.prompt.trim().is_empty()\n         || task.prompt.len() as u64 > FILE_LIMIT\n         || task\n             .expected\n             .as_ref()\n-            .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n+            .is_some_and(|s| s.len() as u64 >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:164:45: replace > with >= in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 46,
+        "line": 164
+      },
+      "start": {
+        "column": 45,
+        "line": 164
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace || with && in run_file_task\n@@ -162,17 +162,17 @@\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() && /* ~ changed by cargo-mutants ~ */ metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:170:32: replace || with && in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 170
+      },
+      "start": {
+        "column": 32,
+        "line": 170
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ delete ! in run_file_task\n@@ -162,17 +162,17 @@\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if  /* ~ changed by cargo-mutants ~ */metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/agent/src/task.rs:170:12: delete ! in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 13,
+        "line": 170
+      },
+      "start": {
+        "column": 12,
+        "line": 170
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in run_file_task\n@@ -162,17 +162,17 @@\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:170:50: replace > with == in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 170
+      },
+      "start": {
+        "column": 50,
+        "line": 170
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in run_file_task\n@@ -162,17 +162,17 @@\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:170:50: replace > with < in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 170
+      },
+      "start": {
+        "column": 50,
+        "line": 170
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in run_file_task\n@@ -162,17 +162,17 @@\n             .expected\n             .as_ref()\n             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)\n     {\n         return Err(TaskError::InvalidTask);\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:170:50: replace > with >= in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 170
+      },
+      "start": {
+        "column": 50,
+        "line": 170
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace || with && in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() && /* ~ changed by cargo-mutants ~ */ metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:175:32: replace || with && in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "&&",
+    "span": {
+      "end": {
+        "column": 34,
+        "line": 175
+      },
+      "start": {
+        "column": 32,
+        "line": 175
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ delete ! in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if  /* ~ changed by cargo-mutants ~ */metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/agent/src/task.rs:175:12: delete ! in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 13,
+        "line": 175
+      },
+      "start": {
+        "column": 12,
+        "line": 175
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with == in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() == /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:175:50: replace > with == in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 175
+      },
+      "start": {
+        "column": 50,
+        "line": 175
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with < in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() < /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:175:50: replace > with < in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": "<",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 175
+      },
+      "start": {
+        "column": 50,
+        "line": 175
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace > with >= in run_file_task\n@@ -167,17 +167,17 @@\n     }\n     let input = if task.allow_read {\n         let metadata = std::fs::metadata(&task.input).map_err(TaskError::Input)?;\n         if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         let file = File::open(&task.input).map_err(TaskError::Input)?;\n         let metadata = file.metadata().map_err(TaskError::Input)?;\n-        if !metadata.is_file() || metadata.len() > FILE_LIMIT {\n+        if !metadata.is_file() || metadata.len() >= /* ~ changed by cargo-mutants ~ */ FILE_LIMIT {\n             return Err(TaskError::InvalidInput);\n         }\n         Some(file)\n     } else {\n         None\n     };\n     let artifact = Arc::new(Mutex::new(None));\n     let agent = AgentBuilder::new(model)\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "run_file_task",
+      "return_type": "-> Result<TaskReport, TaskError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 207
+        },
+        "start": {
+          "column": 1,
+          "line": 155
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:175:50: replace > with >= in run_file_task",
+    "package": "agent-platform-agent",
+    "replacement": ">=",
+    "span": {
+      "end": {
+        "column": 51,
+        "line": 175
+      },
+      "start": {
+        "column": 50,
+        "line": 175
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace verify_file -> Result<(), VerificationError> with Ok(())\n@@ -7,20 +7,10 @@\n     Read(#[from] std::io::Error),\n     #[error(\"成果內容不符合任務要求\")]\n     ContentMismatch,\n     #[error(\"成果必須是一般檔案\")]\n     UnsupportedFile,\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n-    if !file.metadata()?.is_file() {\n-        return Err(VerificationError::UnsupportedFile);\n-    }\n-    file.seek(SeekFrom::Start(0))?;\n-    let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n-        .read_to_end(&mut actual)?;\n-    if actual != expected {\n-        return Err(VerificationError::ContentMismatch);\n-    }\n-    Ok(())\n+    Ok(()) /* ~ changed by cargo-mutants ~ */\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/verification.rs:15:5: replace verify_file -> Result<(), VerificationError> with Ok(())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(())",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 25
+      },
+      "start": {
+        "column": 5,
+        "line": 15
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ delete ! in verify_file\n@@ -7,17 +7,17 @@\n     Read(#[from] std::io::Error),\n     #[error(\"成果內容不符合任務要求\")]\n     ContentMismatch,\n     #[error(\"成果必須是一般檔案\")]\n     UnsupportedFile,\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n-    if !file.metadata()?.is_file() {\n+    if  /* ~ changed by cargo-mutants ~ */file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n     file.take(expected.len() as u64 + 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/agent/src/verification.rs:15:8: delete ! in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 9,
+        "line": 15
+      },
+      "start": {
+        "column": 8,
+        "line": 15
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace + with - in verify_file\n@@ -12,15 +12,15 @@\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n+    file.take(expected.len() as u64 - /* ~ changed by cargo-mutants ~ */ 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:20:37: replace + with - in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "-",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 20
+      },
+      "start": {
+        "column": 37,
+        "line": 20
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace + with * in verify_file\n@@ -12,15 +12,15 @@\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n+    file.take(expected.len() as u64 * /* ~ changed by cargo-mutants ~ */ 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:20:37: replace + with * in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "*",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 20
+      },
+      "start": {
+        "column": 37,
+        "line": 20
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace != with == in verify_file\n@@ -14,13 +14,13 @@\n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n     file.take(expected.len() as u64 + 1)\n         .read_to_end(&mut actual)?;\n-    if actual != expected {\n+    if actual == /* ~ changed by cargo-mutants ~ */ expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:22:15: replace != with == in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 17,
+        "line": 22
+      },
+      "start": {
+        "column": 15,
+        "line": 22
+      }
+    }
+  }
+]

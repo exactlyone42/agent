@@ -1,0 +1,10 @@
+{
+  "model": "gpt-oss:20b",
+  "checks": {
+    "exit_zero": true,
+    "source_unchanged": true,
+    "artifact_exact": true
+  },
+  "returncode": 0,
+  "binary_sha256": "d5ee8f387a1f26b624117be81c7cfd90f88a76e8602bbb2fee340caf9ae6290c"
+}

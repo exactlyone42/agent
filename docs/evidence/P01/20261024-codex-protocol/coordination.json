@@ -1,0 +1,6 @@
+{
+  "lock_contender_exit": 1,
+  "enabled": true,
+  "rrule": "*/5 * * * *",
+  "reuseSession": true
+}

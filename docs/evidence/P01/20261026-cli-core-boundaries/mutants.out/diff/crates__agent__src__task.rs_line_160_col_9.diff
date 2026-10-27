@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace || with && in run_file_task
+@@ -152,17 +152,17 @@
+     }
+ }
+
+ pub async fn run_file_task(
+     model: impl Into<rig_core::DynModel<rig_core::operation::Completion>>,
+     task: FileTask,
+ ) -> Result<TaskReport, TaskError> {
+     if task.prompt.trim().is_empty()
+-        || task.prompt.len() as u64 > FILE_LIMIT
++        && /* ~ changed by cargo-mutants ~ */ task.prompt.len() as u64 > FILE_LIMIT
+         || task
+             .expected
+             .as_ref()
+             .is_some_and(|s| s.len() as u64 > FILE_LIMIT)
+     {
+         return Err(TaskError::InvalidTask);
+     }
+     let input = if task.allow_read {

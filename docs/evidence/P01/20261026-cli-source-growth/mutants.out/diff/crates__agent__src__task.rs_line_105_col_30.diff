@@ -1,0 +1,21 @@
+--- crates/agent/src/task.rs
++++ replace + with - in <impl Tool for ReadInput>::call
+@@ -97,17 +97,17 @@
+             .lock()
+             .map_err(|_| ToolExecutionError::refused("來源狀態異常"))?;
+         let file = guard
+             .as_mut()
+             .ok_or_else(|| ToolExecutionError::refused("使用者未授權讀取來源"))?;
+         file.seek(SeekFrom::Start(0))
+             .map_err(ToolExecutionError::from_error)?;
+         let mut content = String::new();
+-        file.take(FILE_LIMIT + 1)
++        file.take(FILE_LIMIT - /* ~ changed by cargo-mutants ~ */ 1)
+             .read_to_string(&mut content)
+             .map_err(ToolExecutionError::from_error)?;
+         if content.len() as u64 > FILE_LIMIT {
+             return Err(ToolExecutionError::refused("來源超出大小限制"));
+         }
+         Ok(content)
+     }
+ }

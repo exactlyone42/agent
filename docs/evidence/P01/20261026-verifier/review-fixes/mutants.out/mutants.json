@@ -1,0 +1,162 @@
+[
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace verify_file -> Result<(), VerificationError> with Ok(())\n@@ -7,20 +7,10 @@\n     Read(#[from] std::io::Error),\n     #[error(\"成果內容不符合任務要求\")]\n     ContentMismatch,\n     #[error(\"成果必須是一般檔案\")]\n     UnsupportedFile,\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n-    if !file.metadata()?.is_file() {\n-        return Err(VerificationError::UnsupportedFile);\n-    }\n-    file.seek(SeekFrom::Start(0))?;\n-    let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n-        .read_to_end(&mut actual)?;\n-    if actual != expected {\n-        return Err(VerificationError::ContentMismatch);\n-    }\n-    Ok(())\n+    Ok(()) /* ~ changed by cargo-mutants ~ */\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "FnValue",
+    "name": "crates/agent/src/verification.rs:15:5: replace verify_file -> Result<(), VerificationError> with Ok(())",
+    "package": "agent-platform-agent",
+    "replacement": "Ok(())",
+    "span": {
+      "end": {
+        "column": 11,
+        "line": 25
+      },
+      "start": {
+        "column": 5,
+        "line": 15
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ delete ! in verify_file\n@@ -7,17 +7,17 @@\n     Read(#[from] std::io::Error),\n     #[error(\"成果內容不符合任務要求\")]\n     ContentMismatch,\n     #[error(\"成果必須是一般檔案\")]\n     UnsupportedFile,\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n-    if !file.metadata()?.is_file() {\n+    if  /* ~ changed by cargo-mutants ~ */file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n     file.take(expected.len() as u64 + 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "UnaryOperator",
+    "name": "crates/agent/src/verification.rs:15:8: delete ! in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "",
+    "span": {
+      "end": {
+        "column": 9,
+        "line": 15
+      },
+      "start": {
+        "column": 8,
+        "line": 15
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace + with - in verify_file\n@@ -12,15 +12,15 @@\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n+    file.take(expected.len() as u64 - /* ~ changed by cargo-mutants ~ */ 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:20:37: replace + with - in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "-",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 20
+      },
+      "start": {
+        "column": 37,
+        "line": 20
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace + with * in verify_file\n@@ -12,15 +12,15 @@\n }\n \n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n-    file.take(expected.len() as u64 + 1)\n+    file.take(expected.len() as u64 * /* ~ changed by cargo-mutants ~ */ 1)\n         .read_to_end(&mut actual)?;\n     if actual != expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:20:37: replace + with * in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "*",
+    "span": {
+      "end": {
+        "column": 38,
+        "line": 20
+      },
+      "start": {
+        "column": 37,
+        "line": 20
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/verification.rs\n+++ replace != with == in verify_file\n@@ -14,13 +14,13 @@\n pub fn verify_file(file: &mut File, expected: &[u8]) -> Result<(), VerificationError> {\n     if !file.metadata()?.is_file() {\n         return Err(VerificationError::UnsupportedFile);\n     }\n     file.seek(SeekFrom::Start(0))?;\n     let mut actual = Vec::new();\n     file.take(expected.len() as u64 + 1)\n         .read_to_end(&mut actual)?;\n-    if actual != expected {\n+    if actual == /* ~ changed by cargo-mutants ~ */ expected {\n         return Err(VerificationError::ContentMismatch);\n     }\n     Ok(())\n }\n",
+    "file": "crates/agent/src/verification.rs",
+    "function": {
+      "function_name": "verify_file",
+      "return_type": "-> Result<(), VerificationError>",
+      "span": {
+        "end": {
+          "column": 2,
+          "line": 26
+        },
+        "start": {
+          "column": 1,
+          "line": 14
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/verification.rs:22:15: replace != with == in verify_file",
+    "package": "agent-platform-agent",
+    "replacement": "==",
+    "span": {
+      "end": {
+        "column": 17,
+        "line": 22
+      },
+      "start": {
+        "column": 15,
+        "line": 22
+      }
+    }
+  }
+]

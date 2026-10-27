@@ -1,0 +1,12 @@
+{
+  "source": "crates/harness-probe/tests/rig_contract.rs",
+  "sha256": "4dea54609d842047a8fa131e17438ee8580cc55381ae68d46eab9e9892dd481f",
+  "tests": 5,
+  "scenarios": 9,
+  "format": "pass",
+  "clippy": "pass",
+  "mutation": "not_covered",
+  "mutation_candidates": 0,
+  "product_acceptance": "not_run",
+  "review": "followup pending"
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace + with - in <impl Tool for ReadInput>::call\n@@ -97,17 +97,17 @@\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n         let file = guard\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n+        file.take(FILE_LIMIT - /* ~ changed by cargo-mutants ~ */ 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n         if content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:105:30: replace + with - in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "-",
+    "span": {
+      "end": {
+        "column": 31,
+        "line": 105
+      },
+      "start": {
+        "column": 30,
+        "line": 105
+      }
+    }
+  },
+  {
+    "diff": "--- crates/agent/src/task.rs\n+++ replace + with * in <impl Tool for ReadInput>::call\n@@ -97,17 +97,17 @@\n             .lock()\n             .map_err(|_| ToolExecutionError::refused(\"來源狀態異常\"))?;\n         let file = guard\n             .as_mut()\n             .ok_or_else(|| ToolExecutionError::refused(\"使用者未授權讀取來源\"))?;\n         file.seek(SeekFrom::Start(0))\n             .map_err(ToolExecutionError::from_error)?;\n         let mut content = String::new();\n-        file.take(FILE_LIMIT + 1)\n+        file.take(FILE_LIMIT * /* ~ changed by cargo-mutants ~ */ 1)\n             .read_to_string(&mut content)\n             .map_err(ToolExecutionError::from_error)?;\n         if content.len() as u64 > FILE_LIMIT {\n             return Err(ToolExecutionError::refused(\"來源超出大小限制\"));\n         }\n         Ok(content)\n     }\n }\n",
+    "file": "crates/agent/src/task.rs",
+    "function": {
+      "function_name": "<impl Tool for ReadInput>::call",
+      "return_type": "-> Result<String, Self::Error>",
+      "span": {
+        "end": {
+          "column": 6,
+          "line": 112
+        },
+        "start": {
+          "column": 5,
+          "line": 94
+        }
+      }
+    },
+    "genre": "BinaryOperator",
+    "name": "crates/agent/src/task.rs:105:30: replace + with * in <impl Tool for ReadInput>::call",
+    "package": "agent-platform-agent",
+    "replacement": "*",
+    "span": {
+      "end": {
+        "column": 31,
+        "line": 105
+      },
+      "start": {
+        "column": 30,
+        "line": 105
+      }
+    }
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "scripts/check.sh": "653e3a80c73155884df1d5af8d418b1b5b01eec9eda2f9aaf9b963059d7c3e25",
+  "scripts/test_policy.py": "70ef8e96d6d3d3de342057126352bdf5ee254e0890297990f97d3aebb810798d",
+  "scripts/policy/clippy.toml": "afc73d4c39af3ff5d1ca64a6a65162863e4a6bf48a30770d578307f4f0707e78"
+}

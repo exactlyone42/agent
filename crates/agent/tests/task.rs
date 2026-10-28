@@ -1,8 +1,40 @@
+use agent_harness::{Message, Model, ModelError, ToolSpec};
 use agent_platform_agent::task::{
     CancellationToken, FileTask, TASK_TIMEOUT, TaskError, run_file_task,
 };
-use rig_core::test_utils::{MockCompletionModel, MockTurn};
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+};
+
+#[derive(Clone)]
+struct MockModel {
+    reply: &'static str,
+    asked: Arc<AtomicUsize>,
+}
+
+impl MockModel {
+    fn text(reply: &'static str) -> Self {
+        Self {
+            reply,
+            asked: Arc::default(),
+        }
+    }
+
+    fn requests(&self) -> usize {
+        self.asked.load(Ordering::SeqCst)
+    }
+}
+
+impl Model for MockModel {
+    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<Message, ModelError> {
+        self.asked.fetch_add(1, Ordering::SeqCst);
+        Ok(Message::text(self.reply))
+    }
+}
 
 fn task(prompt: String, expected: Option<String>) -> FileTask {
     FileTask {
@@ -17,7 +49,7 @@ fn task(prompt: String, expected: Option<String>) -> FileTask {
 
 #[tokio::test]
 async fn cancelled_task_never_opens_input_or_requests_model() {
-    let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+    let model = MockModel::text("done");
     let cancellation = CancellationToken::new();
     cancellation.cancel();
     let mut request = task("work".into(), None);
@@ -29,7 +61,7 @@ async fn cancelled_task_never_opens_input_or_requests_model() {
             artifact_created: false
         })
     ));
-    assert!(model.requests().is_empty());
+    assert!(model.requests() == 0);
 }
 
 #[tokio::test]
@@ -44,7 +76,7 @@ async fn prompt_and_expected_limits_are_checked_before_model_requests() {
         ("work".into(), Some("x".repeat(1_048_576)), true),
         ("work".into(), Some("x".repeat(1_048_577)), false),
     ] {
-        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let model = MockModel::text("done");
         let result = run_file_task(
             model.clone(),
             task(prompt, expected),
@@ -58,10 +90,10 @@ async fn prompt_and_expected_limits_are_checked_before_model_requests() {
                 matches!(result, Err(TaskError::MissingArtifact)),
                 "{result:?}"
             );
-            assert_eq!(model.requests().len(), 1);
+            assert_eq!(model.requests(), 1);
         } else {
             assert!(matches!(result, Err(TaskError::InvalidTask)), "{result:?}");
-            assert!(model.requests().is_empty());
+            assert!(model.requests() == 0);
         }
     }
 }
@@ -85,7 +117,7 @@ async fn input_type_and_size_are_checked_before_model_requests()
             .write(true)
             .open(&path)?
             .set_len(size)?;
-        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let model = MockModel::text("done");
         let mut request = task("work".into(), None);
         request.input = path.clone();
         request.allow_read = true;
@@ -102,14 +134,14 @@ async fn input_type_and_size_are_checked_before_model_requests()
                 matches!(result, Err(TaskError::MissingArtifact)),
                 "{result:?}"
             );
-            assert_eq!(model.requests().len(), 1);
+            assert_eq!(model.requests(), 1);
         } else {
             assert!(matches!(result, Err(TaskError::InvalidInput)), "{result:?}");
-            assert!(model.requests().is_empty());
+            assert!(model.requests() == 0);
         }
     }
     for (input, exists) in [(root.clone(), true), (root.join("missing"), false)] {
-        let model = MockCompletionModel::from_turns([MockTurn::text("done")]);
+        let model = MockModel::text("done");
         let mut request = task("work".into(), None);
         request.input = input;
         request.allow_read = true;
@@ -126,7 +158,7 @@ async fn input_type_and_size_are_checked_before_model_requests()
         } else {
             assert!(matches!(result, Err(TaskError::Input(_))), "{result:?}");
         }
-        assert!(model.requests().is_empty());
+        assert!(model.requests() == 0);
     }
     std::fs::remove_file(path)?;
     std::fs::remove_dir(root)?;

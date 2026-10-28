@@ -1,13 +1,12 @@
+use agent_harness_openai::OpenAi;
 use agent_platform_agent::task::{
     ArtifactState, CancellationToken, FileTask, MANUAL_TASK_TIMEOUT, TASK_TIMEOUT, TaskError,
     run_file_task,
 };
 use agent_platform_agent::{
-    approval::ApprovalGate,
+    approval::task_gate,
     store::{ApprovalMode, StoreAccess, TaskSpec, TaskStore},
 };
-use rig_core::providers::openai::OpenAIConfig;
-use rig_reqwest::{ReqwestClient, reqwest};
 use serde::Deserialize;
 use std::{
     io::Read,
@@ -193,15 +192,13 @@ async fn run() -> Result<ExitCode, String> {
         Err(std::env::VarError::NotPresent) => String::new(),
         Err(_) => return Err("AGENT_API_KEY 格式錯誤".into()),
     };
-    let http = reqwest::Client::builder()
-        .no_proxy()
-        .redirect(reqwest::redirect::Policy::none())
-        .timeout(Duration::from_secs(60))
-        .build()
-        .map_err(|_| "無法建立模型連線")?;
-    let client = OpenAIConfig::new(key)
-        .with_base_url(request.endpoint.as_str())
-        .connect(ReqwestClient::from(http));
+    let model = OpenAi::new(
+        &request.endpoint,
+        request.model.clone(),
+        key,
+        Duration::from_secs(60),
+    )
+    .map_err(|error| error.0)?;
     let cancellation = CancellationToken::new();
     let signal_cancellation = cancellation.clone();
     let mut interrupted = false;
@@ -226,7 +223,7 @@ async fn run() -> Result<ExitCode, String> {
     let mut store = open_store(StoreAccess::Create)?;
     let (task_id, generation) = store.start_spec(&spec).map_err(|error| error.to_string())?;
     let store = Arc::new(Mutex::new(store));
-    let gate = ApprovalGate::new(
+    let gate = task_gate(
         store.clone(),
         task_id.clone(),
         cancellation.clone(),
@@ -239,7 +236,7 @@ async fn run() -> Result<ExitCode, String> {
         );
     }
     let mut result = run_file_task(
-        client.chat(request.model),
+        model,
         request.task,
         cancellation,
         gate.clone(),

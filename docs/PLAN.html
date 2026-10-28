@@ -389,7 +389,7 @@
         <div class="arrow"><i>交付順序</i></div>
         <div class="box blue">
           <b>正式 Desktop</b
-          ><span>三平台 Tauri 工作台<br />看進度、核准、差異與成果</span>
+          ><span>另一個 repo：agent-ade<br />輕量工作台，看、批准、下指令</span>
         </div>
         <div class="arrow"><i>發布驗收</i></div>
         <div class="box amber">
@@ -443,31 +443,36 @@
       </div>
     </section>
     <section class="page" id="deploy">
-      <h1>部署架構｜主機控制、容器知識、外部模型分開</h1>
+      <h1>部署架構｜Agent 在本機，模型經公司 Gateway</h1>
       <p class="sub">
         Agent Platform｜現行計畫圖文版｜三平台均為必要交付；所有產品驗收待執行。
       </p>
       <div class="flow">
         <div class="group">
           <div class="label">使用者電腦：原生前景程序</div>
+          <div class="box"><b>CLI</b><span>任務、授權、停止、接續</span></div>
           <div class="box">
-            <b>CLI／Tauri 桌面</b><span>任務、授權、停止、接續</span>
+            <b>agent-ade 桌面（另一個 repo）</b
+            ><span>看、批准、下指令；靠版本化事件契約連核心</span>
           </div>
           <div class="box blue">
-            <b>共用核心 Harness</b><span>上下文、工具意圖、生命週期</span>
+            <b>自寫 agent-harness＋OpenAI 格式轉接</b
+            ><span>核心迴圈；唯一模型出口，帶個人金鑰</span>
           </div>
           <div class="box amber">
-            <b>平台政策與獨立驗證</b><span>核權、限額、讀回成果</span>
+            <b>批准閘門與獨立驗證</b><span>核權、限額、讀回成果</span>
           </div>
         </div>
-        <div class="arrow both"><i>模型請求</i></div>
+        <div class="arrow both"><i>HTTP</i></div>
         <div class="group">
-          <div class="label">獨立模型服務</div>
+          <div class="label">公司伺服器（另一個 repo）</div>
           <div class="box purple">
-            <b>Gateway</b><span>認證、選路、用量；不管任務授權</span>
+            <b>Gateway</b
+            ><span>金鑰、排隊、選路、格式轉換、記帳；不管任務授權</span>
           </div>
           <div class="box purple">
-            <b>獲准模型供應者</b><span>本機或遠端模型；外送受政策限制</span>
+            <b>模型供應者</b
+            ><span>Anthropic、OpenAI、Gemini API；公司內部模型</span>
           </div>
         </div>
         <div></div>
@@ -614,7 +619,7 @@
           <div class="v"></div>
           <div class="box">
             <b>選定 Harness 的紀錄</b
-            ><span>Codex 沿用其紀錄；Rig 由平台擁有流程</span>
+            ><span>Codex 沿用其紀錄；自寫 agent-harness 由平台擁有流程</span>
           </div>
         </div>
         <div>
@@ -1122,7 +1127,10 @@
           <tr>
             <td>執行核心 Harness</td>
             <td>版本化任務、模型回應及工具回執；只有選定核心擁有執行進度</td>
-            <td>Codex／Rig 擇一，平台政策與驗收不依賴其私有儲存格式</td>
+            <td>
+              自寫 agent-harness（已取代 Rig）；模型連線經 Gateway，見
+              [目標架構圖](agent-target-architecture.pdf)，平台政策與驗收不依賴其私有儲存格式
+            </td>
             <td>
               全工具入口受政策；取消、重啟、偽造成功、未知副作用與切核心的舊任務處理
             </td>
@@ -2439,8 +2447,9 @@
       <p>
         <strong
           >企業可安裝、可正式使用、可維運的 Agent。先完成
-          CLI（終端操作），再完成 Desktop（Tauri
-          桌面工作台）；兩者使用同一個核心、任務、授權與知識，不是兩個產品。</strong
+          CLI（終端操作）；人類掌控用的桌面工作台 ADE 另開 repo（暫名
+          agent-ade，Tauri），只經本 repo
+          公開的事件介面連接，不共用程式。</strong
         >
         使用者交代工作，Agent
         在授權內讀取資料、查知識、呼叫模型與工具、操作電腦，驗證成果後交付；使用者可核准、拒絕、停止、接續與追查。
@@ -2470,9 +2479,9 @@
           <tr>
             <td>桌面是什麼？</td>
             <td>
-              任務工作台：工作區、任務、待授權、差異、成果、知識狀態、設定與診斷。先是
-              ADE（派工與驗收工作台），完整
-              IDE（人工編輯與除錯環境）依使用證據決策
+              另一個 repo 的
+              ADE（派工與驗收工作台）：讓人類觀察、下指令、批准與停止。專給 AI
+              用的輕量編輯器，不做完整 IDE（跳轉定義、除錯、擴充市集）
             </td>
           </tr>
           <tr>
@@ -2541,10 +2550,13 @@
           </tr>
           <tr>
             <td>正式 Desktop</td>
-            <td>上列全部能力加 Tauri 桌面、跨入口交接與桌面安裝包</td>
             <td>
-              P09a 加桌面 P08／P10-Desktop 通過；至此才可稱本案完整產品交付。IDE
-              選型不阻擋既定桌面工作台
+              上列全部能力加 agent-ade 桌面（另一個
+              repo）、跨入口交接與桌面安裝包
+            </td>
+            <td>
+              agent-ade 的 P09 加桌面 P08／P10-Desktop
+              通過；至此才可稱完整產品交付。不做完整 IDE
             </td>
           </tr>
         </tbody>
@@ -3135,13 +3147,13 @@
             <td>桌面 ADE</td>
             <td>看多個任務、處理授權、核對成果與整合修改</td>
             <td>直接改善 Agent 工作流程；仍需終端與工作區管理</td>
-            <td>第二個正式操作入口</td>
+            <td>第二個正式操作入口，另開 repo</td>
           </tr>
           <tr>
             <td>完整 IDE</td>
             <td>大量手動編輯、跳轉定義、除錯、管理擴充套件</td>
             <td>一站完成開發；編輯器與擴充生態維護量很大</td>
-            <td>有實際需求再升級</td>
+            <td>不做（使用者 2026-10-28 定：人類不靠編輯器寫程式）</td>
           </tr>
           <tr>
             <td>修改 Orca 作為產品</td>
@@ -3162,9 +3174,11 @@
       </p>
       <p>
         進入桌面前，先在自己的 CLI＋既有 Orca
-        完成五個有實際檔案成果的任務，記錄切換介面、找授權、看差異與重啟恢復的阻礙。若主要問題是任務協調，做
-        ADE；若至少三個任務反覆需要完整程式導航、除錯或既有擴充套件，先比較整合既有
-        IDE 與另做 IDE 的成本。這是規劃的決策門檻，不是已取得的使用數據。
+        完成五個有實際檔案成果的任務，記錄切換介面、找授權、看差異與重啟恢復的阻礙，作為
+        agent-ade 的需求證據。ADE 內的編輯功能只用輕量元件（候選 CodeMirror
+        6，授權與大小未查證），供人偶爾改檔或設定；大廠做法：Claude
+        Code、Codex、Copilot 不自做 IDE，Cursor 等分叉 VS Code
+        受微軟市集條款限制（媒體報導，非官方文件）。
       </p>
       <h2>核心與介面如何共用</h2>
       <p>
@@ -3184,7 +3198,8 @@
       </p>
       <p>
         圖為建議設計，不是目前已存在的系統。CLI 直接呼叫共用 Rust
-        核心；桌面以隨應用啟停的子程序，透過結構化訊息取得事件、送出授權及取消。桌面不解析終端畫面的文字來判斷成功，也不另做第二套
+        核心；agent-ade（另一個 repo）以隨應用啟停的子程序啟動本 repo
+        的核心，透過結構化訊息取得事件、送出授權及取消；這組訊息格式是對外契約，要有版本號與相容測試。桌面不解析終端畫面的文字來判斷成功，也不另做第二套
         Agent 迴圈。此子程序不是常駐背景服務；無介面仍持續執行的工作，留到容器
         worker 階段。
       </p>
@@ -3222,7 +3237,8 @@
           <tr>
             <td>Harness（Agent 執行核心）</td>
             <td>
-              模型迴圈、工作生命週期、限制、取消與恢復；沿用 Codex／Rig 同題比較
+              模型迴圈、工作生命週期、限制、取消與恢復；自寫
+              agent-harness（2026-10-28 決定放棄 Rig）
             </td>
             <td>P01、P02、P04</td>
           </tr>
@@ -3255,6 +3271,136 @@
           </tr>
         </tbody>
       </table>
+      <h3>agent-harness 的定位與擴充順序（使用者 2026-10-28 定）</h3>
+      <p>
+        目標是比 Rig 更精簡、更有彈性、更安全、更高效，並開源給別人使用。核心
+        <code>agent-harness</code> 維持小，只有模型迴圈與
+        <code>Model</code>、<code>Tool</code>、<code>Hook</code>
+        三個介面；每項功能做成獨立套件，要用才安裝，做法同
+        <code>agent-harness-openai</code>。
+      </p>
+      <p>
+        各家功能（結束時機、訊息解析、回呼、MCP、場次、取消、重試、壓縮、對外介面）的取捨與輕量界線見
+        <a
+          href="/home/cash/work_space/private/agent-platform/docs/harness-design.md"
+          >自寫 harness 設計取捨</a
+        >；階段 1 起的程式與測試照該文件。
+      </p>
+      <h3>
+        Agent 與 Gateway 的分工（使用者 2026-10-28 定，已對照 Gateway 程式碼）
+      </h3>
+      <p>
+        架構圖：<a
+          href="/home/cash/work_space/private/agent-platform/docs/agent-target-architecture.pdf"
+          >Agent 目標架構（PDF）</a
+        >。企業版 Agent 只裝一個 OpenAI 格式轉接，帶員工個人金鑰連公司
+        Gateway；不在 Agent 內另建「模型集線器」。
+      </p>
+      <ul>
+        <li>
+          Gateway
+          負責：身分與金鑰（每人一把、可撤銷）、排隊與保留容量、路由與健康切換、Anthropic／OpenAI／Gemini
+          等各家格式轉換、公司內部模型（vLLM、Ollama）、記帳與稽核。
+        </li>
+        <li>Agent 負責：對話迴圈、工具、批准、任務紀錄、結果驗收。</li>
+        <li>
+          模型一律走 Gateway，連本機模型也是（使用者 2026-10-28
+          定）：調派與組合模型都在 Gateway 做，Agent
+          端不自己接任何模型端點。單機使用也一樣：在同一台電腦裝 Agent 與
+          Gateway，Agent 連本機的 Gateway，再由它接本機模型。單機多裝的
+          PostgreSQL 跟 Gateway 一起放在容器裡，不當成負擔（使用者 2026-10-28
+          定）：個人的工作、對話與請求紀錄比 Agent 或模型更珍貴，換
+          Agent、換模型後仍要留得住，對話與任務內容由誰保存尚未決定：Gateway
+          預設只存請求摘要、不存對話內容（Gateway 硬約束），與「全存
+          Gateway」衝突；2026-10-28 Codex
+          審查建議內容由獨立保存層管理，可共用同一個
+          PostgreSQL、分開資料表與權限。
+        </li>
+        <li>
+          2026-10-28 對照 Gateway
+          程式碼：路由、各家轉換、排隊保留容量、健康感知路由、記帳、OTLP
+          皆存在；Gateway 另有 Gemini 與 xAI
+          轉接。路由的成本考量預設關閉。Gateway
+          的管理後台（發金鑰、設政策）與「請求可帶的品質提示」（Client
+          用標頭告訴 Gateway 想要多好的模型）只讀到片段；Agent
+          要不要送這個提示、要不要做自己的管理畫面，尚未對照決定。
+        </li>
+      </ul>
+      <p>
+        擴充順序：串流、多家模型、記憶、向量庫。其中「多家模型」一律由 Gateway
+        提供，Agent 端不做。每項開工前先寫出「比 Rig
+        好在哪」的可量測指標（例如行數、延遲、取消速度、記憶體），做完以實測結果為準；沒有實測不得宣稱比
+        Rig 好。
+      </p>
+      <p>
+        2026-10-28 行數對照：Rig 的 agent 目錄 6,267 行（<code>rig-core</code>
+        全部 139,981 行），本案 <code>harness</code> 296 行加
+        <code>openai</code> 147 行，測試 206 行另計。Rig
+        的行數含大量本案暫時不需要的功能，不能直接當優劣。
+      </p>
+      <p>
+        Rig 公開 issue 已轉成檢查與測試項目，見
+        <a
+          href="/home/cash/work_space/private/agent-platform/docs/rig-issue-checklist.md"
+          >Rig 已知問題對照</a
+        >；新功能開工前先查該表。
+      </p>
+      <p>
+        開源前提：授權（MIT／Apache-2.0 雙授權）、白話
+        README、套件資訊先備齊；公開 repo 或發布套件須使用者另行明確同意。
+      </p>
+      <h3>多個 Agent 平行協作（使用者 2026-10-28 提出，尚未排入 P 階段）</h3>
+      <p>
+        痛點：同時用 Codex 與 Claude Code 時，只能 A 指揮 B 再統合，做不到平行。
+      </p>
+      <p>
+        已查到的事實（2026-10-28）：Claude Code 有實驗版
+        <a href="https://code.claude.com/docs/en/agents">agent teams</a
+        >，成員共用任務表、自己領任務，但只限 Claude
+        自家，且預設不替成員分開工作目錄。跨廠商（Codex 加
+        Claude）沒查到現成做法；目前只能各自用 <code>codex exec</code>、<code
+          >claude -p</code
+        >
+        這類一次一個的無介面模式接起來。<a
+          href="https://a2a-protocol.org/latest/specification/"
+          >A2A 協定</a
+        >定義了任務狀態，但預設角色與協調方式事先固定。
+      </p>
+      <p>
+        理論依據：<a href="https://arxiv.org/pdf/2512.08296"
+          >Google／MIT 的研究</a
+        >發現，平行只對能拆開的工作有利；循序工作用多個 Agent 反而差
+        39–70%；各自獨立的 Agent 會把錯誤放大 17.2 倍，有中央協調降到 4.4 倍。<a
+          href="https://arxiv.org/pdf/2503.13657"
+          >Berkeley 的研究</a
+        >指出多 Agent 失敗多半出在分工與協調設計，不是單一模型太弱。<a
+          href="https://arxiv.org/abs/2607.21909"
+          >Claim Plane 論文</a
+        >指出獨立工作目錄只擋得住檔案層的衝突，兩個人的改動是否互相相容，仍要在動工前另外檢查。
+      </p>
+      <p>本案方向（我的推論，尚未實測）：</p>
+      <ol>
+        <li>
+          共用任務表，Agent
+          自己領任務，不互相呼叫；領取用資料庫短交易，保證一件任務只有一個人拿到。
+        </li>
+        <li>每個 Agent 一個獨立工作目錄，沿用「同一工作區只有一個寫入者」。</li>
+        <li>
+          動工前先登記要改的範圍，由固定規則的程式判斷能否同時進行，重疊的就排隊；不讓模型自己協商。
+        </li>
+        <li>合併一次一個，每次合併前跑獨立驗收。</li>
+        <li>
+          Codex 與 Claude Code 當外部工人接入；接入方式先實測
+          <code>codex exec</code>、<code>claude -p</code> 與
+          <code>codex mcp-server</code>。已知有人回報
+          <code>codex mcp-server</code> 多輪對話追蹤有缺陷，未實測。
+        </li>
+        <li>只拆得開的工作才平行；循序工作維持單一 Agent。</li>
+      </ol>
+      <p>
+        開工前要先回答：任務怎麼拆才算「拆得開」、外部工人的取消與逾時怎麼控制、兩家的批准流程如何接進同一個批准閘門。沒有實測前，不得宣稱平行比單一
+        Agent 快或更好。
+      </p>
       <h3>SQLite 適不適合</h3>
       <p>
         建議單機 CLI／Tauri 用 SQLite
@@ -3332,7 +3478,7 @@
       <p>
         採 Codex
         時優先沿用它的執行與保存介面；平台只保存平台授權、任務映射與獨立驗收，不複製另一份核心執行進度。所有工具入口必須受平台政策約束，不能攔住的核心不能通過
-        P01。採 Rig 時則由平台保存主流程。P01
+        P01。採自寫 agent-harness（已取代 Rig）時由平台保存主流程。P01
         同題驗證這個邊界，禁止兩套迴圈同時控制任務。Computer Use
         也走同一意圖與回執契約，帶觀察序號、時間及視窗身分；P07
         再依實測增加欄位，不預造未使用的資料表。
@@ -3352,6 +3498,77 @@
         SQLite 檔。
       </p>
       <h2>分階段交付與驗收</h2>
+      <h3>代號對照（P 代號對應白話名稱與架構圖的框）</h3>
+      <p>
+        P01–P10 是證據資料夾與
+        <code>docs/plan-state.json</code>
+        使用的固定代號，不改名。對照如下，架構圖見
+        <a
+          href="/home/cash/work_space/private/agent-platform/docs/agent-target-architecture.pdf"
+          >Agent 目標架構</a
+        >。
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>代號</th>
+            <th>白話名稱</th>
+            <th>對應圖上的框</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>P01</td>
+            <td>核心迴圈與批准紀錄</td>
+            <td>agent-harness、批准閘門、批准轉接、任務資料庫</td>
+          </tr>
+          <tr>
+            <td>P02</td>
+            <td>CLI 完整任務，連 Gateway</td>
+            <td>CLI、任務執行、OpenAI 格式轉接 → Gateway</td>
+          </tr>
+          <tr>
+            <td>P03a／b</td>
+            <td>三平台安裝</td>
+            <td>整個本機範圍</td>
+          </tr>
+          <tr>
+            <td>P04</td>
+            <td>中斷後接續與取消</td>
+            <td>任務執行、任務資料庫</td>
+          </tr>
+          <tr>
+            <td>P05a／b</td>
+            <td>知識檢索</td>
+            <td>規劃中擴充（向量庫）</td>
+          </tr>
+          <tr>
+            <td>P06</td>
+            <td>記憶</td>
+            <td>規劃中擴充（記憶）</td>
+          </tr>
+          <tr>
+            <td>P07</td>
+            <td>電腦操作</td>
+            <td>工具（任務執行提供）</td>
+          </tr>
+          <tr>
+            <td>P08</td>
+            <td>整體評測</td>
+            <td>全部</td>
+          </tr>
+          <tr>
+            <td>P09</td>
+            <td>桌面 ADE（另一個 repo）</td>
+            <td>桌面 App、批准畫面</td>
+          </tr>
+          <tr>
+            <td>P10</td>
+            <td>分次交接</td>
+            <td>全部</td>
+          </tr>
+        </tbody>
+      </table>
       <p>
         逐步工作、替換邊界及程式／AI／真人的驗收責任，見<a
           href="/home/cash/work_space/private/agent-platform/docs/research/cli-first-20261025/delivery-steps.md"
@@ -3374,8 +3591,8 @@
           <tr>
             <td>P01：選核心，縮小依賴</td>
             <td>
-              延續 Codex／Rig
-              的同題比較；鎖版本、授權與品質命令；驗證本機狀態保存；暫不建立桌面專案
+              自寫 agent-harness 取代 Rig，Codex
+              比較仍待做；鎖版本、授權與品質命令；驗證本機狀態保存；暫不建立桌面專案
             </td>
             <td>
               同題的允許、拒絕、錯參數、串流、取消、重啟均有結果；取消後延遲工具不能再寫入；任一安全條件不過就不能選用
@@ -3435,25 +3652,15 @@
             </td>
           </tr>
           <tr>
-            <td>P09a：桌面 ADE</td>
+            <td>P09：桌面 ADE</td>
             <td>
-              Tauri 工作區、任務／事件、授權、差異與成果；共用 CLI
-              核心；提供桌面包
+              在 agent-ade repo 做 Tauri
+              工作區、任務／事件、授權、差異與成果；經本 repo
+              的事件契約連核心；提供桌面包
             </td>
             <td>
               CLI
               建立任務後桌面能讀回及接續；同任務不可雙重執行；真正桌面測成功／拒絕／停止／重啟；關窗行為明確
-            </td>
-          </tr>
-          <tr>
-            <td>P09b：IDE 決策</td>
-            <td>
-              依五個試用任務比較 ADE＋外部編輯器、嵌入編輯器、修改 Orca 或完整
-              IDE
-            </td>
-            <td>
-              若無證據顯示完整 IDE 必要，交付 ADE 即可；若選
-              IDE，先補實作範圍與驗收再開工
             </td>
           </tr>
           <tr>
@@ -3475,8 +3682,9 @@
         等桌面及全案能力完成後交接，不把先發 CLI 解讀成刪掉原需求。
       </p>
       <p>
-        P01 先用固定假的模型回應做正反測試，再用已授權免費模型測真實流程。既有
-        Rig 試接與未提交程式保留；本輪沒有重跑，不能因此宣稱 P01
+        P01 先用固定假的模型回應做正反測試，再用已授權免費模型測真實流程。Rig
+        已移除，改用自寫 agent-harness；Linux 上全工作區測試與 CLI
+        合約測試已跑，Windows、macOS 與真實模型尚未跑，不能宣稱 P01
         通過。程式、靜態檢查、變異測試等門檻沿用專案原要求，無 UI
         的早期階段不虛報桌面測試通過。
       </p>
@@ -3574,11 +3782,10 @@
       <h3>本案採用順序</h3>
       <ol>
         <li>
-          <strong>P01 選執行核心</strong>：延續 Codex 與 Rig
-          的同題比較，不另開第三套主迴圈。本機 <code>Cargo.toml</code> 已將
-          <code>rig-agent</code>、<code>rig-core</code> 固定在
-          <code>55cd481a2421fd5da468b5bd6afc6ac876883599</code
-          >；這只證明依賴已登記，本輪未重新編譯或驗證 RAG。
+          <strong>P01 選執行核心</strong>：Rig 已於 2026-10-28
+          移除，核心改為自寫的
+          <code>crates/harness</code>（可獨立開源），模型連線為
+          <code>crates/openai</code>；Codex 比較仍待做。
         </li>
         <li>
           <strong>P02／P04 驗流程能力</strong

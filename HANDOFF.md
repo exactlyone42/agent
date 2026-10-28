@@ -34,7 +34,7 @@
 ## 現場整理
 
 - 已整理：改寫本檔；`README.md` 已有入口；LOOP 路徑已確認為 gateway-completion 那份（存在，最後修改 12:41），上午版「路徑不一致」已解。
-- 刻意保留：全部未提交修改、`.runtime/`（已被 Git 忽略）、`target/`（13G）、`node_modules`、`output/pdf`，都屬本任務或建置產物，未動。
+- 刻意保留：全部未提交修改、`.runtime/`（已被 Git 忽略）、`target/`（13G）、`node_modules`，都屬本任務或建置產物，未動。
 - 程序：本目錄有 `cargo-mutants`（pid 1205021，已跑約 33 分鐘）及其測試用 cargo，父程序是 python3 pid 1194044（品質檢查入口）。其他 codex 程序在 Helios、JobResearch、line-ai-sandbox、Fluke、家目錄，與本任務無關，未動。我無法確認這些程序由哪個對話持有，只知道它們存在。
 - 待授權：提交與推送；其餘無。
 

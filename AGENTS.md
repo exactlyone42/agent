@@ -2,7 +2,7 @@
 
 先讀README索引及PLAN。遵守cash共用規約、DEVELOPMENT與docs/engineering-standards.md；與Gateway/private相同要求，有較嚴格者採較嚴格者，不得降低品質。
 
-- 這是獨立Agent repo；Gateway仍是模型API服務。Tauri桌面Client，不擅自改成純Web。
+- 這是獨立Agent repo；Gateway仍是模型API服務。桌面ADE（Tauri）改放另一個repo agent-ade（使用者2026-10-28定），本repo只提供CLI、核心與有版本號的事件契約；不擅自改成純Web，也不做完整IDE。
 - 只做當前步驟必要的最小實作，不建立未使用crate；先復用已查證Harness與套件。
 - 自寫程式不加註解；說明放繁中白話文件；程式識別字英文ASCII。
 - 同一工作區只容許一個寫入者；沿用原全案LOOP，不建立第二份。

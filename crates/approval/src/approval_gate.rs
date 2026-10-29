@@ -1,8 +1,9 @@
 use crate::{ApprovalStore, Claim, Fault, Messages, Policy};
 use agent_harness::{
-    CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolResult,
+    CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolCall, ToolResult,
 };
 use std::{
+    ops::ControlFlow,
     sync::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -64,73 +65,107 @@ impl<S: ApprovalStore> ApprovalGate<S> {
         self.denied.store(true, Ordering::SeqCst);
         self.stop(why)
     }
+
+    fn admit(&self) -> Option<DispatchAction> {
+        if self.cancellation.is_cancelled() {
+            return Some(self.stop(&self.messages.cancelled));
+        }
+        if self.calls.fetch_add(1, Ordering::SeqCst) >= self.policy.max_calls {
+            return Some(self.stop(&self.messages.call_limit));
+        }
+        None
+    }
+
+    fn prepare(&self, event: &Dispatch<'_>) -> Result<S::Prepared, DispatchAction> {
+        match self.store.prepare(event.turn, event.call) {
+            Ok(prepared) => Ok(prepared),
+            Err(Fault::Invalid) => Err(self.reject(event.call)),
+            Err(_) => Err(self.stop(&self.messages.intent_failed)),
+        }
+    }
+
+    fn reject(&self, call: &ToolCall) -> DispatchAction {
+        match self.store.reject(call) {
+            Ok(()) => DispatchAction::Skip(self.messages.invalid_call.clone()),
+            Err(_) => self.stop(&self.messages.rejection_unrecorded),
+        }
+    }
+
+    fn poll(&self, prepared: &S::Prepared, deadline: Instant) -> ControlFlow<DispatchAction> {
+        let messages = &self.messages;
+        if self.cancellation.is_cancelled() {
+            return ControlFlow::Break(self.stop(&messages.cancelled));
+        }
+        if Instant::now() >= deadline {
+            return ControlFlow::Break(self.deny_and_stop(&messages.approval_timeout));
+        }
+        match self.store.claim(prepared) {
+            Ok(Claim::Granted) => ControlFlow::Break(DispatchAction::Proceed),
+            Ok(Claim::Denied) if self.policy.manual => {
+                ControlFlow::Break(self.deny_and_stop(&messages.approval_denied))
+            }
+            Ok(Claim::Denied) => {
+                ControlFlow::Break(DispatchAction::Skip(messages.not_authorized.clone()))
+            }
+            Ok(Claim::Pending) | Err(Fault::Busy) => ControlFlow::Continue(()),
+            Err(_) => ControlFlow::Break(self.stop(&messages.claim_failed)),
+        }
+    }
+
+    fn save(&self, event: &Outcome<'_>, deadline: Instant) -> ControlFlow<OutcomeAction> {
+        let saved = self.store.receipt(
+            event.turn,
+            event.call,
+            event.result == ToolResult::Succeeded,
+        );
+        match saved {
+            Ok(()) => ControlFlow::Break(OutcomeAction::Proceed),
+            Err(Fault::Busy) if Instant::now() < deadline => self.keep_saving(),
+            Err(_) => ControlFlow::Break(OutcomeAction::Stop(self.messages.receipt_failed.clone())),
+        }
+    }
+
+    fn keep_saving(&self) -> ControlFlow<OutcomeAction> {
+        if self.cancellation.is_cancelled() {
+            return ControlFlow::Break(OutcomeAction::Stop(
+                self.messages.receipt_cancelled.clone(),
+            ));
+        }
+        ControlFlow::Continue(())
+    }
+
+    async fn pause(&self) {
+        tokio::select! {
+            _ = self.cancellation.cancelled() => {}
+            _ = sleep(POLL) => {}
+        }
+    }
 }
 
 impl<S: ApprovalStore> Hook for ApprovalGate<S> {
     async fn on_dispatch(&self, event: Dispatch<'_>) -> DispatchAction {
-        let call = event.call;
-        let messages = &self.messages;
-        if self.cancellation.is_cancelled() {
-            return self.stop(&messages.cancelled);
+        if let Some(action) = self.admit() {
+            return action;
         }
-        if self.calls.fetch_add(1, Ordering::SeqCst) >= self.policy.max_calls {
-            return self.stop(&messages.call_limit);
-        }
-        let prepared = match self.store.prepare(event.turn, call) {
+        let prepared = match self.prepare(&event) {
             Ok(prepared) => prepared,
-            Err(Fault::Invalid) => {
-                return match self.store.reject(call) {
-                    Ok(()) => DispatchAction::Skip(messages.invalid_call.clone()),
-                    Err(_) => self.stop(&messages.rejection_unrecorded),
-                };
-            }
-            Err(_) => return self.stop(&messages.intent_failed),
+            Err(action) => return action,
         };
         let deadline = Instant::now() + self.policy.approval_wait;
         loop {
-            if self.cancellation.is_cancelled() {
-                return self.stop(&messages.cancelled);
-            }
-            if Instant::now() >= deadline {
-                return self.deny_and_stop(&messages.approval_timeout);
-            }
-            match self.store.claim(&prepared) {
-                Ok(Claim::Granted) => return DispatchAction::Proceed,
-                Ok(Claim::Denied) if self.policy.manual => {
-                    return self.deny_and_stop(&messages.approval_denied);
-                }
-                Ok(Claim::Denied) => {
-                    return DispatchAction::Skip(messages.not_authorized.clone());
-                }
-                Ok(Claim::Pending) | Err(Fault::Busy) => {}
-                Err(_) => return self.stop(&messages.claim_failed),
-            }
-            tokio::select! {
-                _ = self.cancellation.cancelled() => return self.stop(&messages.cancelled),
-                _ = sleep(POLL) => {}
+            match self.poll(&prepared, deadline) {
+                ControlFlow::Break(action) => return action,
+                ControlFlow::Continue(()) => self.pause().await,
             }
         }
     }
 
     async fn on_outcome(&self, event: Outcome<'_>) -> OutcomeAction {
-        let messages = &self.messages;
         let deadline = Instant::now() + self.policy.receipt_wait;
         loop {
-            let saved = self.store.receipt(
-                event.turn,
-                event.call,
-                event.result == ToolResult::Succeeded,
-            );
-            match saved {
-                Ok(()) => return OutcomeAction::Proceed,
-                Err(Fault::Busy) if Instant::now() < deadline => {}
-                Err(_) => return OutcomeAction::Stop(messages.receipt_failed.clone()),
-            }
-            tokio::select! {
-                _ = self.cancellation.cancelled() => {
-                    return OutcomeAction::Stop(messages.receipt_cancelled.clone());
-                }
-                _ = sleep(POLL) => {}
+            match self.save(&event, deadline) {
+                ControlFlow::Break(action) => return action,
+                ControlFlow::Continue(()) => self.pause().await,
             }
         }
     }

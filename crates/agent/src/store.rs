@@ -1,9 +1,14 @@
 use crate::task::{ArtifactState, TaskError, TaskReport};
-use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{
+    Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior, params,
+};
 use serde::Serialize;
 use std::{path::Path, time::Duration};
 use uuid::Uuid;
+mod append;
 mod approvals;
+mod close_intents;
+mod digest;
 pub use approvals::{
     APPROVAL_TTL_SECONDS, ApprovalMode, ApprovalRecord, Claim, PreparedIntent, TOOL_CALL_LIMIT,
     TaskSpec,
@@ -112,39 +117,7 @@ impl TaskStore {
             return Err(StoreError::Incompatible);
         }
         if create && version < SCHEMA_VERSION {
-            connection.pragma_update(None, "foreign_keys", false)?;
-            let transaction =
-                connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-            let mut current_version: i64 =
-                transaction.pragma_query_value(None, "user_version", |r| r.get(0))?;
-            let current_application: i64 =
-                transaction.pragma_query_value(None, "application_id", |r| r.get(0))?;
-            if (current_application, current_version) == (0, 0) {
-                let tables: i64 = transaction.query_row(
-                    "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
-                    [],
-                    |r| r.get(0),
-                )?;
-                if tables != 0 {
-                    return Err(StoreError::Incompatible);
-                }
-                transaction.execute_batch(include_str!("store_v1.sql"))?;
-                transaction.pragma_update(None, "application_id", APPLICATION_ID)?;
-                current_version = 1;
-            } else if current_application != APPLICATION_ID
-                || !(1..=SCHEMA_VERSION).contains(&current_version)
-            {
-                return Err(StoreError::Incompatible);
-            }
-            if current_version == 1 {
-                transaction.execute_batch(include_str!("store_v2.sql"))?;
-                current_version = 2;
-            }
-            if current_version == 2 {
-                transaction.execute_batch(include_str!("store_v3.sql"))?;
-            }
-            transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
-            transaction.commit()?;
+            Self::migrate(&mut connection)?;
         }
         let journal: String = if create {
             connection.pragma_update_and_check(None, "journal_mode", "wal", |r| r.get(0))?
@@ -165,6 +138,64 @@ impl TaskStore {
             connection,
             schema_version,
         })
+    }
+
+    fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
+        connection.pragma_update(None, "foreign_keys", false)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let mut version = Self::stored_version(&transaction)?;
+        if version == 1 {
+            transaction.execute_batch(include_str!("store_v2.sql"))?;
+            version = 2;
+        }
+        if version == 2 {
+            transaction.execute_batch(include_str!("store_v3.sql"))?;
+        }
+        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn stored_version(transaction: &Transaction<'_>) -> Result<i64, StoreError> {
+        let version: i64 = transaction.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let application: i64 =
+            transaction.pragma_query_value(None, "application_id", |r| r.get(0))?;
+        if (application, version) == (0, 0) {
+            return Self::install_first_version(transaction);
+        }
+        if application != APPLICATION_ID || !(1..=SCHEMA_VERSION).contains(&version) {
+            return Err(StoreError::Incompatible);
+        }
+        Ok(version)
+    }
+
+    fn install_first_version(transaction: &Transaction<'_>) -> Result<i64, StoreError> {
+        let tables: i64 = transaction.query_row(
+            "SELECT count(*) FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%'",
+            [],
+            |r| r.get(0),
+        )?;
+        if tables != 0 {
+            return Err(StoreError::Incompatible);
+        }
+        transaction.execute_batch(include_str!("store_v1.sql"))?;
+        transaction.pragma_update(None, "application_id", APPLICATION_ID)?;
+        Ok(1)
+    }
+
+    fn missing_cause(
+        transaction: &Transaction<'_>,
+        task_id: &str,
+    ) -> Result<StoreError, StoreError> {
+        let exists: bool = transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tasks WHERE task_id=?1)",
+            [task_id],
+            |r| r.get(0),
+        )?;
+        if exists {
+            return Ok(StoreError::Conflict);
+        }
+        Ok(StoreError::NotFound)
     }
 
     pub fn start(&mut self) -> Result<(String, i64), StoreError> {
@@ -199,7 +230,7 @@ impl TaskStore {
         if let Some(spec_json) = spec_json {
             transaction.execute(
                 "INSERT INTO task_specs(task_id,spec_json,spec_hash) VALUES (?1,?2,?3)",
-                params![task_id, spec_json, approvals::digest(&spec_json)],
+                params![task_id, spec_json, digest::digest(&spec_json)],
             )?;
         }
         transaction.commit()?;
@@ -247,26 +278,14 @@ impl TaskStore {
              WHERE task_id = ?2 AND recorded_state IN ('running','waiting_approval') AND generation = ?3 RETURNING last_seq",
             params![state, task_id, expected_generation, artifact_created], |r| r.get(0),
         ).optional()?;
-        let seq = match seq {
-            Some(seq) => seq,
-            None => {
-                let exists: bool = transaction.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM tasks WHERE task_id=?1)",
-                    [task_id],
-                    |r| r.get(0),
-                )?;
-                return Err(if exists {
-                    StoreError::Conflict
-                } else {
-                    StoreError::NotFound
-                });
-            }
+        let Some(seq) = seq else {
+            return Err(Self::missing_cause(&transaction, task_id)?);
         };
         transaction.execute(
             "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, ?4)",
             params![Uuid::new_v4().to_string(), task_id, seq, state],
         )?;
-        approvals::close_intents(&transaction, task_id)?;
+        close_intents::close_intents(&transaction, task_id)?;
         transaction.execute(
             "UPDATE tool_intents SET status='cancelled' WHERE task_id=?1 AND status='prepared'",
             [task_id],

@@ -1,9 +1,0 @@
-test_command_arguments (__main__.CliContract.test_command_arguments) ... ok
-test_file_tasks_through_real_cli_and_http (__main__.CliContract.test_file_tasks_through_real_cli_and_http) ... ok
-test_invalid_configuration_does_not_start_task (__main__.CliContract.test_invalid_configuration_does_not_start_task) ... ok
-test_url_policy_and_json_size (__main__.CliContract.test_url_policy_and_json_size) ... ok
-
-----------------------------------------------------------------------
-Ran 4 tests in 7.312s
-
-OK

@@ -1,9 +1,0 @@
-{
-  "observed_at": "2026-10-24T14:27:42.718168+00:00",
-  "lock_pid": 2407846,
-  "lock_contender_exit": 1,
-  "old_terminal": "term_af6a7f2f-1bea-4fab-b58c-0dda17906be4",
-  "old_terminal_screen": "Worked for 21s / Ask Codex to do anything; PDF task ended; stale list preview was not current screen",
-  "localai": "draft edited: corrected SSE schema, connected local endpoint, added turn and output validation",
-  "schedule_enabled": true
-}

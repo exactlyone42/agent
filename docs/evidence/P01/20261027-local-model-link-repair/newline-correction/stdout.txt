@@ -1,1 +1,0 @@
-{"artifact":"verified","assistant_message":"已完成修正並寫入輸出檔案。"}

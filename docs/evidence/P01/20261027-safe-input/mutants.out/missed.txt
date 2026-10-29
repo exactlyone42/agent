@@ -1,2 +1,0 @@
-crates/agent/src/input.rs:9:26: replace || with && in open_checked
-crates/agent/src/input.rs:27:25: replace || with && in open_checked

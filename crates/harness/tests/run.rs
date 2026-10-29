@@ -190,12 +190,14 @@ async fn endless_tool_calls_hit_turn_limit() {
     let replies = (0..5)
         .map(|i| Ok(Message::call(&i.to_string(), "count", json!({}))))
         .collect();
-    let result = Agent::new(Script::new(replies))
+    let model = Script::new(replies);
+    let result = Agent::new(model.clone())
         .tool(tool)
         .max_turns(3)
         .run("x", &off())
         .await;
     assert!(matches!(result, Err(RunError::TurnLimit)));
+    assert_eq!(model.asked.load(Ordering::SeqCst), 3);
 }
 
 #[tokio::test]

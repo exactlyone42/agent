@@ -1,6 +1,0 @@
-{
-  "reviewer": "localai review",
-  "outcome": "edited",
-  "finding": "僅證明Client發出拒絕後模型收到結果；未證明內建權限或沙箱阻擋；未涵蓋多次呼叫與不同授權策略。",
-  "correction": "本機模型寫成Client收到success=false；實際是Client發出success=false，已依transcript修正。"
-}

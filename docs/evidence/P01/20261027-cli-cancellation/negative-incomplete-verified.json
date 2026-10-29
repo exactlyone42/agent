@@ -1,5 +1,0 @@
-{
-  "exit_code": 1,
-  "stdout": "",
-  "stderr": "test_file_tasks_through_real_cli_and_http (__main__.CliContract.test_file_tasks_through_real_cli_and_http) ... \n  test_file_tasks_through_real_cli_and_http (__main__.CliContract.test_file_tasks_through_real_cli_and_http) (case='write_failed') ... FAIL\n\n======================================================================\nFAIL: test_file_tasks_through_real_cli_and_http (__main__.CliContract.test_file_tasks_through_real_cli_and_http) (case='write_failed')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/cash/work_space/private/agent-platform/scripts/test_cli.py\", line 315, in test_file_tasks_through_real_cli_and_http\n    self.assertEqual(result.returncode, exit_code, result.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 0 != 1 : \n\n----------------------------------------------------------------------\nRan 1 test in 9.169s\n\nFAILED (failures=1)\n"
-}

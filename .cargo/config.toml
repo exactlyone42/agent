@@ -1,2 +1,5 @@
 [build]
 jobs = 2
+
+[alias]
+xtask = "run -q -p agent-platform-xtask --"

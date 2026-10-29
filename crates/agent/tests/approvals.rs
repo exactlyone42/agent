@@ -1,6 +1,6 @@
 use agent_platform_agent::{
     store::{ApprovalMode, Claim, StoreError, TaskSpec, TaskStore},
-    task::{FileTask, TaskError},
+    task::{FILE_LIMIT, FileTask, TaskError},
 };
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -91,6 +91,7 @@ fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn s
         "denied",
         "expired",
         "revoked",
+        "revoked_status",
         "policy_denied",
         "cancelled",
         "spec_changed",
@@ -112,6 +113,10 @@ fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn s
             "revoked" => {
                 store.decide(&prepared.approval_id, 1, true)?;
                 store.decide(&prepared.approval_id, 1, false)?;
+            }
+            "revoked_status" => {
+                store.decide(&prepared.approval_id, 1, true)?;
+                connection.execute("UPDATE approvals SET status='revoked'", [])?;
             }
             "cancelled" => {
                 let generation = store.status(&id)?.generation;
@@ -144,6 +149,12 @@ fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn s
             !matches!(store.claim(&prepared), Ok(Claim::Granted | Claim::Pending)),
             "{case}"
         );
+        if matches!(case, "denied" | "expired" | "revoked" | "revoked_status") {
+            assert!(
+                matches!(store.claim(&prepared), Ok(Claim::Denied)),
+                "{case}"
+            );
+        }
         let dispatched: i64 = connection.query_row(
             "SELECT count(*) FROM tool_intents WHERE status='dispatched'",
             [],
@@ -375,6 +386,39 @@ fn argument_hash_is_sha256_hex_and_call_id_length_is_bounded()
             Err(StoreError::InvalidToolCall)
         ));
     }
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+#[test]
+fn escaped_content_at_the_file_limit_is_accepted() -> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
+    let content = "\"".repeat(FILE_LIMIT as usize);
+    let args = serde_json::json!({ "content": content }).to_string();
+    store.prepare_intent(&id, 0, "call", "write_output", &args)?;
+    drop(store);
+    std::fs::remove_file(path)?;
+    Ok(())
+}
+
+#[test]
+fn rejection_is_recorded_as_an_event() -> Result<(), Box<dyn std::error::Error>> {
+    let path = path();
+    let mut store = TaskStore::open(&path)?;
+    let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, true))?;
+    let before = store.events(&id, 0)?.len();
+    store.record_rejection(&id, "call-1")?;
+    let events = store.events(&id, 0)?;
+    assert_eq!(events.len(), before + 1);
+    assert_eq!(
+        events
+            .last()
+            .map(|e| (e.event_type.as_str(), e.related_id.as_deref())),
+        Some(("tool_rejected", Some("call-1")))
+    );
     drop(store);
     std::fs::remove_file(path)?;
     Ok(())

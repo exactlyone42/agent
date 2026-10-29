@@ -1,8 +1,7 @@
-use super::{StoreError, TaskStore};
+use super::{StoreError, TaskStore, append::append, digest::digest};
 use crate::task::{FILE_LIMIT, FileTask, ReadArgs, WriteArgs};
-use rusqlite::{OptionalExtension, Transaction, TransactionBehavior, params};
+use rusqlite::{OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -63,60 +62,6 @@ pub enum Claim {
     Denied,
 }
 
-pub(super) fn digest(value: &str) -> String {
-    format!("{:x}", Sha256::digest(value.as_bytes()))
-}
-
-fn append(
-    transaction: &Transaction<'_>,
-    task_id: &str,
-    kind: &str,
-    state: Option<&str>,
-    related_id: &str,
-) -> Result<(), StoreError> {
-    let seq = transaction.query_row(
-        "UPDATE tasks SET last_seq=last_seq+1, recorded_state=coalesce(?2,recorded_state), updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')
-         WHERE task_id=?1 AND recorded_state IN ('running','waiting_approval') RETURNING last_seq", params![task_id,state], |r| r.get::<_, i64>(0))
-        .optional()?.ok_or(StoreError::Conflict)?;
-    transaction.execute(
-        "INSERT INTO events(event_id,task_id,seq,event_type,related_id) VALUES (?1,?2,?3,?4,?5)",
-        params![Uuid::new_v4().to_string(), task_id, seq, kind, related_id],
-    )?;
-    Ok(())
-}
-
-pub(super) fn close_intents(
-    transaction: &Transaction<'_>,
-    task_id: &str,
-) -> Result<(), StoreError> {
-    for (sql, kind) in [
-        (
-            "UPDATE approvals SET status='revoked' WHERE uses_remaining=1 AND status IN ('pending','approved') AND intent_id IN (SELECT intent_id FROM tool_intents WHERE task_id=?1) RETURNING approval_id",
-            "approval_revoked",
-        ),
-        (
-            "UPDATE tool_intents SET status='outcome_unknown' WHERE task_id=?1 AND status='dispatched' RETURNING intent_id",
-            "tool_outcome_unknown",
-        ),
-    ] {
-        let identifiers = {
-            let mut statement = transaction.prepare(sql)?;
-            statement
-                .query_map([task_id], |r| r.get::<_, String>(0))?
-                .collect::<Result<Vec<_>, _>>()?
-        };
-        for id in identifiers {
-            let seq: i64 = transaction.query_row(
-                "UPDATE tasks SET last_seq=last_seq+1 WHERE task_id=?1 RETURNING last_seq",
-                [task_id],
-                |r| r.get(0),
-            )?;
-            transaction.execute("INSERT INTO events(event_id,task_id,seq,event_type,related_id) VALUES (?1,?2,?3,?4,?5)",params![Uuid::new_v4().to_string(),task_id,seq,kind,id])?;
-        }
-    }
-    Ok(())
-}
-
 impl TaskStore {
     pub fn prepare_intent(
         &mut self,
@@ -157,11 +102,10 @@ impl TaskStore {
                 )
             }
             "write_output" => {
-                let parsed: WriteArgs =
-                    serde_json::from_str(args).map_err(|_| StoreError::InvalidToolCall)?;
-                if parsed.content.len() as u64 > FILE_LIMIT {
-                    return Err(StoreError::InvalidToolCall);
-                }
+                let parsed: WriteArgs = serde_json::from_str(args)
+                    .ok()
+                    .filter(|parsed: &WriteArgs| parsed.content.len() as u64 <= FILE_LIMIT)
+                    .ok_or(StoreError::InvalidToolCall)?;
                 (
                     serde_json::to_string(&parsed),
                     spec.task.output,

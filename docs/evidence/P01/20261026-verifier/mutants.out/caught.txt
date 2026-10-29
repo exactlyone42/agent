@@ -1,2 +1,0 @@
-crates/agent/src/verification.rs:13:5: replace verify_file -> Result<(), VerificationError> with Ok(())
-crates/agent/src/verification.rs:17:15: replace != with == in verify_file

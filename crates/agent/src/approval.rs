@@ -2,16 +2,13 @@ mod fault_of;
 mod task_approvals;
 mod task_messages;
 
-use crate::store::{APPROVAL_TTL_SECONDS, TOOL_CALL_LIMIT, TaskStore};
+use crate::store::TaskStore;
 use agent_harness::CancellationToken;
 use agent_harness_approval::Policy;
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
-use task_messages::task_messages;
+use std::sync::{Arc, Mutex};
 
 pub use task_approvals::TaskApprovals;
+pub use task_messages::task_messages;
 
 pub type ApprovalGate = agent_harness_approval::ApprovalGate<TaskApprovals>;
 
@@ -23,8 +20,6 @@ pub fn task_gate(
 ) -> ApprovalGate {
     let policy = Policy {
         manual,
-        max_calls: TOOL_CALL_LIMIT as usize,
-        approval_wait: Duration::from_secs(APPROVAL_TTL_SECONDS as u64),
         ..Policy::default()
     };
     ApprovalGate::new(

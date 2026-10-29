@@ -1,9 +1,0 @@
-{
-  "approval_request_observed": true,
-  "decline_sent": true,
-  "accept_control_sent": true,
-  "denied_file_unchanged": true,
-  "accepted_file_changed": true,
-  "all_denial_checks": true,
-  "control_detected_write": true
-}

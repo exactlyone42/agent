@@ -1,4 +1,5 @@
 mod agent;
+mod finish;
 mod hook;
 mod message;
 mod model;

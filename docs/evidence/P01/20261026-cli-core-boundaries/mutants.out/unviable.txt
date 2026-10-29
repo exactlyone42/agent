@@ -1,5 +1,0 @@
-crates/agent/src/task.rs:108:33: replace > with < in <impl Tool for ReadInput>::call
-crates/agent/src/task.rs:131:38: replace > with < in <impl Tool for WriteOutput>::call
-crates/agent/src/task.rs:159:5: replace run_file_task -> Result<TaskReport, TaskError> with Ok(Default::default())
-crates/agent/src/task.rs:160:37: replace > with < in run_file_task
-crates/agent/src/task.rs:164:45: replace > with < in run_file_task

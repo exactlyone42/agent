@@ -1,11 +1,12 @@
 use agent_harness_openai::OpenAi;
 use agent_platform_agent::task::{
-    ArtifactState, CancellationToken, FileTask, MANUAL_TASK_TIMEOUT, TASK_TIMEOUT, TaskError,
-    run_file_task,
+    ArtifactState, CancellationToken, FileTask, TaskError, run_file_task,
 };
 use agent_platform_agent::{
     approval::task_gate,
+    single_link::single_link,
     store::{ApprovalMode, StoreAccess, TaskSpec, TaskStore},
+    task_timeout::task_timeout,
 };
 use serde::Deserialize;
 use std::{
@@ -57,12 +58,8 @@ fn open_store(access: StoreAccess) -> Result<TaskStore, String> {
             if !metadata.is_file() {
                 return Err("任務資料庫必須是一般檔案，不可使用符號連結".into());
             }
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::MetadataExt;
-                if metadata.nlink() != 1 {
-                    return Err("任務資料庫不可使用硬連結".into());
-                }
+            if !single_link(&metadata) {
+                return Err("任務資料庫不可使用硬連結".into());
             }
         }
         Err(error) if create && error.kind() == std::io::ErrorKind::NotFound => {}
@@ -240,11 +237,7 @@ async fn run() -> Result<ExitCode, String> {
         request.task,
         cancellation,
         gate.clone(),
-        if request.approval_mode == ApprovalMode::Manual {
-            MANUAL_TASK_TIMEOUT
-        } else {
-            TASK_TIMEOUT
-        },
+        task_timeout(request.approval_mode),
     )
     .await;
     if matches!(result, Err(TaskError::Harness(_))) && gate.was_denied() {

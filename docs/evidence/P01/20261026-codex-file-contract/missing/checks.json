@@ -1,9 +1,0 @@
-{
-  "harness_completed": true,
-  "expected_read_count": true,
-  "expected_write_count": true,
-  "artifact_verdict": true,
-  "source_unchanged": true,
-  "expected_request_count": true,
-  "clean_exit": true
-}

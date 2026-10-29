@@ -1,5 +1,0 @@
-{
-  "exit_code": 1,
-  "stdout": "{\n  \"tool_call_received\": true,\n  \"arguments_preserved\": true,\n  \"turn_interrupted\": false,\n  \"one_model_request\": false,\n  \"fixture_unchanged\": true,\n  \"clean_exit\": true\n}\n",
-  "stderr": ""
-}

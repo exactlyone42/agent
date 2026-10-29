@@ -9,7 +9,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
     },
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 struct Fake {
@@ -158,7 +158,9 @@ async fn busy_claim_is_retried() {
         Fake::new(vec![Err(Fault::Busy), Ok(Claim::Granted)]),
         Policy::default(),
     );
+    let started = Instant::now();
     assert_eq!(dispatch(&gate).await, DispatchAction::Proceed);
+    assert!(started.elapsed() >= Duration::from_millis(150));
 }
 
 #[tokio::test]
@@ -185,7 +187,7 @@ async fn cancelled_run_stops_before_preparing() {
     assert!(is_stop(&dispatch(&gate).await));
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn cancel_while_waiting_stops() {
     let (gate, _, token) = gate(Fake::new(vec![]), Policy::default());
     let waiting = {

@@ -1,1 +1,0 @@
-A synthetic guide.

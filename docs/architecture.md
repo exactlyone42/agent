@@ -2,7 +2,7 @@
 
 圖文閱讀：[完整架構與驗收 PDF](PLAN.pdf)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
 
-產品、開發順序與企業正式發布門檻只以 [PLAN.md](../PLAN.md) 為準。本文件定義每個部件的責任與整合檢查，不保留另一套產品計畫。圖形見[直線版 PDF](research/cli-first-20261025/architecture-straight.pdf)；詳細任務欄位見 [Agent 契約](research/cli-first-20261025/agent-method.md)。下表是待實作的規格，不是已完成的元件。
+產品、開發順序與企業正式發布門檻只以 [PLAN.md](../PLAN.md) 為準。本文件定義每個部件的責任與整合檢查，不保留另一套產品計畫。圖形見[直線版 PDF](PLAN.pdf)；詳細任務欄位見 [Agent 契約](agent-method.md)。下表是待實作的規格，不是已完成的元件。
 
 ## 每個部件開發前必須具備的契約
 
@@ -47,36 +47,6 @@
 6. 背景建庫與前景任務同時執行 → 限額／斷網／磁碟滿 → 可觀測降級及接手 → 恢復後核對結果；不把服務健康當任務成功。
 
 SQL 效能靠查詢與容量測試，不靠資料庫名稱保證。任務表按工作區／狀態／時間、事件按任務／序號及待處理工作索引，分頁及有界批次，不做無界逐筆呼叫；查詢計畫、鎖等待、WAL 大小及 P95 隨版本記錄。SQLite WAL 仍是單寫入者；[官方說明](https://www.sqlite.org/isolation.html)不支持把本機 DB 當跨機共享服務。
-
-## 架構審查如何放行
-
-開工前由 AI 檢查契約、資料歸屬及反例；重要選型與整合改動交 Claude Code 審查。程式證明互通、隔離、恢復與版本相容；真人驗收使用流程及專業品質。每次替換至少通過原契約測試、上下游整合及故障案例，必要時雙版本測相容；未通過不得只因新版功能多而切換。
-
-企業品質所需的管理、政策、稽核、部署與維運是產品要求，不是可以用「先最小實作」略過的假想需求。具體 SSO／遠端管理／多租戶產品範圍另列支援狀態；沒有實作驗收，不宣稱已提供。
-
-## 預定目錄
-
-下列是P01後逐步建立的路徑，本次不放空的假程式。
-
-```text
-apps/desktop/                  Tauri + React；使用者操作
-apps/server/                   Axum入口與組裝
-apps/eval/                     獨立Rust評測CLI
-crates/agent/                  任務與Harness接法
-crates/tools/                  授權、工具與MCP
-crates/knowledge/              匯入、版本、RAG
-crates/memory/                 長期記憶
-crates/computer-use/           可替換的操作介面
-crates/storage/                SQL與migration
-contracts/                    API及事件schema
-fixtures/                     合成測試資料與故障案例
-scripts/                      gate、完整檢查、測試容器
-infra/                        本機容器編排
-Cargo.toml / Cargo.lock        單一workspace與Rust依賴鎖
-package.json / package-lock.json 桌面工具鎖
-```
-
-不為每個trait開crate。共用型別先放有責任歸屬的模組；確有第三次重複才抽出。crate依賴不得循環，UI不直接依賴資料層。路由僅驗參數、呼叫服務、對應錯誤；SQL留storage；設定集中，模型名稱不散落程式。
 
 ## 給外部實作者的契約
 

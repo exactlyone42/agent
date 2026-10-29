@@ -1,8 +1,0 @@
-{
-  "observed_at": "2026-10-24T14:47:31.250293+00:00",
-  "lock": "/home/cash/work_space/private/agent-platform/.git/agent-platform.lock",
-  "acquired": true,
-  "competing_lock_exit": 1,
-  "schedule_id": "ad8983b6-1875-4762-8031-1a12b989a6aa",
-  "local_model_suggestion": "rejected: approval belongs on app-server stdio, not model HTTP endpoint"
-}

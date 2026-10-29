@@ -1,2 +1,0 @@
-crates/agent/src/task.rs:105:30: replace + with * in <impl Tool for ReadInput>::call
-crates/agent/src/task.rs:175:32: replace || with && in run_file_task

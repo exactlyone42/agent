@@ -1,6 +1,0 @@
-{
-  "denial_round_trip": true,
-  "unauthorized_write_rejected": true,
-  "wrong_output_rejected": true,
-  "missing_tool_call_rejected": true
-}

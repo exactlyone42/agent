@@ -1,7 +1,0 @@
-{
-  "id": "ad8983b6-1875-4762-8031-1a12b989a6aa",
-  "enabled": true,
-  "rrule": "*/5 * * * *",
-  "reuseSession": true,
-  "nextRunAt": 1792851300000
-}

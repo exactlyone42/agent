@@ -1,3 +1,4 @@
+use crate::finish::finish;
 use crate::{
     Dispatch, DispatchAction, Hook, Message, Model, ModelError, Outcome, OutcomeAction, Tool,
     ToolCall, ToolResult, ToolSpec,
@@ -67,19 +68,33 @@ impl<M: Model, H: Hook> Agent<M, H> {
     ) -> Result<RunOutput, RunError> {
         let specs: Vec<ToolSpec> = self.tools.iter().map(|t| t.spec()).collect();
         let mut messages = vec![Message::User(prompt.to_owned())];
-        for turn in 0..self.max_turns {
-            let reply = self.ask(&messages, &specs, cancel).await?;
-            let calls = reply.calls().to_vec();
-            messages.push(reply);
-            if calls.is_empty() {
-                return Ok(finish(messages));
-            }
-            for call in &calls {
-                let result = self.handle(turn, call, cancel).await?;
-                messages.push(result);
-            }
+        let mut turn = 0;
+        let mut finished = None;
+        while finished.is_none() && turn < self.max_turns {
+            finished = self.step(turn, &mut messages, &specs, cancel).await?;
+            turn += 1;
         }
-        Err(RunError::TurnLimit)
+        finished.ok_or(RunError::TurnLimit)
+    }
+
+    async fn step(
+        &self,
+        turn: usize,
+        messages: &mut Vec<Message>,
+        specs: &[ToolSpec],
+        cancel: &CancellationToken,
+    ) -> Result<Option<RunOutput>, RunError> {
+        let reply = self.ask(messages, specs, cancel).await?;
+        let calls = reply.calls().to_vec();
+        messages.push(reply);
+        if calls.is_empty() {
+            return Ok(Some(finish(std::mem::take(messages))));
+        }
+        for call in &calls {
+            let result = self.handle(turn, call, cancel).await?;
+            messages.push(result);
+        }
+        Ok(None)
     }
 
     async fn ask(
@@ -135,12 +150,4 @@ impl<M: Model, H: Hook> Agent<M, H> {
             Err(error) => tool_message(error.to_string(), true),
         })
     }
-}
-
-fn finish(messages: Vec<Message>) -> RunOutput {
-    let text = match messages.last() {
-        Some(Message::Assistant { text, .. }) => text.clone(),
-        _ => String::new(),
-    };
-    RunOutput { messages, text }
 }

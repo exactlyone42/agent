@@ -1,0 +1,19 @@
+[workspace]
+members = ["crates/harness", "crates/openai", "crates/approval", "crates/agent", "crates/cli", "crates/xtask"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[workspace.dependencies]
+agent-platform-agent = { path = "crates/agent" }
+agent-harness = { path = "crates/harness" }
+agent-harness-openai = { path = "crates/openai" }
+agent-harness-approval = { path = "crates/approval" }
+thiserror = "2.0.21"
+url = { version = "2.5", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt", "time", "sync"] }

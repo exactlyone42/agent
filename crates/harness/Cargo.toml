@@ -1,0 +1,15 @@
+[package]
+name = "agent-harness"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/agent_harness.rs"
+
+[dependencies]
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util = { version = "0.7.20", features = ["rt"] }

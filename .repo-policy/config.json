@@ -10,30 +10,69 @@
   "checks": [
     {
       "pattern": ".*",
-      "requires": "package.json",
+      "requires": "Cargo.toml",
+      "pre_commit": ["cargo", "fmt", "--all", "--", "--check"],
+      "pre_push": ["cargo", "fmt", "--all", "--", "--check"],
+      "timeout": 900
+    },
+    {
+      "pattern": ".*",
+      "requires": "Cargo.toml",
       "pre_commit": [
-        "npm",
-        "run",
-        "format:check"
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
       ],
       "pre_push": [
-        "npm",
-        "run",
-        "format:check"
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
       ],
       "timeout": 900
     },
     {
       "pattern": ".*",
-      "requires": ".repo-policy/test_policy.py",
+      "requires": "Cargo.toml",
       "pre_commit": [
-        "python3",
-        ".repo-policy/test_policy.py"
+        "cargo",
+        "test",
+        "--workspace",
+        "--all-features",
+        "--locked"
       ],
       "pre_push": [
-        "python3",
-        ".repo-policy/test_policy.py"
+        "cargo",
+        "test",
+        "--workspace",
+        "--all-features",
+        "--locked"
       ],
+      "timeout": 900
+    },
+    {
+      "pattern": ".*",
+      "requires": "package.json",
+      "pre_commit": ["npm", "run", "format:check"],
+      "pre_push": ["npm", "run", "format:check"],
+      "timeout": 900
+    },
+    {
+      "pattern": ".*",
+      "requires": ".repo-policy/test_policy.py",
+      "pre_commit": ["python3", ".repo-policy/test_policy.py"],
+      "pre_push": ["python3", ".repo-policy/test_policy.py"],
       "timeout": 900
     }
   ]

@@ -1,6 +1,6 @@
 # 系統架構與部件契約
 
-圖文閱讀：[完整架構與驗收 PDF](PLAN.pdf)｜[可跳轉 HTML](PLAN.html)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
+圖文閱讀：[完整架構與驗收 PDF](PLAN.pdf)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
 
 產品、開發順序與企業正式發布門檻只以 [PLAN.md](../PLAN.md) 為準。本文件定義每個部件的責任與整合檢查，不保留另一套產品計畫。圖形見[直線版 PDF](research/cli-first-20261025/architecture-straight.pdf)；詳細任務欄位見 [Agent 契約](research/cli-first-20261025/agent-method.md)。下表是待實作的規格，不是已完成的元件。
 

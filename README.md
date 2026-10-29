@@ -1,6 +1,6 @@
 # Agent Platform
 
-圖文閱讀：[完整架構與驗收 PDF](docs/PLAN.pdf)｜[可跳轉 HTML](docs/PLAN.html)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
+圖文閱讀：[完整架構與驗收 PDF](docs/PLAN.pdf)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
 
 Windows、macOS、Linux 三平台必交的企業 Agent：先完成 CLI，再完成共用核心的 Tauri 桌面；含任務執行、三塊 RAG、記憶及電腦操作。唯一現行計畫是 [PLAN.md](PLAN.md)，首頁直接說明產品、介面、安裝及正式發布門檻。
 

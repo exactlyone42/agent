@@ -10,7 +10,7 @@
 
 ## 已完成與可打開的成果
 
-- 主計畫：`PLAN.md`（唯一現行），圖形在 `docs/PLAN.pdf`、`docs/PLAN.html`。
+- 主計畫：`PLAN.md`（唯一現行），圖形在 `docs/PLAN.pdf`。
 - CLI：`cargo build --locked` 後執行 `target/debug/agent-platform run task.json`，經本機模型端點讀寫文字檔，並由獨立核對確認成果；沒有成果時模型說完成也不算成功。說明見 `docs/cli.md`。
 - 任務紀錄：SQLite 保存任務開始與結果，CLI 可用 status／events 查詢。批准流程另有證據在 `docs/evidence/P01/20261027-durable-approval/`，內含工具完成後資料庫忙碌的有界重試（兩秒窗口，不重送工具），故障注入三案例通過。
 - 證據：`docs/evidence/P01/` 有 20 多個資料夾，逐項內容我沒有全部讀回。只讀了 `20261027-durable-approval/receipt-busy-validation.md` 與 `docs/progress.md` 的描述，其餘視為未查證。

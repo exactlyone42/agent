@@ -7,3 +7,4 @@
 !/.env.example
 /.runtime/
 *.log
+/docs/PLAN.html

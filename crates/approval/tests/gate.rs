@@ -65,6 +65,7 @@ fn call() -> ToolCall {
         id: "c1".into(),
         name: "read".into(),
         args: json!({}),
+        bad_args: None,
     }
 }
 

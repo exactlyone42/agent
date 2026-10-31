@@ -45,10 +45,14 @@ fn wire_message(message: &Message) -> Value {
             let calls: Vec<Value> = calls
                 .iter()
                 .map(|call| {
+                    let arguments = call
+                        .bad_args
+                        .clone()
+                        .unwrap_or_else(|| call.args.to_string());
                     json!({
                         "id": call.id,
                         "type": "function",
-                        "function": {"name": call.name, "arguments": call.args.to_string()},
+                        "function": {"name": call.name, "arguments": arguments},
                     })
                 })
                 .collect();
@@ -102,12 +106,15 @@ fn read_reply(body: &Value) -> Result<Message, ModelError> {
             .pointer("/function/arguments")
             .and_then(Value::as_str)
             .ok_or_else(bad)?;
-        let args = serde_json::from_str(arguments)
-            .map_err(|_| ModelError("工具參數不是有效 JSON".into()))?;
+        let (args, bad_args) = match serde_json::from_str(arguments) {
+            Ok(args) => (args, None),
+            Err(_) => (Value::Null, Some(arguments.to_owned())),
+        };
         calls.push(ToolCall {
             id: id.to_owned(),
             name: name.to_owned(),
             args,
+            bad_args,
         });
     }
     Ok(Message::Assistant { text, calls })

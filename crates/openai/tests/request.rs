@@ -12,6 +12,10 @@ use url::Url;
 const REPLY: &str = r#"{"choices":[{"message":{"content":"ok"}}]}"#;
 
 async fn serve() -> (Url, JoinHandle<String>) {
+    serve_reply(REPLY).await
+}
+
+async fn serve_reply(reply: &'static str) -> (Url, JoinHandle<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = Url::parse(&format!("http://{}/v1", listener.local_addr().unwrap())).unwrap();
     let handle = tokio::spawn(async move {
@@ -39,8 +43,8 @@ async fn serve() -> (Url, JoinHandle<String>) {
             }
         }
         let response = format!(
-            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{REPLY}",
-            REPLY.len()
+            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{reply}",
+            reply.len()
         );
         stream.write_all(response.as_bytes()).await.unwrap();
         String::from_utf8(raw).unwrap()
@@ -78,6 +82,7 @@ async fn assistant_message_with_calls_keeps_them() {
             id: "c1".into(),
             name: "read".into(),
             args: json!({"path": "a"}),
+            bad_args: None,
         }],
     }];
     model.complete(&history, &[]).await.unwrap();
@@ -105,4 +110,19 @@ async fn bearer_header_is_sent_only_with_a_key() {
         .unwrap();
     let without_key = handle.await.unwrap().to_ascii_lowercase();
     assert!(!without_key.contains("authorization"));
+}
+
+#[tokio::test]
+async fn invalid_tool_arguments_are_kept_for_the_harness_to_report() {
+    let reply = r#"{"choices":[{"message":{"content":"","tool_calls":[{"id":"c1","function":{"name":"read","arguments":"{oops"}}]}}]}"#;
+    let (url, _handle) = serve_reply(reply).await;
+    let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
+    let message = model
+        .complete(&[Message::User("hi".into())], &[])
+        .await
+        .unwrap();
+    let Message::Assistant { calls, .. } = message else {
+        panic!("not assistant");
+    };
+    assert_eq!(calls[0].bad_args.as_deref(), Some("{oops"));
 }

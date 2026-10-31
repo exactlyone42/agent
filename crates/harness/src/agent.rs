@@ -124,6 +124,9 @@ impl<M: Model, H: Hook> Agent<M, H> {
             content,
             is_error,
         };
+        if call.bad_args.is_some() {
+            return Ok(tool_message("工具參數不是有效 JSON".into(), true));
+        }
         let Some(tool) = self.tools.iter().find(|t| t.spec().name == call.name) else {
             return Ok(tool_message(format!("沒有名為 {} 的工具", call.name), true));
         };

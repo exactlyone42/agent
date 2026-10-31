@@ -1,6 +1,6 @@
 use agent_harness::{
     Agent, CancellationToken, Dispatch, DispatchAction, Hook, Message, Model, ModelError, RunError,
-    Tool, ToolError, ToolFuture, ToolSpec,
+    Tool, ToolCall, ToolError, ToolFuture, ToolSpec,
 };
 use serde_json::{Value, json};
 use std::{
@@ -205,4 +205,33 @@ async fn model_error_is_returned() {
     let model = Script::new(vec![Err(ModelError("斷線".into()))]);
     let result = Agent::new(model).run("x", &off()).await;
     assert!(matches!(result, Err(RunError::Model(e)) if e.0 == "斷線"));
+}
+
+#[tokio::test]
+async fn bad_arguments_go_back_to_model_without_running_tool() {
+    let (count, tool) = ran();
+    let bad = ToolCall {
+        id: "1".into(),
+        name: "count".into(),
+        args: Value::Null,
+        bad_args: Some("{oops".into()),
+    };
+    let model = Script::new(vec![
+        Ok(Message::Assistant {
+            text: String::new(),
+            calls: vec![bad],
+        }),
+        Ok(Message::text("改好了")),
+    ]);
+    let out = Agent::new(model).tool(tool).run("x", &off()).await.unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    assert_eq!(out.text, "改好了");
+    assert_eq!(
+        out.messages[2],
+        Message::Tool {
+            call_id: "1".into(),
+            content: "工具參數不是有效 JSON".into(),
+            is_error: true
+        }
+    );
 }

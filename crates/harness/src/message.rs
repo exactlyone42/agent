@@ -5,6 +5,7 @@ pub struct ToolCall {
     pub id: String,
     pub name: String,
     pub args: Value,
+    pub bad_args: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,6 +35,7 @@ impl Message {
             id: id.into(),
             name: name.into(),
             args,
+            bad_args: None,
         };
         Self::Assistant {
             text: String::new(),

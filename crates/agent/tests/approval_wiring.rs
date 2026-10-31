@@ -51,6 +51,7 @@ fn rejecting_a_call_records_it_in_the_task() -> Result<(), Box<dyn std::error::E
         id: "call-1".into(),
         name: "write_output".into(),
         args: json!({}),
+        bad_args: None,
     };
     approvals.reject(&call).map_err(|_| "reject failed")?;
     let events = store.lock().map_err(|_| "poisoned")?.events(&id, 0)?;

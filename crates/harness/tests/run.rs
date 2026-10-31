@@ -303,3 +303,42 @@ async fn duplicate_call_id_is_refused_and_not_run() {
         Message::Tool { is_error: true, .. }
     ));
 }
+
+struct Slow(Arc<AtomicUsize>);
+
+impl Tool for Slow {
+    fn spec(&self) -> ToolSpec {
+        ToolSpec {
+            name: "slow".into(),
+            description: "延遲後寫入".into(),
+            parameters: json!({}),
+        }
+    }
+
+    fn call(&self, _: Value) -> ToolFuture<'_> {
+        Box::pin(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Ok("已寫入".into())
+        })
+    }
+}
+
+#[tokio::test]
+async fn cancel_during_a_slow_tool_stops_it_before_it_writes() {
+    let writes = Arc::new(AtomicUsize::new(0));
+    let model = Script::new(vec![Ok(Message::call("1", "slow", json!({})))]);
+    let cancel = off();
+    let trigger = cancel.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        trigger.cancel();
+    });
+    let result = Agent::new(model)
+        .tool(Slow(writes.clone()))
+        .run("x", &cancel)
+        .await;
+    assert!(matches!(result, Err(RunError::Cancelled)));
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    assert_eq!(writes.load(Ordering::SeqCst), 0);
+}

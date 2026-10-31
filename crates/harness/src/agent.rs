@@ -155,7 +155,11 @@ impl<M: Model, H: Hook> Agent<M, H> {
         if cancel.is_cancelled() {
             return Err(RunError::Cancelled);
         }
-        let outcome = tool.call(call.args.clone()).await;
+        let outcome = tokio::select! {
+            biased;
+            _ = cancel.cancelled() => return Err(RunError::Cancelled),
+            outcome = tool.call(call.args.clone()) => outcome,
+        };
         let result = if outcome.is_ok() {
             ToolResult::Succeeded
         } else {

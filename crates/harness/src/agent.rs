@@ -90,11 +90,28 @@ impl<M: Model, H: Hook> Agent<M, H> {
         if calls.is_empty() {
             return Ok(Some(finish(std::mem::take(messages))));
         }
-        for call in &calls {
-            let result = self.handle(turn, call, cancel).await?;
+        for (index, call) in calls.iter().enumerate() {
+            let result = self.answer(turn, &calls[..index], call, cancel).await?;
             messages.push(result);
         }
         Ok(None)
+    }
+
+    async fn answer(
+        &self,
+        turn: usize,
+        earlier: &[ToolCall],
+        call: &ToolCall,
+        cancel: &CancellationToken,
+    ) -> Result<Message, RunError> {
+        if earlier.iter().any(|other| other.id == call.id) {
+            return Ok(Message::Tool {
+                call_id: call.id.clone(),
+                content: "呼叫編號重複，未執行".into(),
+                is_error: true,
+            });
+        }
+        self.handle(turn, call, cancel).await
     }
 
     async fn ask(

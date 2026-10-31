@@ -235,3 +235,71 @@ async fn bad_arguments_go_back_to_model_without_running_tool() {
         }
     );
 }
+
+fn call_of(id: &str, name: &str, args: Value) -> ToolCall {
+    ToolCall {
+        id: id.into(),
+        name: name.into(),
+        args,
+        bad_args: None,
+    }
+}
+
+fn paired(messages: &[Message]) -> bool {
+    let mut asked: Vec<String> = Vec::new();
+    let mut answered: Vec<String> = Vec::new();
+    for message in messages {
+        match message {
+            Message::Assistant { calls, .. } => asked.extend(calls.iter().map(|c| c.id.clone())),
+            Message::Tool { call_id, .. } => answered.push(call_id.clone()),
+            Message::User(_) => {}
+        }
+    }
+    asked == answered
+}
+
+#[tokio::test]
+async fn every_call_gets_exactly_one_result_in_order() {
+    let (count, tool) = ran();
+    let calls = vec![
+        call_of("a", "count", json!({})),
+        call_of("b", "nope", json!({})),
+        call_of("c", "count", json!({"fail": true})),
+        ToolCall {
+            bad_args: Some("{".into()),
+            ..call_of("d", "count", Value::Null)
+        },
+    ];
+    let model = Script::new(vec![
+        Ok(Message::Assistant {
+            text: String::new(),
+            calls,
+        }),
+        Ok(Message::text("完")),
+    ]);
+    let out = Agent::new(model).tool(tool).run("x", &off()).await.unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert!(paired(&out.messages));
+}
+
+#[tokio::test]
+async fn duplicate_call_id_is_refused_and_not_run() {
+    let (count, tool) = ran();
+    let calls = vec![
+        call_of("a", "count", json!({})),
+        call_of("a", "count", json!({})),
+    ];
+    let model = Script::new(vec![
+        Ok(Message::Assistant {
+            text: String::new(),
+            calls,
+        }),
+        Ok(Message::text("完")),
+    ]);
+    let out = Agent::new(model).tool(tool).run("x", &off()).await.unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert!(matches!(
+        &out.messages[3],
+        Message::Tool { is_error: true, .. }
+    ));
+}

@@ -16,7 +16,7 @@
 | H4 | 取消後延遲工具不能再寫入 | 取消競爭測試；取消後無寫入 | PENDING |
 | H5 | 兩個程序搶同一任務、崩潰於工具前後的恢復 | 雙程序測試；崩潰注入；未知副作用不盲重送 | PENDING |
 | H6 | 同題比較 Codex 與自寫 harness，列版本、授權、選用原因 | docs 有比較表與原始輸出 | PENDING |
-| H7 | Windows 路徑與程序取消缺口（記錄在 mutation-equivalents.md） | 在 Windows 實機跑通或明列阻擋 | PENDING |
+| H7 | Windows 路徑與程序取消缺口（記錄在 mutation-equivalents.md） | 改成只做相容設計並明列不實測 | PENDING |
 | H8 | 事件加 `schema_version`、固定錯誤代碼 | 契約文件與測試 | PENDING |
 
 ## 完成條件

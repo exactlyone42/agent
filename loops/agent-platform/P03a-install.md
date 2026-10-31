@@ -1,16 +1,16 @@
-# P03a 三平台安裝（內部預覽）
+# P03a Linux 安裝（內部預覽）
 
 母檔：../agent-platform.loop.md。依賴 P02。
 
 ## 目標
 
-乾淨帳號在 Windows 11 x64、macOS arm64／x64、Linux x64 都能安裝原生 CLI 並完成首次任務，不需 Node、Rust、PostgreSQL。
+乾淨帳號在 Linux x64 能安裝原生 CLI 並完成首次任務，不需 Node、Rust、PostgreSQL。
 
 ## 子任務
 
 | id | 做什麼 | 驗收 | 狀態 |
 | --- | --- | --- | --- |
-| I1 | 三平台原生建置流程 | 各平台實機編譯並跑全套測試（交叉編譯不算） | PENDING |
+| I1 | Linux 原生建置流程 | Linux 實機編譯並跑全套測試；Windows、macOS 只做相容設計 | PENDING |
 | I2 | 發布簽章與驗章、校驗碼、公鑰固定 | 壞簽章、未知公鑰拒裝 | PENDING |
 | I3 | 診斷命令與設定檔位置 | 錯 CPU、權限不足、下載不完整都有明確錯誤 | PENDING |
 | I4 | 乾淨帳號安裝說明（白話） | 未參與開發者照做完成首次任務 | WAITING |

@@ -51,7 +51,7 @@ pub fn run_checks(root: &Path, evidence: &Path, plan: &Plan) -> Result<i32, Xtas
         "passed": passed,
         "checks": results,
         "source_unchanged": unchanged,
-        "scope": "本機工程檢查；不代表三平台實機、桌面或企業發布驗收",
+        "scope": "本機工程檢查；不代表 Linux 以外平台、桌面或企業發布驗收",
     });
     fs::write(
         evidence.join("summary.json"),

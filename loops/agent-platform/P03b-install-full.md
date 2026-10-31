@@ -10,7 +10,7 @@
 
 | id | 做什麼 | 驗收 | 狀態 |
 | --- | --- | --- | --- |
-| F1 | 容器知識服務打包（Linux Docker rootless；Windows、Mac 試接 Podman machine） | 三平台各自啟動 | PENDING |
+| F1 | 容器知識服務打包（Linux Docker rootless；Windows、Mac 只做相容設計） | Linux 啟動 | PENDING |
 | F2 | 乾淨安裝、升級、回退、服務失敗、重啟、容量不足 | 兩種安裝路徑同版；整條知識任務通過 | PENDING |
 | F3 | npm 薄包裝啟動同版原生核心 | 版本一致 | PENDING |
 | F4 | 斷網同版資產安裝 | 離線成功 | PENDING |

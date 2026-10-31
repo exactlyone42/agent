@@ -4,13 +4,13 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 
 ## 目標
 
-- 做出企業可交付的 Agent：本機 CLI（核心、工具、批准、驗證、任務紀錄檔）→ 公司 Gateway → 模型；桌面 ADE 在 agent-ade repo。三平台（Windows、macOS、Linux）都是必要交付。
+- 做出企業可交付的 Agent：本機 CLI（核心、工具、批准、驗證、任務紀錄檔）→ 公司 Gateway → 模型；桌面 ADE 在 agent-ade repo。實機驗證只做 Linux；macOS、Windows 只做相容設計（使用者 2026-10-31 定）。
 - 依據：`docs/agent-target-architecture.pdf`、`docs/architecture.md`、`PLAN.md`。子任務全部完成並拼起來，就是最終目標。
 - 不做：完整 IDE、純 Web、模型各家格式轉換（Gateway 負責）。
 
 ## 整體驗收
 
-- [ ] A1 CLI 在三平台完成真實任務（連真 Gateway），成功只由驗證器判定
+- [ ] A1 CLI 在 Linux 完成真實任務（連真 Gateway），成功只由驗證器判定；macOS、Windows 只做相容設計，不做實機驗證
 - [ ] A2 拒絕、取消、崩潰重開都不擅自重做副作用，取消後零寫入
 - [ ] A3 知識檢索、記憶、電腦操作各過正反驗收
 - [ ] A4 桌面 ADE 讀同一份事件契約並接續同任務
@@ -24,7 +24,7 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 | P01 | 核心迴圈與批准紀錄 | P01-core.md | S00 | PENDING |
 | P02 | 可用 CLI，連真 Gateway | P02-cli.md | P01 | PENDING |
 | E01 | 身分政策、隔離、稽核、秘密 | E01-enterprise.md | P01 | PENDING |
-| P03a | 三平台安裝（內部預覽） | P03a-install.md | P02 | PENDING |
+| P03a | Linux 安裝（內部預覽） | P03a-install.md | P02 | PENDING |
 | P04 | 接續、跨程序取消、單一擁有者 | P04-resume.md | P03a | PENDING |
 | P05a | 知識檢索常用格式 | P05a-knowledge.md | P04 | PENDING |
 | P03b | 完整安裝整合 | P03b-install-full.md | P05a | PENDING |
@@ -43,9 +43,9 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 ## 目前狀態
 
 - task／step：agent-platform／S00（子檔 S00-quality.md）
-- 已證明：xtask gate 規則測試通過；巢狀 17 處已改，待 gate 實跑
-- 未證明：全工作區 gate／all、Windows／macOS、真 Gateway
-- 阻塞：我的 cargo 被快取掛勾擋，需使用者 `! cargo …`
-- 下一步：S00-quality.md 子任務 Q1
+- 已證明（2026-10-31）：Q7 完成，`xtask render-plan` 產出 PLAN.pdf 38 頁、白底檢查通過，gate 通過。（2026-10-30 讀 git 紀錄與 PR #2）：`cargo xtask all` 通過（391 個變異，323 抓到、68 無法編譯、0 漏、0 逾時）；PR #2 已合 develop
+- 未證明：真 Gateway（Windows／macOS 不做實機驗證，只做相容設計）
+- 阻塞：無（先前「cargo 被擋」已查證為誤判）
+- 下一步：S00 的 Q1–Q9 都 DONE；提交後進 P01。細節見 HANDOFF.md
 - checkpoint JSONL：loops/agent-platform.checkpoints.jsonl（只經 ~/tools/cash-rule-checkpoint 寫）
-- owner／排程：單一寫入者 feature/agent-plan；/loop 動態續跑；COMPLETE、BLOCKED、需決策時停
+- owner／排程：單一寫入者 feature/plan-tooling（feature/agent-plan 已合併並刪除）；/loop 動態續跑；COMPLETE、BLOCKED、需決策時停

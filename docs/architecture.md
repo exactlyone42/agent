@@ -56,6 +56,6 @@ P02固定Task啟動/查詢/事件/授權/取消契約；P05固定Knowledge匯入
 
 Agent收到文件後可呼叫知識檢索，工具得到結果後回傳Harness，Harness再決定下一步；Gateway只接模型請求。Computer Use不擁有任務總控；Evaluation在旁建立環境及驗結果，不是產品模型自己評分。
 
-## 三平台完整性
+## 平台範圍
 
-Windows、macOS、Linux 是必要交付。共用核心之外，OS 身分／ACL、路徑、檔案監看、秘密存放、Shell 隔離、子程序取消、電腦操作、容器與安裝更新各有平台轉接。其 OS／CPU、安裝包及驗收責任以[主計畫三平台矩陣](../PLAN.md#三平台是正式範圍不是後續選配)為準；每個轉接須通過同一契約及原生實機整合測試。Linux bubblewrap 不冒充 Windows／Mac 沙箱，WSL 不冒充 Windows 原生桌面。
+實機驗證只做 Linux；Windows、macOS 只做相容設計（使用者 2026-10-31 定）。共用核心之外，OS 身分／ACL、路徑、檔案監看、秘密存放、Shell 隔離、子程序取消、電腦操作、容器與安裝更新各有平台轉接。其 OS／CPU、安裝包及驗收責任以[主計畫平台範圍](../PLAN.md#平台範圍linux-實機驗證windowsmacos-只做相容設計)為準；Linux 轉接須通過同一契約及實機整合測試；Windows、macOS 只確認介面不寫死 Unix，不做實機測試。Linux bubblewrap 不冒充 Windows／Mac 沙箱，WSL 不冒充 Windows 原生桌面。

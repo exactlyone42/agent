@@ -13,7 +13,7 @@
 | E1 | 政策契約：身分來源（OS 使用者）、角色、工具／外送範圍、政策版本 | 契約文件；撤權即拒、政策不可讀不擴權 | PENDING |
 | E2 | 所有工具入口走同一決策（內建、MCP、知識、GUI） | 繞過路徑掃描無漏；核准後參數變動被拒 | PENDING |
 | E3 | 路徑隔離：symlink 越界、環境變數洩漏 | 反例全失敗 | PENDING |
-| E4 | Linux 沙箱（bubblewrap）；Windows、macOS 各自方案 | 每平台實機；無能力則拒絕危險動作 | PENDING |
+| E4 | Linux 沙箱（bubblewrap）；Windows、macOS 只做相容設計 | Linux 實機；無能力則拒絕危險動作 | PENDING |
 | E5 | 稽核事件：誰核准、政策版本、回執；日誌滿不吞錯 | canary 秘密零洩漏 | PENDING |
 | E6 | 上下文壓縮不覆寫限制與授權 | 兩次壓縮後限制完整 | PENDING |
 | E7 | 依賴掃描、授權清單（材料清單） | 掃描報告；未解高風險不放行 | PENDING |

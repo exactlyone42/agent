@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let Some(task) = Task::parse(std::env::args().nth(1).as_deref()) else {
-        eprintln!("用法：cargo xtask gate|all");
+        eprintln!("用法：cargo xtask gate|all|render-plan");
         return ExitCode::from(2);
     };
     ExitCode::from(exit_status(task.run(&repo_root())))

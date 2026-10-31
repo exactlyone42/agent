@@ -1,0 +1,2 @@
+平台範圍｜共用能力，差異在明確的轉接邊界
+<h2>Linux x64</h2><div class="flow "><div class="box "><b>正式安裝包</b><span>原生 CLI／.deb／AppImage</span></div><div class="arrow "><i>啟動</i></div><div class="box blue"><b>原生平台轉接</b><span>UID／GID／隔離工具<br>X11、Wayland 分能力驗</span></div><div class="arrow "><i>受限服務</i></div><div class="box "><b>容器與資料</b><span>Docker Engine rootless<br>IT 準備系統前置</span></div></div><p class="note">只有 Linux x64 做實機驗證，並跑核心、RAG、安全與企業驗收；X11 不代表 Wayland 已驗。Windows、macOS 只做相容設計：平台差異收在轉接介面，路徑、行程、信號、檔案權限與秘密保存不寫死 Unix，不做實機驗證，也不宣稱已支援。對照：A01–A04、A07、A13、A26–A28、A33–A36。</p>

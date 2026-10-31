@@ -2,6 +2,7 @@ use crate::check_all::check_all;
 use crate::error::XtaskError;
 use crate::gate::gate_steps;
 use crate::plan::Plan;
+use crate::render_plan::render_plan;
 use crate::run_steps::run_steps;
 use crate::text::text;
 use std::path::Path;
@@ -10,6 +11,7 @@ use std::path::Path;
 pub enum Task {
     Gate,
     All,
+    RenderPlan,
 }
 
 impl Task {
@@ -17,6 +19,7 @@ impl Task {
         match name {
             Some("gate") => Some(Self::Gate),
             Some("all") => Some(Self::All),
+            Some("render-plan") => Some(Self::RenderPlan),
             _ => None,
         }
     }
@@ -25,6 +28,7 @@ impl Task {
         match self {
             Self::Gate => run_steps(root, &gate_steps(root)),
             Self::All => Self::all(root),
+            Self::RenderPlan => render_plan(root),
         }
     }
 

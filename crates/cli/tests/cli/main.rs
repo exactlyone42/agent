@@ -5,6 +5,7 @@ mod collect_lines;
 mod command_arguments;
 mod compile_fixture;
 mod completion;
+mod error_codes;
 mod existing_directory_without_database;
 mod fake_server;
 mod file_task_handler;

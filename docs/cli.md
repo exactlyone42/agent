@@ -116,3 +116,13 @@ Windows 實作直接使用既有 windows-sys 0.61.2 的系統介面。Microsoft 
 任務收尾以執行批次編號核對身分，不以最後一筆事件編號判斷。因此另一個 CLI 剛寫入批准紀錄，不會讓目前執行者無法取消；舊批次仍不能替新批次收尾。收尾交易會撤銷尚未使用的批准。
 
 工具已開始執行、但尚未留下結果時，取消後保留 `outcome_unknown`（結果未確認），不宣稱已安全取消。CLI 的取消回覆採用資料庫實際狀態；仍需核對已建立的成果，不能直接重送。
+
+## 錯誤輸出契約（schema_version 1）
+
+任何失敗（結束碼 1）時，標準錯誤的**最後一行**是一筆 JSON：`{"schema_version":1,"error_code":"...","message":"..."}`。程式與桌面端只看 `error_code`，不解析 `message` 的中文。`message` 給人看，字句可能調整；`error_code` 一經發布不改名，只能新增。
+
+固定代碼：`usage`、`invalid_argument`、`invalid_state_dir`、`state_dir_unavailable`、`invalid_database_file`、`database_unavailable`、`task_file_unreadable`、`task_file_too_large`、`invalid_task_file`、`invalid_model_endpoint`、`invalid_api_key`、`model_client_failed`、`signal_handler_failed`、`workspace_unavailable`、`output_failed`、`store_state_poisoned`、`outcome_unknown`。
+
+來自任務紀錄：`store_database`、`store_incompatible`、`task_not_found`、`task_conflict`、`invalid_cursor`、`invalid_task_spec`、`invalid_tool_call`。來自任務執行：`approval_denied`、`invalid_task`、`invalid_input`、`input_unreadable`、`model_run_failed`、`task_timeout`、`tool_state_error`、`artifact_missing`、`artifact_incomplete`、`verification_failed`。
+
+事件每筆已帶 `schema_version`（目前是任務資料庫版本 2，不是本節錯誤輸出的版本 1）；兩個版本號分開演進，是否合併成單一契約版本待 `version` 指令定案時決定。尚未涵蓋：以結束碼 130 或 2 結束的情況（取消、待人工核對）不輸出錯誤行；`run` 之外的成功輸出沒有版本欄位。測試：`crates/cli/tests/cli/error_codes.rs` 涵蓋 5 個代碼，其餘代碼未逐一測試。

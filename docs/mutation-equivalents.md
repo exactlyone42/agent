@@ -22,4 +22,4 @@
 
 ## 平台缺口：只在 Windows 編譯的程式
 
-input.rs 第 30、61、69、82 行屬於 Windows 專用程式，Linux 不會編譯，所以變異永遠「沒被抓」。`crates/xtask/src/check_all.rs` 在非 Windows 平台排除這幾行；Windows 實機必須不排除並跑完（`identity_guard` 與 `file_identity` 現有測試只在 Windows 執行）。`single_link.rs` 第 11 行（非 Unix 版本，固定回傳「只有一個連結」）同樣只在 Windows 編譯，同樣排除；Windows 上還沒有測試能分辨硬連結，實機要補。Windows 實機結果出來前，這塊不能宣稱已驗收。
+input.rs 第 30、61、69、82 行屬於 Windows 專用程式，Linux 不會編譯，所以變異永遠「沒被抓」。`crates/xtask/src/check_all.rs` 在非 Windows 平台排除這幾行；依 2026-10-31 決定，Windows、macOS 只做相容設計、不做實機驗證，這些行永遠不會被變異測試驗收，維持排除。`identity_guard` 與 `file_identity` 現有測試只在 Windows 執行，所以本 repo 不宣稱 Windows 已支援。`single_link.rs` 第 11 行（非 Unix 版本，固定回傳「只有一個連結」）同樣只在 Windows 編譯，同樣排除；Windows 上還沒有測試能分辨硬連結，此缺口只記錄、不補實機測試；若日後要支援 Windows，須先重開實機驗證決定。

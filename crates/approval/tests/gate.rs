@@ -1,5 +1,7 @@
 use agent_harness::{
-    CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolCall, ToolResult,
+    Agent, CancellationToken, Dispatch, DispatchAction, Hook, Message, Model, ModelError,
+    ModelReply, Outcome, OutcomeAction, Tool, ToolCall, ToolFuture, ToolResult, ToolSpec,
+    TurnStatus,
 };
 use agent_harness_approval::{ApprovalGate, ApprovalStore, Claim, Fault, Messages, Policy};
 use serde_json::json;
@@ -101,6 +103,69 @@ fn is_skip(action: &DispatchAction) -> bool {
     matches!(action, DispatchAction::Skip(_))
 }
 
+struct DenialModel(Arc<Mutex<Vec<Message>>>);
+
+impl Model for DenialModel {
+    async fn complete(
+        &self,
+        messages: &[Message],
+        _: &[ToolSpec],
+    ) -> Result<ModelReply, ModelError> {
+        *self.0.lock().unwrap() = messages.to_vec();
+        if messages.len() == 1 {
+            return Ok(ModelReply {
+                message: Message::call("c1", "read", json!({})),
+                status: TurnStatus::ToolCalls,
+            });
+        }
+        Ok(ModelReply {
+            message: Message::text("知道了"),
+            status: TurnStatus::Complete,
+        })
+    }
+}
+
+struct CountTool(Arc<AtomicUsize>);
+
+impl Tool for CountTool {
+    fn spec(&self) -> ToolSpec {
+        ToolSpec {
+            name: "read".into(),
+            description: "測試".into(),
+            parameters: json!({}),
+        }
+    }
+
+    fn call(&self, _: serde_json::Value) -> ToolFuture<'_> {
+        Box::pin(async move {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Ok("不應執行".into())
+        })
+    }
+}
+
+#[tokio::test]
+async fn manual_denial_reaches_model_and_run_continues_without_dispatch() {
+    let history = Arc::new(Mutex::new(Vec::new()));
+    let count = Arc::new(AtomicUsize::new(0));
+    let policy = Policy {
+        manual: true,
+        ..Policy::default()
+    };
+    let (gate, _, token) = gate(Fake::new(vec![Ok(Claim::Denied)]), policy);
+    let result = Agent::new(DenialModel(history.clone()))
+        .tool(CountTool(count.clone()))
+        .hook(gate)
+        .run("x", &token)
+        .await
+        .unwrap();
+    assert_eq!(result.text, "知道了");
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    assert!(
+        matches!(&history.lock().unwrap()[2], Message::Tool { call_id, is_error: true, .. } if call_id == "c1")
+    );
+}
+
 #[tokio::test]
 async fn granted_call_proceeds() {
     let (gate, _, _) = gate(Fake::new(vec![Ok(Claim::Granted)]), Policy::default());
@@ -111,19 +176,25 @@ async fn granted_call_proceeds() {
 #[tokio::test]
 async fn denied_call_is_skipped_when_preapproved() {
     let (gate, _, _) = gate(Fake::new(vec![Ok(Claim::Denied)]), Policy::default());
-    assert!(is_skip(&dispatch(&gate).await));
+    assert_eq!(
+        dispatch(&gate).await,
+        DispatchAction::Skip(Messages::default().not_authorized)
+    );
     assert!(!gate.was_denied());
 }
 
 #[tokio::test]
-async fn denied_call_stops_the_run_when_manual() {
+async fn denied_call_is_reported_to_the_model_when_manual() {
     let policy = Policy {
         manual: true,
         ..Policy::default()
     };
     let (gate, _, _) = gate(Fake::new(vec![Ok(Claim::Denied)]), policy);
-    assert!(is_stop(&dispatch(&gate).await));
-    assert!(gate.was_denied());
+    assert_eq!(
+        dispatch(&gate).await,
+        DispatchAction::Skip(Messages::default().approval_denied)
+    );
+    assert!(!gate.was_denied());
 }
 
 #[tokio::test]

@@ -1,4 +1,4 @@
-use agent_harness::{Message, Model, ToolCall};
+use agent_harness::{Agent, CancellationToken, Message, Model, RunError, ToolCall};
 use agent_harness_openai::OpenAi;
 use serde_json::{Value, json};
 use std::time::Duration;
@@ -9,7 +9,41 @@ use tokio::{
 };
 use url::Url;
 
-const REPLY: &str = r#"{"choices":[{"message":{"content":"ok"}}]}"#;
+const REPLY: &str = r#"{"choices":[{"finish_reason":"stop","message":{"content":"ok"}}]}"#;
+
+#[tokio::test]
+async fn truncated_reply_does_not_finish_successfully() {
+    let reply = r#"{"choices":[{"finish_reason":"length","message":{"content":"incomplete"}}]}"#;
+    let (url, handle) = serve_reply(reply).await;
+    let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
+    let result = Agent::new(model).run("hi", &CancellationToken::new()).await;
+    handle.await.unwrap();
+    assert!(matches!(result, Err(RunError::Truncated)));
+}
+
+#[tokio::test]
+async fn missing_or_unknown_finish_reason_is_not_success() {
+    for reply in [
+        r#"{"choices":[{"message":{"content":"ok"}}]}"#,
+        r#"{"choices":[{"finish_reason":"unexpected","message":{"content":"ok"}}]}"#,
+    ] {
+        let (url, handle) = serve_reply(reply).await;
+        let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
+        let result = Agent::new(model).run("hi", &CancellationToken::new()).await;
+        handle.await.unwrap();
+        assert!(matches!(result, Err(RunError::Model(_))));
+    }
+}
+
+#[tokio::test]
+async fn provider_content_filter_stops_the_run() {
+    let reply = r#"{"choices":[{"finish_reason":"content_filter","message":{"content":""}}]}"#;
+    let (url, handle) = serve_reply(reply).await;
+    let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
+    let result = Agent::new(model).run("hi", &CancellationToken::new()).await;
+    handle.await.unwrap();
+    assert!(matches!(result, Err(RunError::Blocked)));
+}
 
 async fn serve() -> (Url, JoinHandle<String>) {
     serve_reply(REPLY).await
@@ -114,14 +148,14 @@ async fn bearer_header_is_sent_only_with_a_key() {
 
 #[tokio::test]
 async fn invalid_tool_arguments_are_kept_for_the_harness_to_report() {
-    let reply = r#"{"choices":[{"message":{"content":"","tool_calls":[{"id":"c1","function":{"name":"read","arguments":"{oops"}}]}}]}"#;
+    let reply = r#"{"choices":[{"finish_reason":"tool_calls","message":{"content":"","tool_calls":[{"id":"c1","function":{"name":"read","arguments":"{oops"}}]}}]}"#;
     let (url, _handle) = serve_reply(reply).await;
     let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
     let message = model
         .complete(&[Message::User("hi".into())], &[])
         .await
         .unwrap();
-    let Message::Assistant { calls, .. } = message else {
+    let Message::Assistant { calls, .. } = message.message else {
         panic!("not assistant");
     };
     assert_eq!(calls[0].bad_args.as_deref(), Some("{oops"));

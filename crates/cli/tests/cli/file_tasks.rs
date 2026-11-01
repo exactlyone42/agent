@@ -17,7 +17,7 @@ const CASES: [(&str, i32); 18] = [
     ("write_oversize", 1),
     ("source_grew", 0),
     ("duplicate_write", 0),
-    ("reused_call_id", 0),
+    ("reused_call_id", 1),
     ("receipt_failed", 1),
     ("write_failed", 1),
 ];

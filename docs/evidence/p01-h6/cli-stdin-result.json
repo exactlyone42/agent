@@ -1,0 +1,45 @@
+{
+  "version": "codex-cli 0.164.0",
+  "case": "互動命令掛勾對照",
+  "advertised_tools": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image",
+    "multi_agent_v1",
+    "get_goal",
+    "create_goal",
+    "update_goal",
+    "web_search"
+  ],
+  "hooks": [
+    {
+      "tool_name": "Bash",
+      "tool_input": {
+        "command": "cat"
+      }
+    }
+  ],
+  "calls": [
+    [],
+    [
+      {
+        "type": "function_call_output",
+        "call_id": "call_1",
+        "output": "Chunk ID: f4b1a1\nWall time: 1.0011 seconds\nProcess running with session ID 59003\nOriginal token count: 0\nOutput:\n"
+      }
+    ],
+    [
+      {
+        "type": "function_call_output",
+        "call_id": "call_1",
+        "output": "Chunk ID: f4b1a1\nWall time: 1.0011 seconds\nProcess running with session ID 59003\nOriginal token count: 0\nOutput:\n"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_2",
+        "output": "Chunk ID: aeb19e\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 5\nOutput:\nh6-input\r\nh6-input\r\n"
+      }
+    ]
+  ]
+}

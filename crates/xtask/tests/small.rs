@@ -31,6 +31,7 @@ fn exit_status_maps_results() {
 fn task_names_are_parsed() {
     assert_eq!(Task::parse(Some("gate")), Some(Task::Gate));
     assert_eq!(Task::parse(Some("all")), Some(Task::All));
+    assert_eq!(Task::parse(Some("render-plan")), Some(Task::RenderPlan));
     assert_eq!(Task::parse(Some("other")), None);
     assert_eq!(Task::parse(None), None);
 }

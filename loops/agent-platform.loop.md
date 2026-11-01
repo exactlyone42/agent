@@ -20,8 +20,8 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 
 | step | 大綱 | 子檔 | 依賴 | 狀態 |
 | --- | --- | --- | --- | --- |
-| S00 | 品質底座與設計規則落地 | S00-quality.md | 無 | RUNNING |
-| P01 | 核心迴圈與批准紀錄 | P01-core.md | S00 | PENDING |
+| S00 | 品質底座與設計規則落地 | S00-quality.md | 無 | DONE |
+| P01 | 核心迴圈與批准紀錄 | P01-core.md | S00 | RUNNING |
 | P02 | 可用 CLI，連真 Gateway | P02-cli.md | P01 | PENDING |
 | E01 | 身分政策、隔離、稽核、秘密 | E01-enterprise.md | P01 | PENDING |
 | P03a | Linux 安裝（內部預覽） | P03a-install.md | P02 | PENDING |
@@ -42,10 +42,10 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 
 ## 目前狀態
 
-- task／step：agent-platform／S00（子檔 S00-quality.md）
+- task／step：agent-platform／P01（子檔 P01-core.md）
 - 已證明（2026-10-31）：Q7 完成，`xtask render-plan` 產出 PLAN.pdf 38 頁、白底檢查通過，gate 通過。（2026-10-30 讀 git 紀錄與 PR #2）：`cargo xtask all` 通過（391 個變異，323 抓到、68 無法編譯、0 漏、0 逾時）；PR #2 已合 develop
 - 未證明：真 Gateway（Windows／macOS 不做實機驗證，只做相容設計）
 - 阻塞：無（先前「cargo 被擋」已查證為誤判）
-- 下一步：S00 的 Q1–Q9 都 DONE；提交後進 P01。細節見 HANDOFF.md
+- 下一步：階段 1A 的停止原因、取消逐筆結算及批准遭拒已實作，完整檢查通過；完成快檢與提交後，繼續 P01 尚未完成的整合驗收。CLI 取消歷史持久化待階段 1B。
 - checkpoint JSONL：loops/agent-platform.checkpoints.jsonl（只經 ~/tools/cash-rule-checkpoint 寫）
 - owner／排程：單一寫入者 feature/plan-tooling（feature/agent-plan 已合併並刪除）；/loop 動態續跑；COMPLETE、BLOCKED、需決策時停

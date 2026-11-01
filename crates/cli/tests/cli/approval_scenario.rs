@@ -248,10 +248,20 @@ impl ApprovalScenario {
         } else {
             assert!(!self.artifact.exists());
         }
-        assert_eq!(requests, 1);
         if matches!(action, "deny" | "expired") {
-            assert!(outcome.stderr.contains("未獲批准"), "{}", outcome.stderr);
+            assert_eq!(requests, 2);
+            let model_requests = self.server.requests();
+            let messages = model_requests[1]["messages"].as_array().unwrap();
+            assert!(messages.iter().any(|message| {
+                message["role"] == "tool"
+                    && message["tool_call_id"] == "approval-write-1"
+                    && message["content"]
+                        .as_str()
+                        .is_some_and(|content| content.contains("未獲批准"))
+            }));
+            return;
         }
+        assert_eq!(requests, 1);
     }
 
     fn check_receipt_stdout(&self, outcome: &Outcome) {

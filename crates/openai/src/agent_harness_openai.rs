@@ -1,4 +1,4 @@
-use agent_harness::{Message, Model, ModelError, ToolCall, ToolSpec};
+use agent_harness::{Message, Model, ModelError, ModelReply, ToolCall, ToolSpec, TurnStatus};
 use serde_json::{Value, json};
 use std::time::Duration;
 use url::Url;
@@ -82,8 +82,18 @@ fn wire_tool(spec: &ToolSpec) -> Value {
     })
 }
 
-fn read_reply(body: &Value) -> Result<Message, ModelError> {
+fn read_reply(body: &Value) -> Result<ModelReply, ModelError> {
     let bad = || ModelError("模型回應格式不符".into());
+    let status = match body
+        .pointer("/choices/0/finish_reason")
+        .and_then(Value::as_str)
+    {
+        Some("stop") => TurnStatus::Complete,
+        Some("tool_calls") => TurnStatus::ToolCalls,
+        Some("length") => TurnStatus::Truncated,
+        Some("content_filter") => TurnStatus::Blocked,
+        _ => return Err(ModelError("模型停止原因不支援或缺失".into())),
+    };
     let message = body.pointer("/choices/0/message").ok_or_else(bad)?;
     let text = message
         .get("content")
@@ -117,7 +127,10 @@ fn read_reply(body: &Value) -> Result<Message, ModelError> {
             bad_args,
         });
     }
-    Ok(Message::Assistant { text, calls })
+    Ok(ModelReply {
+        message: Message::Assistant { text, calls },
+        status,
+    })
 }
 
 impl Model for OpenAi {
@@ -125,7 +138,7 @@ impl Model for OpenAi {
         &self,
         messages: &[Message],
         tools: &[ToolSpec],
-    ) -> Result<Message, ModelError> {
+    ) -> Result<ModelReply, ModelError> {
         let mut body = json!({
             "model": self.model,
             "messages": messages.iter().map(wire_message).collect::<Vec<_>>(),

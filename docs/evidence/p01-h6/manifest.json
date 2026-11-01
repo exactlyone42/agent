@@ -1,0 +1,28 @@
+{
+  "started_at": "2026-11-01T07:58:33.115200+00:00",
+  "ended_at": "2026-11-01T07:58:34.108081+00:00",
+  "commit": "f0678f58490fec4f5853ca5fffd40677004d8ca1",
+  "version": "codex-cli 0.164.0",
+  "binary_sha256": "b93f6811d3f653f0fb83be4050d857fb9abbb111dfa2ce160563327daff7f306",
+  "checks": {
+    "tool_call_received": true,
+    "arguments_preserved": true,
+    "turn_completed": true,
+    "two_model_requests": true,
+    "fixed_output_returned_to_model": true,
+    "fixture_unchanged": true,
+    "clean_exit": true
+  },
+  "exit_code": 0,
+  "model": "fixed local SSE, no inference",
+  "fixture": "fixed-value-v1",
+  "authorization": "temporary files and loopback fixture only",
+  "not_run": [
+    "approval denial",
+    "Rig comparison",
+    "cancel/resume",
+    "Rust/TS gates",
+    "desktop",
+    "deployment"
+  ]
+}

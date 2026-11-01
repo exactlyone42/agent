@@ -1,6 +1,6 @@
 use agent_harness::{
-    Agent, CancellationToken, Dispatch, DispatchAction, Hook, Message, Model, ModelError, RunError,
-    Tool, ToolCall, ToolError, ToolFuture, ToolSpec,
+    Agent, CancellationToken, Dispatch, DispatchAction, Hook, Message, Model, ModelError,
+    ModelReply, RunError, Tool, ToolCall, ToolError, ToolFuture, ToolSpec, TurnStatus,
 };
 use serde_json::{Value, json};
 use std::{
@@ -27,14 +27,107 @@ impl Script {
 }
 
 impl Model for Script {
-    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<Message, ModelError> {
+    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<ModelReply, ModelError> {
         self.asked.fetch_add(1, Ordering::SeqCst);
         self.replies
             .lock()
             .unwrap()
             .pop_front()
             .unwrap_or_else(|| Err(ModelError("腳本用完".into())))
+            .map(|message| {
+                let status = match &message {
+                    Message::Assistant { calls, .. } if !calls.is_empty() => TurnStatus::ToolCalls,
+                    _ => TurnStatus::Complete,
+                };
+                ModelReply { message, status }
+            })
     }
+}
+
+struct StatusScript(Mutex<VecDeque<ModelReply>>);
+
+impl Model for StatusScript {
+    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<ModelReply, ModelError> {
+        self.0
+            .lock()
+            .unwrap()
+            .pop_front()
+            .ok_or_else(|| ModelError("腳本用完".into()))
+    }
+}
+
+#[tokio::test]
+async fn continuation_without_tools_runs_again_and_obeys_turn_limit() {
+    let make = || ModelReply {
+        message: Message::text("等待"),
+        status: TurnStatus::Continue,
+    };
+    let model = StatusScript(Mutex::new(vec![make(), make()].into()));
+    let result = Agent::new(model).max_turns(2).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::TurnLimit)));
+}
+
+#[tokio::test]
+async fn conflicting_stop_reason_never_dispatches_tool() {
+    let (count, tool) = ran();
+    let reply = ModelReply {
+        message: Message::call("1", "count", json!({})),
+        status: TurnStatus::Complete,
+    };
+    let model = StatusScript(Mutex::new(vec![reply].into()));
+    let result = Agent::new(model).tool(tool).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::Model(_))));
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn continuation_with_tool_calls_is_rejected_without_dispatch() {
+    let (count, tool) = ran();
+    let reply = ModelReply {
+        message: Message::call("1", "count", json!({})),
+        status: TurnStatus::Continue,
+    };
+    let model = StatusScript(Mutex::new(vec![reply].into()));
+    let result = Agent::new(model).tool(tool).run("x", &off()).await;
+    assert!(
+        matches!(result, Err(RunError::Model(error)) if error.0 == "模型停止原因與工具呼叫不一致")
+    );
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn tool_call_stop_without_calls_is_rejected() {
+    let reply = ModelReply {
+        message: Message::text("沒有工具呼叫"),
+        status: TurnStatus::ToolCalls,
+    };
+    let model = StatusScript(Mutex::new(vec![reply].into()));
+    let result = Agent::new(model).run("x", &off()).await;
+    assert!(
+        matches!(result, Err(RunError::Model(error)) if error.0 == "模型停止原因與工具呼叫不一致")
+    );
+}
+
+#[tokio::test]
+async fn truncated_turn_has_its_own_stop_reason() {
+    let reply = ModelReply {
+        message: Message::text("未完成"),
+        status: TurnStatus::Truncated,
+    };
+    let model = StatusScript(Mutex::new(vec![reply].into()));
+    let result = Agent::new(model).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::Truncated)));
+}
+
+#[tokio::test]
+async fn blocked_turn_stops_for_policy() {
+    let reply = ModelReply {
+        message: Message::text(""),
+        status: TurnStatus::Blocked,
+    };
+    let model = StatusScript(Mutex::new(vec![reply].into()));
+    let result = Agent::new(model).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::Blocked)));
 }
 
 struct Counter(Arc<AtomicUsize>);
@@ -180,7 +273,7 @@ async fn cancelled_run_never_asks_model() {
     let cancel = off();
     cancel.cancel();
     let result = Agent::new(model.clone()).run("x", &cancel).await;
-    assert!(matches!(result, Err(RunError::Cancelled)));
+    assert!(matches!(result, Err(RunError::Cancelled { .. })));
     assert_eq!(model.asked.load(Ordering::SeqCst), 0);
 }
 
@@ -283,7 +376,7 @@ async fn every_call_gets_exactly_one_result_in_order() {
 }
 
 #[tokio::test]
-async fn duplicate_call_id_is_refused_and_not_run() {
+async fn duplicate_call_id_rejects_the_batch_before_any_dispatch() {
     let (count, tool) = ran();
     let calls = vec![
         call_of("a", "count", json!({})),
@@ -296,15 +389,154 @@ async fn duplicate_call_id_is_refused_and_not_run() {
         }),
         Ok(Message::text("完")),
     ]);
-    let out = Agent::new(model).tool(tool).run("x", &off()).await.unwrap();
+    let result = Agent::new(model).tool(tool).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::Model(_))));
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn reused_call_id_in_later_turn_is_rejected_before_dispatch() {
+    let (count, tool) = ran();
+    let model = Script::new(vec![
+        Ok(Message::call("a", "count", json!({}))),
+        Ok(Message::call("a", "count", json!({}))),
+        Ok(Message::text("完")),
+    ]);
+    let result = Agent::new(model).tool(tool).run("x", &off()).await;
+    assert!(matches!(result, Err(RunError::Model(_))));
     assert_eq!(count.load(Ordering::SeqCst), 1);
-    assert!(matches!(
-        &out.messages[3],
-        Message::Tool { is_error: true, .. }
-    ));
 }
 
 struct Slow(Arc<AtomicUsize>);
+
+struct CancelDuring(CancellationToken);
+
+struct CancelWhileAwaitingHook(CancellationToken);
+
+struct CancelAfterOutcome(CancellationToken);
+
+impl Hook for CancelAfterOutcome {
+    async fn on_outcome(&self, _: agent_harness::Outcome<'_>) -> agent_harness::OutcomeAction {
+        self.0.cancel();
+        std::future::pending().await
+    }
+}
+
+#[tokio::test]
+async fn cancellation_while_saving_outcome_preserves_completed_result() {
+    let (count, tool) = ran();
+    let token = off();
+    let calls = vec![
+        call_of("a", "count", json!({})),
+        call_of("b", "count", json!({})),
+    ];
+    let model = Script::new(vec![Ok(Message::Assistant {
+        text: String::new(),
+        calls,
+    })]);
+    let agent = Agent::new(model)
+        .tool(tool)
+        .hook(CancelAfterOutcome(token.clone()));
+    let result = tokio::time::timeout(
+        std::time::Duration::from_millis(100),
+        agent.run("x", &token),
+    )
+    .await
+    .expect("取消必須喚醒等待中的掛勾");
+    let Err(RunError::Cancelled { messages }) = result else {
+        panic!("取消未回傳歷史")
+    };
+    assert!(paired(&messages));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert!(
+        matches!(&messages[2], Message::Tool { content, is_error: false, .. } if content == "已計數")
+    );
+    assert!(
+        matches!(&messages[3], Message::Tool { content, is_error: true, .. } if content == "未執行")
+    );
+}
+
+impl Hook for CancelWhileAwaitingHook {
+    async fn on_dispatch(&self, _: Dispatch<'_>) -> DispatchAction {
+        self.0.cancel();
+        std::future::pending().await
+    }
+}
+
+#[tokio::test]
+async fn cancellation_while_waiting_for_hook_settles_as_unstarted() {
+    let (count, tool) = ran();
+    let token = off();
+    let model = Script::new(vec![Ok(Message::call("a", "count", json!({})))]);
+    let agent = Agent::new(model)
+        .tool(tool)
+        .hook(CancelWhileAwaitingHook(token.clone()));
+    let result = tokio::time::timeout(
+        std::time::Duration::from_millis(100),
+        agent.run("x", &token),
+    )
+    .await
+    .expect("取消必須喚醒等待中的掛勾");
+    let Err(RunError::Cancelled { messages }) = result else {
+        panic!("取消未回傳歷史")
+    };
+    assert!(paired(&messages));
+    assert_eq!(count.load(Ordering::SeqCst), 0);
+    assert!(
+        matches!(&messages[2], Message::Tool { content, is_error: true, .. } if content == "未執行")
+    );
+}
+
+impl Tool for CancelDuring {
+    fn spec(&self) -> ToolSpec {
+        ToolSpec {
+            name: "cancel_during".into(),
+            description: "測試取消".into(),
+            parameters: json!({}),
+        }
+    }
+
+    fn call(&self, _: Value) -> ToolFuture<'_> {
+        Box::pin(async move {
+            self.0.cancel();
+            std::future::pending().await
+        })
+    }
+}
+
+#[tokio::test]
+async fn cancellation_settles_completed_inflight_and_unstarted_calls() {
+    let (count, tool) = ran();
+    let cancel = off();
+    let calls = vec![
+        call_of("a", "count", json!({})),
+        call_of("b", "cancel_during", json!({})),
+        call_of("c", "count", json!({})),
+    ];
+    let model = Script::new(vec![Ok(Message::Assistant {
+        text: String::new(),
+        calls,
+    })]);
+    let result = Agent::new(model)
+        .tool(tool)
+        .tool(CancelDuring(cancel.clone()))
+        .run("x", &cancel)
+        .await;
+    let Err(RunError::Cancelled { messages }) = result else {
+        panic!("取消未回傳歷史")
+    };
+    assert!(paired(&messages));
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+    assert!(
+        matches!(&messages[2], Message::Tool { call_id, content, is_error: false } if call_id == "a" && content == "已計數")
+    );
+    assert!(
+        matches!(&messages[3], Message::Tool { call_id, content, is_error: true } if call_id == "b" && content == "結果未知")
+    );
+    assert!(
+        matches!(&messages[4], Message::Tool { call_id, content, is_error: true } if call_id == "c" && content == "未執行")
+    );
+}
 
 impl Tool for Slow {
     fn spec(&self) -> ToolSpec {
@@ -338,7 +570,7 @@ async fn cancel_during_a_slow_tool_stops_it_before_it_writes() {
         .tool(Slow(writes.clone()))
         .run("x", &cancel)
         .await;
-    assert!(matches!(result, Err(RunError::Cancelled)));
+    assert!(matches!(result, Err(RunError::Cancelled { .. })));
     tokio::time::sleep(std::time::Duration::from_millis(400)).await;
     assert_eq!(writes.load(Ordering::SeqCst), 0);
 }

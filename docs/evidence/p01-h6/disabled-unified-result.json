@@ -1,0 +1,15 @@
+{
+  "version": "codex-cli 0.164.0",
+  "config": "features.unified_exec = false",
+  "tools": [
+    "exec_command",
+    "write_stdin",
+    "request_user_input",
+    "view_image",
+    "multi_agent_v1",
+    "get_goal",
+    "create_goal",
+    "update_goal",
+    "web_search"
+  ]
+}

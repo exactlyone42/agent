@@ -1,0 +1,36 @@
+{
+  "version": "codex-cli 0.164.0",
+  "case": "互動命令批准對照",
+  "events": [
+    {
+      "method": "item/commandExecution/requestApproval",
+      "command": "/usr/bin/zsh -lc cat"
+    },
+    {
+      "method": "turn/completed",
+      "command": null
+    }
+  ],
+  "calls": [
+    [],
+    [
+      {
+        "type": "function_call_output",
+        "call_id": "call_1",
+        "output": "Chunk ID: eb0d1b\nWall time: 1.0011 seconds\nProcess running with session ID 10409\nOriginal token count: 0\nOutput:\n"
+      }
+    ],
+    [
+      {
+        "type": "function_call_output",
+        "call_id": "call_1",
+        "output": "Chunk ID: eb0d1b\nWall time: 1.0011 seconds\nProcess running with session ID 10409\nOriginal token count: 0\nOutput:\n"
+      },
+      {
+        "type": "function_call_output",
+        "call_id": "call_2",
+        "output": "Chunk ID: b4bb32\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 5\nOutput:\nh6-input\r\nh6-input\r\n"
+      }
+    ]
+  ]
+}

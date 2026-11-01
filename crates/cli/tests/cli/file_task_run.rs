@@ -99,7 +99,7 @@ impl FileTaskRun {
             ("receipt_failed", _) => "running",
             (_, 0) => "succeeded",
             (_, 2) => "needs_review",
-            ("redirect" | "corrupted_spec", _) => "outcome_unknown",
+            ("redirect" | "corrupted_spec" | "reused_call_id", _) => "outcome_unknown",
             _ => "failed",
         }
     }
@@ -141,7 +141,7 @@ impl FileTaskRun {
             "wrong" => "成果驗證未通過",
             "receipt_failed" => "任務結果未確認",
             "write_failed" => "成果未完整寫入",
-            "redirect" | "corrupted_spec" => "模型執行失敗",
+            "redirect" | "corrupted_spec" | "reused_call_id" => "模型執行失敗",
             _ => "沒有可驗證的成果檔案",
         };
         assert!(outcome.stderr.contains(message), "{}", outcome.stderr);
@@ -151,7 +151,7 @@ impl FileTaskRun {
         let read = |path: &PathBuf| std::fs::read_to_string(path).unwrap();
         match self.name {
             "correct" | "review" | "read_limit" | "write_limit" | "source_grew"
-            | "duplicate_write" | "reused_call_id" => {
+            | "duplicate_write" => {
                 let report: Value = serde_json::from_str(&outcome.stdout).unwrap();
                 let artifact = if self.exit_code == 0 {
                     "verified"
@@ -189,6 +189,9 @@ impl FileTaskRun {
             return;
         }
         assert!(requests.len() >= 2);
+        if self.name == "reused_call_id" {
+            assert_eq!(requests.len(), 2);
+        }
         let messages = tool_messages(&requests[1]);
         match self.name {
             "denied" => assert!(!json!(messages).to_string().contains("original fixture")),

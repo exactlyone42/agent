@@ -1,4 +1,4 @@
-use agent_harness::{Message, Model, ModelError, ToolSpec};
+use agent_harness::{Message, Model, ModelError, ModelReply, ToolSpec, TurnStatus};
 use agent_platform_agent::task::{
     CancellationToken, FileTask, TASK_TIMEOUT, TaskError, run_file_task,
 };
@@ -30,9 +30,12 @@ impl MockModel {
 }
 
 impl Model for MockModel {
-    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<Message, ModelError> {
+    async fn complete(&self, _: &[Message], _: &[ToolSpec]) -> Result<ModelReply, ModelError> {
         self.asked.fetch_add(1, Ordering::SeqCst);
-        Ok(Message::text(self.reply))
+        Ok(ModelReply {
+            message: Message::text(self.reply),
+            status: TurnStatus::Complete,
+        })
     }
 }
 

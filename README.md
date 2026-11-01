@@ -17,6 +17,7 @@
 | [評測與錯誤注入](docs/evaluation.md)            | 設計案例、判定成功、測試故障及比較改版                   |
 | [品質要求](docs/engineering-standards.md)       | 寫程式、安裝依賴、提交或推送之前                         |
 | [變異測試例外](docs/mutation-equivalents.md)    | 新增或調整變異測試排除項目之前                           |
+| [H5 檢討](docs/aar-h5-simulation.md)            | 看 H5 測試用模擬代替真實情境的缺口與後續                 |
 | [CLI 開發入口](docs/cli.md)                     | 執行目前的檔案任務、判讀結果與已知限制                   |
 | [共用 Git 規範](DEVELOPMENT.md)                 | 開分支、提交、整合與安裝 hooks                           |
 

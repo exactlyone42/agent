@@ -70,7 +70,8 @@ fn two_connections_claiming_one_approval_dispatch_it_once() -> Result<(), Failur
 }
 
 #[test]
-fn crash_after_dispatch_is_never_dispatched_again_and_stays_unknown() -> Result<(), Failure> {
+fn dropped_connection_after_dispatch_is_not_dispatched_again_and_finish_marks_unknown()
+-> Result<(), Failure> {
     let path = path();
     let (id, prepared) = approved(&path)?;
     let mut crashed = TaskStore::open(&path)?;
@@ -95,7 +96,7 @@ fn crash_after_dispatch_is_never_dispatched_again_and_stays_unknown() -> Result<
 }
 
 #[test]
-fn crash_before_dispatch_allows_exactly_one_later_dispatch() -> Result<(), Failure> {
+fn dropped_connection_before_dispatch_allows_exactly_one_later_dispatch() -> Result<(), Failure> {
     let path = path();
     let (_, prepared) = approved(&path)?;
     let mut restarted = TaskStore::open(&path)?;

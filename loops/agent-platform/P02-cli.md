@@ -17,7 +17,7 @@
 | C3 | `result`：改了哪些檔、差異、驗證結果 | 差異與實際檔案一致 | PENDING |
 | C4 | `events --follow`：JSON 一行一筆，可從序號接續 | 斷線續讀不漏不重 | PENDING |
 | C5 | 互動授權與非互動執行（缺授權即停） | 兩種模式正反測試 | RUNNING（`/help`、`/run`、`/status`、`/events`、`/approvals`、`/approve`、`/deny`、`/exit` 已有程式與 2 項測試，快檢通過；缺授權即停的非互動負向測試與真人驗收未做） |
-| C6 | Gateway 連線用虛擬金鑰連真 Gateway（原 Client 實送一次） | 真請求成功；金鑰不進日誌 | PENDING |
+| C6 | Gateway 連線用虛擬金鑰連真 Gateway（原 Client 實送一次） | 真請求成功；金鑰不進日誌 | RUNNING（2026-11-04：本機 Gateway 127.0.0.1:18088 已發 agent 專用金鑰，存 `~/.config/agent-platform/gateway-key`（權限 600，30 天效期）；`/v1/models` 回 200 共 20 個模型；`/v1/chat/completions` 三次皆失敗：`ollama/qwen3.8:27b` 502 上游失敗、`local-general` 503 無可用供應商、`claude-haiku-5-5` 400 請求選項不支援。尚無真請求成功） |
 | C7 | 連結修復任務 + 獨立驗證器 | 偽造成功被擋；故意錯結果必失敗 | PENDING |
 | C8 | P08 最小評測資料與入口 | 一鍵跑，正常與故障分開報 | PENDING |
 | C9 | 真人驗收：不看內部日誌能看懂改動並批准或拒絕 | 具名驗收人紀錄 | WAITING |

@@ -5,7 +5,7 @@ use serde_json::Value;
 #[test]
 fn failures_end_with_a_fixed_error_code_line() {
     let cases: [(&[&str], &str); 5] = [
-        (&[], "usage"),
+        (&["run"], "usage"),
         (&["approve", "missing", "0"], "invalid_argument"),
         (&["status", "missing"], "state_dir_unavailable"),
         (&["events", "missing", "x"], "invalid_argument"),

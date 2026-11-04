@@ -1,6 +1,84 @@
 # CLI 開發入口
 
-目前可在明確授權後，讓模型讀取一個文字來源、建立一個新成果，再由程式核對成果，並用 Ctrl+C 要求停止。已保存檔案任務規格、工具動作、批准與執行結果，可逐次批准或拒絕，關閉 CLI 後可再查詢。這是實作中的入口，尚非正式企業產品；安裝包、完整管理者政策、同終端互動介面、可靠接續、知識與電腦操作仍未交付。
+目前可在明確授權後，讓模型讀取一個文字來源、建立一個新成果，再由程式核對成果，並用 Ctrl+C 要求停止。已保存檔案任務規格、工具動作、批准與執行結果，可逐次批准或拒絕，關閉 CLI 後可再查詢。這是實作中的入口，尚非正式企業產品；同終端互動介面已實作基本指令，尚待完整驗收；正式安裝包、完整管理者政策、可靠接續、知識與電腦操作仍未交付。
+
+正式產品的模型請求只送往 Gateway，由 Gateway 連接及管理模型；Agent 不負責啟動模型服務。下方直連本機模型的方式僅用於開發測試，不是正式產品接法。真 Gateway 尚未完成端到端驗收，當前程式也只允許本機 IP，遠端 Gateway 尚不能使用。
+
+## 互動短指令（開發中）
+
+不帶參數啟動 `agent-platform` 後，輸入 `/help` 可查看短指令。以 `/run task.json` 啟動任務後，`/status` 查看目前任務狀態，`/events` 看前 100 筆紀錄；逐次批准模式會顯示待批准動作與內容，也可輸入 `/approvals` 再看一次；確認後輸入 `/approve` 或 `/deny`，不必輸入編號和版本。`/exit` 離開；任務仍在執行時不能離開。現階段仍須準備任務 JSON，沒有持續對話。這是開發中的介面，尚未完成真人驗收。
+
+## 開發測試：接本機 Qwen 模型
+
+這份教學使用 Linux、已安裝的 Rust 和 Ollama，以及已下載的 `qwen3.8:27b`。目前沒有安裝包，先從原始碼編譯；它還不是互動聊天工具，只能執行指定來源與成果檔案的任務。
+
+1. 在終端確認 Ollama 已啟動，且模型清單中有 `qwen3.8:27b`：
+
+   ```sh
+   ollama list
+   ```
+
+   如果無法連線，先啟動本機 Ollama 服務，再重新查詢。不要把範例模型名稱當成已安裝；未安裝時需先自行準備模型。
+
+2. 在 Agent 專案目錄編譯，將產生 `target/debug/agent-platform`：
+
+   ```sh
+   cd /home/cash/work_space/private/agent-platform
+   cargo build --locked -p agent-platform
+   ```
+
+   這個路徑是本機範例；專案放在其他位置時，請改成實際路徑。
+
+3. 建立新的測試資料夾與來源檔，避免碰到既有成果。以下指令在同一個終端依序執行：
+
+   ```sh
+   test_dir=$(mktemp -d)
+   cd "$test_dir"
+   printf 'hello' > input.txt
+   cat > task.json <<'EOF'
+   {
+     "endpoint": "http://127.0.0.1:11434/v1",
+     "model": "qwen3.8:27b",
+     "task": {
+       "prompt": "讀取來源，把 hello 改成 HELLO，寫入成果。不要加換行。",
+       "input": "input.txt",
+       "output": "output.txt",
+       "expected": "HELLO",
+       "allow_read": true,
+       "allow_write": true
+     }
+   }
+   EOF
+   ```
+
+   `endpoint` 是模型服務網址，`model` 是模型名稱；要換模型時修改這兩個欄位。`allow_read` 和 `allow_write` 明確授權這次讀取及建立成果；`expected` 讓程式核對成果內容。
+
+4. 執行任務並讀回成果：
+
+   ```sh
+   /home/cash/work_space/private/agent-platform/target/debug/agent-platform run task.json
+   cat output.txt
+   ```
+
+   預期結果是 `HELLO`，程式回報 `artifact: verified`。執行時會顯示任務編號，留著可用下方指令查詢。成果檔必須事先不存在；重跑前先核對現有檔案，另建測試資料夾，不要直接覆寫。
+
+2026-11-02 已在 Linux 以此模型實際執行相同任務，讀回來源 `hello` 與成果 `HELLO`。這只證明該次檔案任務，不能推論複雜任務、崩潰恢復或其他平台已驗收。
+
+## 常用指令
+
+以下用 `agent-platform` 代表上面編譯出的完整路徑；若未加入 `PATH`，請替換成 `/home/cash/work_space/private/agent-platform/target/debug/agent-platform`。
+
+```sh
+agent-platform --help
+agent-platform run task.json
+agent-platform status <任務編號>
+agent-platform events <任務編號> 0
+agent-platform approvals <任務編號>
+agent-platform approve <批准編號> <任務版本>
+agent-platform deny <批准編號> <任務版本>
+```
+
+`status` 查最後保存的狀態，`events` 從序號 0 開始讀紀錄；`approvals`、`approve`、`deny` 用於下方的逐次批准模式。任務執行中按 Ctrl+C 可要求停止；停止後仍須檢查成果是否已建立。
 
 ## 如何執行
 

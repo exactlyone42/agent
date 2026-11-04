@@ -1,4 +1,5 @@
 mod cli_error;
+mod interactive;
 
 use agent_harness_openai::OpenAi;
 use agent_platform_agent::task::{
@@ -107,6 +108,10 @@ struct Request {
 
 async fn run() -> Result<ExitCode, CliError> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.is_empty() {
+        interactive::run().map_err(|message| fail("interactive_failed", &message))?;
+        return Ok(ExitCode::SUCCESS);
+    }
     if args.len() == 1 && args[0] == "--help" {
         println!(
             "用法：agent-platform run <任務.json>\n      agent-platform status <任務編號>\n      agent-platform events <任務編號> [已讀序號]\n      agent-platform approvals <任務編號>\n      agent-platform approve <批准編號> <任務版本>\n      agent-platform deny <批准編號> <任務版本>\nevents 每次最多 100 筆，下一頁使用最後一筆的 seq 作已讀序號。\n任務 JSON 的 approval_mode 設 manual 可逐次確認工具動作；每次批准有效 120 秒。\n目前為開發入口，只連本機模型服務；讀寫須在任務中明確授權。尚非企業正式發布。"

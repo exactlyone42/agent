@@ -3,9 +3,8 @@ use crate::run_each::run_each;
 
 #[test]
 fn command_arguments() {
-    let cases: [(&[&str], i32); 5] = [
+    let cases: [(&[&str], i32); 4] = [
         (&["--help"], 0),
-        (&[], 1),
         (&["run"], 1),
         (&["other", "missing.json"], 1),
         (&["--help", "extra"], 1),

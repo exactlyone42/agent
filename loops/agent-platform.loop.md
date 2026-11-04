@@ -46,6 +46,8 @@ Protocol version: `1.2.0`（母檔只列大綱；細節在 `agent-platform/` 子
 - 已證明（2026-10-31）：Q7 完成，`xtask render-plan` 產出 PLAN.pdf 38 頁、白底檢查通過，gate 通過。（2026-10-30 讀 git 紀錄與 PR #2）：`cargo xtask all` 通過（391 個變異，323 抓到、68 無法編譯、0 漏、0 逾時）；PR #2 已合 develop
 - 未證明：真 Gateway（Windows／macOS 不做實機驗證，只做相容設計）
 - 阻塞：無（先前「cargo 被擋」已查證為誤判）
-- 下一步：階段 1A 的停止原因、取消逐筆結算及批准遭拒已實作，完整檢查通過；完成快檢與提交後，繼續 P01 尚未完成的整合驗收。CLI 取消歷史持久化待階段 1B。
+- 進度（2026-11-04）：階段 1A 已提交（完整檢查通過）。P02 的 C5 互動短指令（`/run`、`/status`、`/events`、`/approvals`、`/approve`、`/deny`、`/exit`）已有程式與 2 項測試，快檢通過、未跑完整檢查，尚無真人驗收。
+- 下一步：先做階段 1B（SessionStore，任務庫持久化）與 H5 真雙程序／崩潰測試，完成 P01 整合驗收；再回 P02 補 C5 負向測試，並以已架在本機的真 Gateway 做 C6（先經 Offora 向 Gateway 取得網址、金鑰取得方式與模型名稱）。
+- 分工（使用者 2026-11-04 重申）：換模型、多家供應商轉接屬 Gateway，Agent 只接 OpenAI 相容端點；兩邊各自可做成獨立開源套件，開源化為 P10 之後的另案，現不排工。
 - checkpoint JSONL：loops/agent-platform.checkpoints.jsonl（只經 ~/tools/cash-rule-checkpoint 寫）
 - owner／排程：單一寫入者 feature/plan-tooling（feature/agent-plan 已合併並刪除）；/loop 動態續跑；COMPLETE、BLOCKED、需決策時停

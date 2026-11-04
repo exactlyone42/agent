@@ -11,6 +11,7 @@ mod fake_server;
 mod file_task_handler;
 mod file_task_run;
 mod file_tasks;
+mod interactive;
 mod invalid_configuration;
 mod invalid_revision;
 mod invalid_state_directory;

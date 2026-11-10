@@ -14,13 +14,13 @@ Protocol version: `1.3.1`（細節見 `agent-platform/` 子檔）
 - [ ] A2 拒絕、取消、崩潰重開都不擅自重做副作用，取消後零寫入
 - [ ] A6 MCP 工具安裝、批准、取消與結果讀回過正反驗收
 - [ ] A3 外部 RAG 接口與整合、記憶、電腦操作各過正反驗收
-- [ ] A4 桌面 ADE 讀同一份事件契約並接續同任務
+- A4 桌面 ADE 驗收移到 agent-ade repo；本 repo 只提供有版本號的事件契約，不列入完成條件
 - [ ] A5 企業發布門檻與整體評測全過，未跑項目明列
 
 ## 計畫（子檔在 loops/agent-platform/）
 
 | step | 大綱 | 子檔 | 依賴 | 狀態 |
-| ---- | ---------------------------- | ---------------------- | ---------- | ------- |
+| ---- | ---- | ---- | ---- | ---- |
 | S00 | 品質底座與設計規則落地 | S00-quality.md | 無 | DONE |
 | P01 | 核心迴圈與批准紀錄 | P01-core.md | S00 | VALIDATING |
 | P02 | 可用 CLI，連真 Gateway | P02-cli.md | P01 | RUNNING |
@@ -33,7 +33,7 @@ Protocol version: `1.3.1`（細節見 `agent-platform/` 子檔）
 | P05b | 專業格式需求移交 RAG | P05b-knowledge-wide.md | 外部 rag | SUPERSEDED |
 | P06 | 長期記憶 | P06-memory.md | P04 | PENDING |
 | P07 | 電腦操作 | P07-computer.md | P04、E01 | PENDING |
-| P09 | 桌面 ADE（agent-ade repo） | P09-ade.md | P04 | PENDING |
+| P09 | 桌面 ADE（agent-ade repo） | P09-ade.md | agent-ade repo | SUPERSEDED |
 | P08 | 整體評測（最小版在 P02 建） | P08-eval.md | P02 | PENDING |
 | P10 | 分次交接 | P10-handoff.md | 全部 | PENDING |
 
@@ -53,7 +53,7 @@ P05a 需 P04 恢復與 E01 權限，按需接 P02m；完整安裝及發布門檻
 
 ## 交付點
 
-- 內部步驟：S00。階段交付：P02（CLI 初版）、P03b（完整安裝）、P09（桌面）、P10。
+- 內部步驟：S00。階段交付：P02（CLI 初版）、P03b（完整安裝）、P10。
 - 無部署目標前不建 delivery.json；有發布包時再補，部署前須過 P08 與企業門檻。
 
 ## 目前狀態

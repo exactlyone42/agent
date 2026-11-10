@@ -27,7 +27,7 @@ Gateway 特有的模型路由/租戶/故障契約不硬塞進 Agent；若本次�
 
 ## 統一檢查入口
 
-2026-10-27 已建立快檢入口（2026-10-29 由 Python 與 shell 改為 Rust 的 xtask，命令 `cargo xtask gate`）：實際執行格式檢查、全部 target／features 的 Clippy，以及生產函式庫／執行檔的 unwrap、expect、panic、todo、unimplemented、unreachable、assert 系列與 mod.rs 禁用檢查、未用依賴檢查及 workspace 測試。禁止模式以編譯器規則檢查，另用 1 個合法與 13 個違規樣本確認規則確實生效；測試程式仍可使用斷言。未用依賴使用 cargo-machete 0.9.2。`all` 已接快檢、工具版本、Git 列出的現有未忽略檔案秘密掃描、測試覆蓋率與整個 workspace 的變異測試。每輪原件保存在 `.runtime/checks/` 的唯一目錄；任何命令失敗或前後程式雜湊不同均不通過。秘密掃描包含未追蹤檔，排除 Git 忽略的建置產物與本輪原件；不能當成整機秘密掃描。未參與編譯的孤立檔案、模型設定規則與三平台整合驗收仍待接入，所以 P01 品質底座尚未完成。Linux 通過不代表 Windows／macOS 已實測；執行環境需預先安裝上述工具與 Clippy。
+2026-10-27 已建立快檢入口（2026-10-29 由 Python 與 shell 改為 Rust 的 xtask，命令 `cargo xtask gate`）：先依 docs/directory-structure.md 檢查 Git 追蹤檔案的目錄結構（未登記的頂層項目、crate 內項目、雜物目錄），再實際執行格式檢查、全部 target／features 的 Clippy，以及生產函式庫／執行檔的 unwrap、expect、panic、todo、unimplemented、unreachable、assert 系列與 mod.rs 禁用檢查、未用依賴檢查及 workspace 測試。禁止模式以編譯器規則檢查，另用 1 個合法與 13 個違規樣本確認規則確實生效；測試程式仍可使用斷言。未用依賴使用 cargo-machete 0.9.2。`all` 已接快檢、工具版本、Git 列出的現有未忽略檔案秘密掃描、測試覆蓋率與整個 workspace 的變異測試。每輪原件保存在 `.runtime/checks/` 的唯一目錄；任何命令失敗或前後程式雜湊不同均不通過。秘密掃描包含未追蹤檔，排除 Git 忽略的建置產物與本輪原件；不能當成整機秘密掃描。未參與編譯的孤立檔案、模型設定規則與三平台整合驗收仍待接入，所以 P01 品質底座尚未完成。Linux 通過不代表 Windows／macOS 已實測；執行環境需預先安裝上述工具與 Clippy。
 
 P01建立 `cargo xtask gate`（快檢）與 `cargo xtask all`（推送前全套）。未建立前命令不得假通過。底層至少執行：
 

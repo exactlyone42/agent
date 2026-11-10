@@ -66,4 +66,4 @@ P05a 需 P04 恢復與 E01 權限，按需接 P02m；完整安裝及發布門檻
 - 卡住執行者：cancel_stalled現過（5秒終止確認、之後10秒無寫入），停用SIGKILL陰性對照101。原件.runtime/p04-stalled-20261110/。真Gateway取消、程序樹未驗，新版all未跑。
 - R3切片1–4：instruct收下、去重（DB升8），下回合前交模型並標applied，取消不注入；待處理上限16；status加pending_instructions。具名測試過、改錯7種失敗；切片3快檢231過，切片4快檢2次未過。原件.runtime/p04-pending-limit-20261110/。
 - EACCES已修：目標為殭屍時視為已不在；新測試陰性對照過，cancel_stalled連跑12次全過，快檢238過。原件.runtime/p04-eacces-20261110/。
-- 唯一下一步：重跑切片4快檢；真Gateway取消、程序樹、36種漏抓、R4–R6保留。
+- 切片4快檢已隨之通過。唯一下一步：真Gateway取消、程序樹、36種漏抓、R4–R6。

@@ -174,13 +174,13 @@ async fn granted_call_proceeds() {
 }
 
 #[tokio::test]
-async fn denied_call_is_skipped_when_preapproved() {
+async fn denied_call_stops_when_preapproved() {
     let (gate, _, _) = gate(Fake::new(vec![Ok(Claim::Denied)]), Policy::default());
     assert_eq!(
         dispatch(&gate).await,
-        DispatchAction::Skip(Messages::default().not_authorized)
+        DispatchAction::Stop(Messages::default().not_authorized)
     );
-    assert!(!gate.was_denied());
+    assert!(gate.was_denied());
 }
 
 #[tokio::test]
@@ -302,9 +302,49 @@ async fn busy_receipt_is_retried() {
 }
 
 #[tokio::test]
+async fn busy_receipts_stop_at_the_deadline_without_using_a_late_success() {
+    let fake = Fake::new(vec![]);
+    fake.receipts
+        .lock()
+        .unwrap()
+        .extend([Err(Fault::Busy), Err(Fault::Busy), Ok(())]);
+    let policy = Policy {
+        receipt_wait: Duration::from_millis(50),
+        ..Policy::default()
+    };
+    let (gate, store, _) = gate(fake, policy);
+    assert_eq!(
+        outcome(&gate).await,
+        OutcomeAction::Stop(Messages::default().receipt_failed)
+    );
+    assert_eq!(store.receipted.load(Ordering::SeqCst), 2);
+    assert_eq!(store.receipts.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
 async fn failed_receipt_stops_the_run() {
     let fake = Fake::new(vec![]);
     fake.receipts.lock().unwrap().push_back(Err(Fault::Failed));
     let (gate, _, _) = gate(fake, Policy::default());
     assert!(matches!(outcome(&gate).await, OutcomeAction::Stop(_)));
+}
+
+#[tokio::test(start_paused = true)]
+async fn busy_receipts_stop_at_the_exact_deadline() {
+    let fake = Fake::new(vec![]);
+    fake.receipts
+        .lock()
+        .unwrap()
+        .extend([Err(Fault::Busy), Ok(())]);
+    let policy = Policy {
+        receipt_wait: Duration::ZERO,
+        ..Policy::default()
+    };
+    let (gate, store, _) = gate(fake, policy);
+    assert_eq!(
+        outcome(&gate).await,
+        OutcomeAction::Stop(Messages::default().receipt_failed)
+    );
+    assert_eq!(store.receipted.load(Ordering::SeqCst), 1);
+    assert_eq!(store.receipts.lock().unwrap().len(), 1);
 }

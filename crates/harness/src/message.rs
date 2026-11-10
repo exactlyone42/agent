@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ToolCall {
     pub id: String,
     pub name: String,
@@ -8,12 +9,14 @@ pub struct ToolCall {
     pub bad_args: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Message {
     User(String),
     Assistant {
         text: String,
         calls: Vec<ToolCall>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        reasoning: Option<String>,
     },
     Tool {
         call_id: String,
@@ -27,6 +30,7 @@ impl Message {
         Self::Assistant {
             text: text.into(),
             calls: Vec::new(),
+            reasoning: None,
         }
     }
 
@@ -40,6 +44,7 @@ impl Message {
         Self::Assistant {
             text: String::new(),
             calls: vec![call],
+            reasoning: None,
         }
     }
 

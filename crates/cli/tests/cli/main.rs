@@ -1,25 +1,45 @@
 mod accept_loop;
 mod await_flag;
+#[cfg(target_os = "linux")]
+mod cancel_stalled;
+mod cancel_unconfirmed;
+#[cfg(target_os = "linux")]
+mod cancel_unsettled;
+#[cfg(target_os = "linux")]
+mod cancel_wrong_owner;
 mod case;
 mod collect_lines;
 mod command_arguments;
 mod compile_fixture;
 mod completion;
+mod control_pipe_configuration;
+mod cross_cancel;
 mod error_codes;
+mod event_follow;
 mod existing_directory_without_database;
+mod failed_start;
 mod fake_server;
 mod file_task_handler;
 mod file_task_run;
 mod file_tasks;
+mod instruct;
 mod interactive;
+mod interactive_cancel;
 mod invalid_configuration;
 mod invalid_revision;
 mod invalid_state_directory;
+mod list_tasks;
 mod open_database;
 mod outcome;
+mod output_precheck;
+#[cfg(unix)]
+mod parent_startup;
 mod planned_call;
 mod queries_refuse_missing;
 mod read_request;
+mod result_tasks;
+mod resume;
+mod resume_mixed;
 mod run_each;
 mod running;
 mod serve_connection;
@@ -35,7 +55,6 @@ mod write_redirect;
 mod approval_scenario;
 #[cfg(unix)]
 mod fifo_source;
-#[cfg(unix)]
 mod hold_until_disconnect;
 #[cfg(unix)]
 mod interrupt_pending_model;

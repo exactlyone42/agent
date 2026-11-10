@@ -1,25 +1,20 @@
-# P05a 知識檢索（常用格式）
+# P05a 外部 RAG 接口與整合
 
-母檔：../agent-platform.loop.md。依賴 P04。方案見 docs/knowledge-plan.md；門檻見 docs/evaluation.md「RAG 階段映射與可執行門檻」。
+母檔：../agent-platform.loop.md。使用者 2026-11-06 決定：RAG 在獨立 https://github.com/ifandonlyif42/rag 開發，本 repo 只做接入接口。
 
-## 目標
+## 範圍
 
-背景發現檔案、解析、切片、全文加向量搜尋、重排、引用；Agent 呼叫知識檢索，結果回到 Harness 決定下一步。三塊 RAG 一塊都不能少。
+Agent 送出查詢並接收可追溯的原文、來源位置與版本；沿用批准、權限範圍、取消及任務紀錄。文件發現、分類、解析、切片、索引、格式支援、來源更新與 RAG 本體評測由 rag repo 負責，不依賴外部 Harness、Tool Use 或 Computer Use 才能開發。
 
 ## 子任務
 
-| id | 做什麼 | 驗收 | 狀態 |
+| id | 工作 | 驗收 | 狀態 |
 | --- | --- | --- | --- |
-| K0 | 先定「哪些資料是知識、訊息、歷史記錄」的分類標準與各類處理（knowledge-plan.md:85,91 待改） | 文件定案；系統檔、程式、快取不切片 | PENDING |
-| K1 | Task／Knowledge 匯入與查詢契約（版本、request ID、scope、deadline、取消、型別化錯誤） | 第二個 CLI Client 能獨立使用 | PENDING |
-| K2 | 發現與索引排程：事件、定期核對、游標、前景優先、資源限額 | 漏事件補掃、續跑、2 CPU／4 GiB 限制 | PENDING |
-| K3 | 解析與切片（Docling＋LlamaIndex 首次試接；Swiftide、langchain-rust 同題比較） | 對照原文位置；毀損、改檔競爭 | PENDING |
-| K4 | 向量、全文、重排；中文、數字、負面條件 | 精確對照近似；找回率 ≥0.95 | PENDING |
-| K5 | 權限與有效版本：撤權、改檔、刪除後舊答案失效 | 未發布或撤權片段零返回 | PENDING |
-| K6 | Agentic RAG：多步、矛盾、無答案、預算用盡 | 跨文件 10 題 ≥9 正確；最多 3 次檢索 | PENDING |
-| K7 | 60 題調整集加 60 題保留集評測；AI 評分與真人標註校準（≥12 題） | 達 evaluation.md 的各項門檻 | PENDING |
-| K8 | 備份還原與一致性 manifest | 恢復後重新核權 | PENDING |
+| K1 | 透過 Offora 與 RAG 負責 AI 對齊有版本號的請求、回覆及錯誤 | 保存提案、對方回覆與雙方決定；不自行當成已同意 | RUNNING |
+| K2 | 接入已確認接口，保存查詢與引用來源 | 成功、有界查詢及缺來源反例；未接真服務須明列 | PENDING |
+| K3 | 取消、逾時、不可用、撤權及失效回覆處理 | 不擴權、不盲重試、不把失效內容當成功 | PENDING |
+| K4 | 與真 RAG 做整合讀回 | 原文／版本可核對；失敗不偽稱成功；模擬不能代替真整合 | PENDING |
 
-## 完成條件
+## 目前狀態
 
-K0–K8 完成。門檻不改低；做不到就修實作或明確修訂範圍。
+只更新計畫與協調接口，原產品 Goal 維持暫停，尚未實作。已在 Offora 電腦頻道公開尋找 RAG 對口；欄位及傳輸尚未定案。原 K0–K8 的 RAG 本體需求以 PLAN 範圍修訂及 docs/knowledge-plan.md 保留作移交參考，不代表對方已接手或完成。

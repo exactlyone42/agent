@@ -104,9 +104,7 @@ impl<S: ApprovalStore> ApprovalGate<S> {
             Ok(Claim::Denied) if self.policy.manual => {
                 ControlFlow::Break(DispatchAction::Skip(messages.approval_denied.clone()))
             }
-            Ok(Claim::Denied) => {
-                ControlFlow::Break(DispatchAction::Skip(messages.not_authorized.clone()))
-            }
+            Ok(Claim::Denied) => ControlFlow::Break(self.deny_and_stop(&messages.not_authorized)),
             Ok(Claim::Pending) | Err(Fault::Busy) => ControlFlow::Continue(()),
             Err(_) => ControlFlow::Break(self.stop(&messages.claim_failed)),
         }

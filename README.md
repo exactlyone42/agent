@@ -2,7 +2,7 @@
 
 圖文閱讀：[完整架構與驗收 PDF](docs/PLAN.pdf)。包含架構圖、部件契約與 36 張驗收操作卡；產品實測仍待執行。
 
-以 Linux 實機驗證、macOS 與 Windows 只做相容設計的企業 Agent：先完成 CLI，再完成共用核心的 Tauri 桌面；含任務執行、三塊 RAG、記憶及電腦操作。唯一現行計畫是 [PLAN.md](PLAN.md)，首頁直接說明產品、介面、安裝及正式發布門檻。
+以 Linux 實機驗證、macOS 與 Windows 只做相容設計的企業 Agent：先完成 CLI，再完成共用核心的 Tauri 桌面；含任務執行、外部 RAG 接口、記憶及電腦操作。唯一現行計畫是 [PLAN.md](PLAN.md)，首頁直接說明產品、介面、安裝及正式發布門檻。
 
 目前尚無通過整合驗收的正式產品；內部試接不能當成企業交付。
 
@@ -22,4 +22,4 @@
 | [CLI 開發入口](docs/cli.md)                        | 執行目前的檔案任務、判讀結果與已知限制                   |
 | [共用 Git 規範](DEVELOPMENT.md)                    | 開分支、提交、整合與安裝 hooks                           |
 
-一個 repo 可有多個 Rust crate（可獨立編譯的套件）與服務，不代表必須一起部署。RAG、Memory、Computer Use、Evaluation 保留獨立使用入口；有具體外部接手者時可連同契約、測試與歷史拆出去。
+一個 repo 可有多個 Rust crate（可獨立編譯的套件）與服務，不代表必須一起部署。RAG 已在獨立 [rag repo](https://github.com/ifandonlyif42/rag) 開發；本 repo 只負責接口與整合驗收，不實作文件匯入、解析、索引及來源維護。Memory、Computer Use、Evaluation 保留獨立使用入口。

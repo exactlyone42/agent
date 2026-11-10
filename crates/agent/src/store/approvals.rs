@@ -16,7 +16,7 @@ pub enum ApprovalMode {
     Manual,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSpec {
     pub workspace: PathBuf,
@@ -66,6 +66,7 @@ impl TaskStore {
     pub fn prepare_intent(
         &mut self,
         task_id: &str,
+        expected_generation: i64,
         step_id: i64,
         call_id: &str,
         tool_name: &str,
@@ -83,7 +84,7 @@ impl TaskStore {
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let (spec_json, spec_hash, spec_revision, policy_revision, generation): (String,String,i64,i64,i64) = transaction.query_row(
             "SELECT s.spec_json,s.spec_hash,s.spec_revision,s.policy_revision,t.generation FROM task_specs s JOIN tasks t USING(task_id)
-             WHERE s.task_id=?1 AND t.recorded_state='running'", [task_id],
+             WHERE s.task_id=?1 AND t.generation=?2 AND t.recorded_state='running'", params![task_id,expected_generation],
              |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)))
             .optional()?.ok_or(StoreError::Conflict)?;
         if digest(&spec_json) != spec_hash {
@@ -129,7 +130,7 @@ impl TaskStore {
         }
         let status = if !allowed {
             "denied"
-        } else if spec.approval_mode == ApprovalMode::Manual {
+        } else if spec.approval_mode == ApprovalMode::Manual || generation > 1 {
             "pending"
         } else {
             "approved"
@@ -222,7 +223,7 @@ impl TaskStore {
             } else {
                 "approval_denied"
             },
-            None,
+            if approve { None } else { Some("running") },
             approval_id,
         )?;
         transaction.commit()?;
@@ -289,6 +290,7 @@ impl TaskStore {
     pub fn receipt(
         &mut self,
         task_id: &str,
+        expected_generation: i64,
         step_id: i64,
         call_id: &str,
         succeeded: bool,
@@ -296,8 +298,8 @@ impl TaskStore {
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let intent_id: String = transaction.query_row("UPDATE tool_intents SET status=?3 WHERE task_id=?1 AND call_id=?2 AND step_id=?4 AND generation=(SELECT generation FROM tasks WHERE task_id=?1) AND status='dispatched' RETURNING intent_id",
-            params![task_id,call_id,if succeeded { "succeeded" } else { "failed" },step_id], |r| r.get(0)).optional()?.ok_or(StoreError::Conflict)?;
+        let intent_id: String = transaction.query_row("UPDATE tool_intents SET status=?3 WHERE task_id=?1 AND call_id=?2 AND step_id=?4 AND generation=?5 AND generation=(SELECT generation FROM tasks WHERE task_id=?1) AND status='dispatched' RETURNING intent_id",
+            params![task_id,call_id,if succeeded { "succeeded" } else { "failed" },step_id,expected_generation], |r| r.get(0)).optional()?.ok_or(StoreError::Conflict)?;
         append(
             &transaction,
             task_id,
@@ -313,10 +315,23 @@ impl TaskStore {
         Ok(())
     }
 
-    pub fn record_rejection(&mut self, task_id: &str, dispatch_id: &str) -> Result<(), StoreError> {
+    pub fn record_rejection(
+        &mut self,
+        task_id: &str,
+        expected_generation: i64,
+        dispatch_id: &str,
+    ) -> Result<(), StoreError> {
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let current: bool = transaction.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tasks WHERE task_id=?1 AND generation=?2)",
+            params![task_id, expected_generation],
+            |row| row.get(0),
+        )?;
+        if !current {
+            return Err(StoreError::Conflict);
+        }
         append(&transaction, task_id, "tool_rejected", None, dispatch_id)?;
         transaction.commit()?;
         Ok(())

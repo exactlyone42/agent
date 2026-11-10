@@ -7,11 +7,16 @@ use std::sync::{Arc, Mutex};
 pub struct TaskApprovals {
     store: Arc<Mutex<TaskStore>>,
     task_id: String,
+    generation: i64,
 }
 
 impl TaskApprovals {
-    pub fn new(store: Arc<Mutex<TaskStore>>, task_id: String) -> Self {
-        Self { store, task_id }
+    pub fn new(store: Arc<Mutex<TaskStore>>, task_id: String, generation: i64) -> Self {
+        Self {
+            store,
+            task_id,
+            generation,
+        }
     }
 }
 
@@ -23,6 +28,7 @@ impl ApprovalStore for TaskApprovals {
         store
             .prepare_intent(
                 &self.task_id,
+                self.generation,
                 turn as i64,
                 &call.id,
                 &call.name,
@@ -43,14 +49,20 @@ impl ApprovalStore for TaskApprovals {
     fn receipt(&self, turn: usize, call: &ToolCall, succeeded: bool) -> Result<(), Fault> {
         let mut store = self.store.lock().map_err(|_| Fault::Failed)?;
         store
-            .receipt(&self.task_id, turn as i64, &call.id, succeeded)
+            .receipt(
+                &self.task_id,
+                self.generation,
+                turn as i64,
+                &call.id,
+                succeeded,
+            )
             .map_err(fault_of)
     }
 
     fn reject(&self, call: &ToolCall) -> Result<(), Fault> {
         let mut store = self.store.lock().map_err(|_| Fault::Failed)?;
         store
-            .record_rejection(&self.task_id, &call.id)
+            .record_rejection(&self.task_id, self.generation, &call.id)
             .map_err(fault_of)
     }
 }

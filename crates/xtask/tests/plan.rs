@@ -51,12 +51,12 @@ fn mutation_command_excludes_input_lines_only_off_windows() {
     }
     assert!(
         unix.contains(
-            &r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):".to_string()
+            &r"crates/agent/src/(input\.rs:(42|82|90|103)|single_link\.rs:11):".to_string()
         )
     );
     assert!(
         !windows.contains(
-            &r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):".to_string()
+            &r"crates/agent/src/(input\.rs:(42|82|90|103)|single_link\.rs:11):".to_string()
         )
     );
 }

@@ -63,7 +63,7 @@ fn results_and_ordered_events_survive_reopen() -> Result<(), Box<dyn std::error:
         );
         assert_eq!(record.recorded_state, state);
         assert_eq!(record.last_seq, 2);
-        assert_eq!(record.schema_version, 2);
+        assert_eq!(record.schema_version, 3);
         assert_eq!(record.generation, 1);
         assert!(record.updated_at.ends_with('Z'));
         let events = reopened.events(&task_id, 0)?;

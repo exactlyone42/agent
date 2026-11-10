@@ -32,8 +32,14 @@ fn path() -> PathBuf {
 fn approved(path: &Path) -> Result<(String, agent_platform_agent::store::PreparedIntent), Failure> {
     let mut store = TaskStore::open(path)?;
     let (id, _) = store.start_spec(&spec())?;
-    let prepared =
-        store.prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"result"}"#)?;
+    let prepared = store.prepare_intent(
+        &id,
+        1,
+        0,
+        "call-1",
+        "write_output",
+        r#"{"content":"result"}"#,
+    )?;
     store.decide(&prepared.approval_id, 1, true)?;
     Ok((id, prepared))
 }

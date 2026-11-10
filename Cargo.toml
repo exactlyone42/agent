@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/harness", "crates/openai", "crates/approval", "crates/agent", "crates/cli", "crates/xtask"]
+members = ["crates/harness", "crates/http", "crates/openai", "crates/anthropic", "crates/approval", "crates/agent", "crates/cli", "crates/xtask"]
 resolver = "3"
 
 [workspace.package]
@@ -10,7 +10,9 @@ publish = false
 [workspace.dependencies]
 agent-platform-agent = { path = "crates/agent" }
 agent-harness = { path = "crates/harness" }
+agent-harness-http = { path = "crates/http" }
 agent-harness-openai = { path = "crates/openai" }
+agent-harness-anthropic = { path = "crates/anthropic" }
 agent-harness-approval = { path = "crates/approval" }
 thiserror = "2.0.21"
 url = { version = "2.5", features = ["serde"] }

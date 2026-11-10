@@ -53,7 +53,10 @@ async fn serve_reply(reply: &'static str) -> (Url, JoinHandle<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = Url::parse(&format!("http://{}/v1", listener.local_addr().unwrap())).unwrap();
     let handle = tokio::spawn(async move {
-        let (mut stream, _) = listener.accept().await.unwrap();
+        let (mut stream, _) = tokio::time::timeout(Duration::from_secs(5), listener.accept())
+            .await
+            .expect("模型應在五秒內送出 HTTP 請求")
+            .unwrap();
         let mut raw = Vec::new();
         let mut chunk = [0u8; 4096];
         loop {
@@ -95,6 +98,7 @@ async fn plain_assistant_message_has_no_tool_calls_field() {
     let (url, handle) = serve().await;
     let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
     let history = [Message::Assistant {
+        reasoning: None,
         text: "hello".into(),
         calls: vec![],
     }];
@@ -111,6 +115,7 @@ async fn assistant_message_with_calls_keeps_them() {
     let (url, handle) = serve().await;
     let model = OpenAi::new(&url, "m", "", Duration::from_secs(5)).unwrap();
     let history = [Message::Assistant {
+        reasoning: None,
         text: String::new(),
         calls: vec![ToolCall {
             id: "c1".into(),
@@ -134,6 +139,7 @@ async fn bearer_header_is_sent_only_with_a_key() {
         .await
         .unwrap();
     let with_key = handle.await.unwrap().to_ascii_lowercase();
+    assert!(with_key.starts_with("post /v1/chat/completions "));
     assert!(with_key.contains("authorization: bearer secret"));
 
     let (url, handle) = serve().await;

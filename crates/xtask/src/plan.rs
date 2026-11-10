@@ -26,7 +26,7 @@ impl Plan {
             "true",
             "--all-features",
             "--timeout",
-            "90",
+            "180",
             "--cargo-arg=--locked",
             "--exclude-re",
             r"crates/xtask/src/task\.rs:\d+:\d+: replace Task::(run|all) -> ",
@@ -34,7 +34,7 @@ impl Plan {
         if !windows {
             mutation.extend(strings(&[
                 "--exclude-re",
-                r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):",
+                r"crates/agent/src/(input\.rs:(42|82|90|103)|single_link\.rs:11):",
             ]));
         }
         mutation.extend(strings(&["--output", &text(&evidence.join("mutation"))]));

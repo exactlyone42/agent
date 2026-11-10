@@ -311,6 +311,7 @@ async fn bad_arguments_go_back_to_model_without_running_tool() {
     };
     let model = Script::new(vec![
         Ok(Message::Assistant {
+            reasoning: None,
             text: String::new(),
             calls: vec![bad],
         }),
@@ -365,6 +366,7 @@ async fn every_call_gets_exactly_one_result_in_order() {
     ];
     let model = Script::new(vec![
         Ok(Message::Assistant {
+            reasoning: None,
             text: String::new(),
             calls,
         }),
@@ -384,6 +386,7 @@ async fn duplicate_call_id_rejects_the_batch_before_any_dispatch() {
     ];
     let model = Script::new(vec![
         Ok(Message::Assistant {
+            reasoning: None,
             text: String::new(),
             calls,
         }),
@@ -431,6 +434,7 @@ async fn cancellation_while_saving_outcome_preserves_completed_result() {
         call_of("b", "count", json!({})),
     ];
     let model = Script::new(vec![Ok(Message::Assistant {
+        reasoning: None,
         text: String::new(),
         calls,
     })]);
@@ -514,6 +518,7 @@ async fn cancellation_settles_completed_inflight_and_unstarted_calls() {
         call_of("c", "count", json!({})),
     ];
     let model = Script::new(vec![Ok(Message::Assistant {
+        reasoning: None,
         text: String::new(),
         calls,
     })]);

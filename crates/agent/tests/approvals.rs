@@ -33,8 +33,14 @@ fn approval_is_bound_to_revision_call_arguments_and_one_use()
     let path = path();
     let mut store = TaskStore::open(&path)?;
     let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, true))?;
-    let mut prepared =
-        store.prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"result"}"#)?;
+    let mut prepared = store.prepare_intent(
+        &id,
+        1,
+        0,
+        "call-1",
+        "write_output",
+        r#"{"content":"result"}"#,
+    )?;
     assert_eq!(store.status(&id)?.recorded_state, "waiting_approval");
     assert_eq!(store.claim(&prepared)?, Claim::Pending);
     assert!(store.decide(&prepared.approval_id, 2, true).is_err());
@@ -55,11 +61,18 @@ fn approval_is_bound_to_revision_call_arguments_and_one_use()
     assert_eq!(store.claim(&prepared)?, Claim::Denied);
     assert_eq!(store.approvals(&id)?[0].uses_remaining, 0);
     assert!(store.decide(&prepared.approval_id, 1, false).is_err());
-    store.receipt(&id, 0, "call-1", true)?;
-    assert!(store.receipt(&id, 0, "call-1", true).is_err());
+    store.receipt(&id, 1, 0, "call-1", true)?;
+    assert!(store.receipt(&id, 1, 0, "call-1", true).is_err());
     assert!(
         store
-            .prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"changed"}"#)
+            .prepare_intent(
+                &id,
+                1,
+                0,
+                "call-1",
+                "write_output",
+                r#"{"content":"changed"}"#
+            )
             .is_err()
     );
     let events = store.events(&id, 0)?;
@@ -101,8 +114,14 @@ fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn s
         let path = path();
         let mut store = TaskStore::open(&path)?;
         let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, case != "policy_denied"))?;
-        let prepared =
-            store.prepare_intent(&id, 0, "call-1", "write_output", r#"{"content":"result"}"#)?;
+        let prepared = store.prepare_intent(
+            &id,
+            1,
+            0,
+            "call-1",
+            "write_output",
+            r#"{"content":"result"}"#,
+        )?;
         let connection = Connection::open(&path)?;
         match case {
             "denied" => store.decide(&prepared.approval_id, 1, false)?,
@@ -161,6 +180,29 @@ fn denial_expiry_policy_and_task_finish_prevent_claims() -> Result<(), Box<dyn s
             |r| r.get(0),
         )?;
         assert_eq!(dispatched, 0);
+        if case == "denied" {
+            let next = store.prepare_intent(&id, 1, 1, "call-2", "read_input", "{}");
+            assert!(
+                next.is_ok(),
+                "manual denial must permit a new approval request"
+            );
+            let next = next?;
+            assert_eq!(store.status(&id)?.recorded_state, "waiting_approval");
+            assert_eq!(store.claim(&next)?, Claim::Pending);
+            assert_eq!(store.claim(&prepared)?, Claim::Denied);
+            store.decide(&next.approval_id, 1, false)?;
+            assert_eq!(store.claim(&next)?, Claim::Denied);
+            assert_eq!(store.status(&id)?.recorded_state, "running");
+            assert!(store.decide(&prepared.approval_id, 1, true).is_err());
+            assert_eq!(
+                store
+                    .events(&id, 0)?
+                    .iter()
+                    .filter(|event| event.event_type == "tool_dispatched")
+                    .count(),
+                0
+            );
+        }
         drop(connection);
         drop(store);
         std::fs::remove_file(path)?;
@@ -173,7 +215,7 @@ fn intent_and_approval_claim_roll_back_together() -> Result<(), Box<dyn std::err
     let path = path();
     let mut store = TaskStore::open(&path)?;
     let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
-    let prepared = store.prepare_intent(&id, 0, "call-1", "read_input", "{}")?;
+    let prepared = store.prepare_intent(&id, 1, 0, "call-1", "read_input", "{}")?;
     let connection = Connection::open(&path)?;
     connection.execute_batch("CREATE TRIGGER reject_dispatch BEFORE INSERT ON events WHEN NEW.event_type='tool_dispatched' BEGIN SELECT RAISE(ABORT,'injected failure'); END;")?;
     assert!(matches!(
@@ -247,7 +289,7 @@ fn v2_migration_preserves_approvals_and_rolls_back_on_failure()
         let result = TaskStore::open(&path);
         assert_eq!(result.is_err(), fail);
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        assert_eq!(version, if fail { 2 } else { 3 });
+        assert_eq!(version, if fail { 2 } else { 8 });
         let saved: (String, String, i64) = connection.query_row(
             "SELECT approval_id,args_hash,uses_remaining FROM approvals",
             [],
@@ -285,7 +327,7 @@ fn finalization_survives_approval_events_and_preserves_unknown_outcomes()
         let mut store = TaskStore::open(&path)?;
         let (id, generation) = store.start_spec(&spec(ApprovalMode::Manual, true))?;
         let prepared =
-            store.prepare_intent(&id, 0, "call", "write_output", r#"{"content":"result"}"#)?;
+            store.prepare_intent(&id, 1, 0, "call", "write_output", r#"{"content":"result"}"#)?;
         let mut approver = TaskStore::write(&path)?;
         approver.decide(&prepared.approval_id, 1, true)?;
         if dispatched {
@@ -347,7 +389,7 @@ fn corrupted_spec_is_fatal_but_malformed_tool_arguments_are_rejected()
         ("unknown", "{}"),
     ] {
         assert!(matches!(
-            store.prepare_intent(&id, 0, "call", tool, args),
+            store.prepare_intent(&id, 1, 0, "call", tool, args),
             Err(StoreError::InvalidToolCall)
         ));
     }
@@ -357,7 +399,7 @@ fn corrupted_spec_is_fatal_but_malformed_tool_arguments_are_rejected()
         [&id],
     )?;
     assert!(matches!(
-        store.prepare_intent(&id, 0, "call", "read_input", "{}"),
+        store.prepare_intent(&id, 1, 0, "call", "read_input", "{}"),
         Err(StoreError::InvalidSpec)
     ));
     assert!(store.approvals(&id)?.is_empty());
@@ -374,15 +416,15 @@ fn argument_hash_is_sha256_hex_and_call_id_length_is_bounded()
     let path = path();
     let mut store = TaskStore::open(&path)?;
     let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
-    let prepared = store.prepare_intent(&id, 0, "call", "read_input", "{}")?;
+    let prepared = store.prepare_intent(&id, 1, 0, "call", "read_input", "{}")?;
     assert_eq!(
         prepared.args_hash,
         "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
     );
-    store.prepare_intent(&id, 1, &"c".repeat(256), "read_input", "{}")?;
+    store.prepare_intent(&id, 1, 1, &"c".repeat(256), "read_input", "{}")?;
     for call_id in [String::new(), "c".repeat(257), "c".repeat(300)] {
         assert!(matches!(
-            store.prepare_intent(&id, 2, &call_id, "read_input", "{}"),
+            store.prepare_intent(&id, 1, 2, &call_id, "read_input", "{}"),
             Err(StoreError::InvalidToolCall)
         ));
     }
@@ -398,7 +440,7 @@ fn escaped_content_at_the_file_limit_is_accepted() -> Result<(), Box<dyn std::er
     let (id, _) = store.start_spec(&spec(ApprovalMode::Preapproved, true))?;
     let content = "\"".repeat(FILE_LIMIT as usize);
     let args = serde_json::json!({ "content": content }).to_string();
-    store.prepare_intent(&id, 0, "call", "write_output", &args)?;
+    store.prepare_intent(&id, 1, 0, "call", "write_output", &args)?;
     drop(store);
     std::fs::remove_file(path)?;
     Ok(())
@@ -410,7 +452,7 @@ fn rejection_is_recorded_as_an_event() -> Result<(), Box<dyn std::error::Error>>
     let mut store = TaskStore::open(&path)?;
     let (id, _) = store.start_spec(&spec(ApprovalMode::Manual, true))?;
     let before = store.events(&id, 0)?.len();
-    store.record_rejection(&id, "call-1")?;
+    store.record_rejection(&id, 1, "call-1")?;
     let events = store.events(&id, 0)?;
     assert_eq!(events.len(), before + 1);
     assert_eq!(

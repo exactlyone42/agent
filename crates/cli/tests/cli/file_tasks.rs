@@ -1,11 +1,12 @@
 use crate::file_task_run::FileTaskRun;
 use crate::run_each::run_each;
 
-const CASES: [(&str, i32); 18] = [
+const CASES: [(&str, i32); 19] = [
     ("correct", 0),
     ("wrong", 1),
     ("missing", 1),
     ("denied", 1),
+    ("write_denied", 1),
     ("existing", 1),
     ("review", 2),
     ("malformed", 1),

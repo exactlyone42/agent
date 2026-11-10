@@ -1,0 +1,18 @@
+[package]
+name = "agent-harness-anthropic"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[lib]
+path = "src/agent_harness_anthropic.rs"
+
+[dependencies]
+agent-harness.workspace = true
+agent-harness-http.workspace = true
+serde_json.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["net", "io-util"] }

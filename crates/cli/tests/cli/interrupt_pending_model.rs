@@ -86,6 +86,17 @@ fn interrupt_case((already_written, write_failed, signal): (bool, bool, i32)) {
         await_flag(&disconnected, Duration::from_secs(5)),
         "model connection remained open"
     );
+    let connection = crate::open_database::open_database(&case.database());
+    let history: String = connection
+        .query_row("SELECT session_json FROM sessions", [], |row| row.get(0))
+        .unwrap();
+    let session: Value = serde_json::from_str(&history).unwrap();
+    let messages = session["messages"].as_array().unwrap();
+    assert_eq!(messages.len(), if already_written { 3 } else { 1 });
+    if already_written {
+        assert_eq!(messages[2]["Tool"]["call_id"], "write-once");
+        assert_eq!(messages[2]["Tool"]["is_error"], write_failed);
+    }
     assert_eq!(artifact.exists(), already_written);
     if already_written {
         let expected = if write_failed { "" } else { "preserve this" };

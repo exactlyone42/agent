@@ -39,9 +39,14 @@ impl From<StoreError> for CliError {
             StoreError::Incompatible => "store_incompatible",
             StoreError::NotFound => "task_not_found",
             StoreError::Conflict => "task_conflict",
+            StoreError::Unsettled => "resume_unsettled",
+            StoreError::Session(_) => "session_unavailable",
             StoreError::InvalidCursor => "invalid_cursor",
             StoreError::InvalidSpec => "invalid_task_spec",
             StoreError::InvalidToolCall => "invalid_tool_call",
+            StoreError::InvalidInstruction => "invalid_instruction",
+            StoreError::InstructionBacklog => "instruction_backlog",
+            StoreError::Process(_) => "cancel_unconfirmed",
         };
         Self::new(code, error.to_string())
     }

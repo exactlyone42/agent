@@ -13,6 +13,18 @@ pub enum InputError {
 }
 
 pub fn open_checked(path: &Path, limit: u64) -> Result<File, InputError> {
+    open_file(path, limit, false)
+}
+
+pub fn open_result(path: &Path, limit: u64) -> Result<File, InputError> {
+    let metadata = std::fs::symlink_metadata(path)?;
+    if !metadata.is_file() {
+        return Err(InputError::InvalidFile);
+    }
+    open_file(path, limit, true)
+}
+
+fn open_file(path: &Path, limit: u64, no_follow: bool) -> Result<File, InputError> {
     #[cfg(unix)]
     let before = std::fs::metadata(path)?;
     #[cfg(windows)]
@@ -37,13 +49,22 @@ pub fn open_checked(path: &Path, limit: u64) -> Result<File, InputError> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
-        options.custom_flags(libc::O_NONBLOCK | libc::O_NOCTTY);
+        let flags = libc::O_NONBLOCK | libc::O_NOCTTY;
+        options.custom_flags(if no_follow {
+            flags | libc::O_NOFOLLOW
+        } else {
+            flags
+        });
     }
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
         use windows_sys::Win32::Storage::FileSystem::FILE_SHARE_READ;
         options.share_mode(FILE_SHARE_READ);
+        if no_follow {
+            use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+            options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT);
+        }
     }
     let file = options.open(path)?;
     let after = file.metadata()?;
@@ -115,6 +136,26 @@ mod tests {
         std::fs::remove_file(other)?;
         std::fs::remove_file(alias)?;
         std::fs::remove_dir(root)?;
+        Ok(())
+    }
+}
+
+#[cfg(all(test, unix))]
+mod result_tests {
+    #[test]
+    fn result_open_refuses_link_even_after_precheck_is_bypassed()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let root = std::env::temp_dir().join(format!("result-link-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir(&root)?;
+        let source = root.join("source");
+        let alias = root.join("alias");
+        std::fs::write(&source, "private")?;
+        std::os::unix::fs::symlink(&source, &alias)?;
+        assert!(
+            super::open_file(&alias, 1024, true).is_err(),
+            "opening must refuse the replaced symlink itself"
+        );
+        assert!(super::open_checked(&alias, 1024).is_ok());
         Ok(())
     }
 }

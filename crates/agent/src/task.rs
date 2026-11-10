@@ -15,7 +15,7 @@ pub const FILE_LIMIT: u64 = 1024 * 1024;
 pub const TASK_TIMEOUT: Duration = Duration::from_secs(120);
 pub const MANUAL_TASK_TIMEOUT: Duration = Duration::from_secs(900);
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct FileTask {
     pub prompt: String,
@@ -85,6 +85,7 @@ struct Artifact {
 struct WriteOutput {
     path: PathBuf,
     allowed: bool,
+    expected: Option<String>,
     artifact: Arc<Mutex<Option<Artifact>>>,
     cancellation: CancellationToken,
 }
@@ -149,6 +150,15 @@ impl WriteOutput {
         if artifact.is_some() {
             return Err(ToolError::refused("成果已寫入，不重複執行"));
         }
+        if self
+            .expected
+            .as_ref()
+            .is_some_and(|expected| expected != &args.content)
+        {
+            return Err(ToolError::refused(
+                "成果內容未通過任務核對，未建立檔案。請依原要求修正內容，並核對末尾換行，再提出新動作。",
+            ));
+        }
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -194,6 +204,18 @@ pub async fn run_file_task(
     hook: impl Hook,
     timeout: Duration,
 ) -> Result<TaskReport, TaskError> {
+    run_file_task_with_session(model, task, cancellation, hook, timeout, (), None).await
+}
+
+pub async fn run_file_task_with_session(
+    model: impl Model,
+    task: FileTask,
+    cancellation: CancellationToken,
+    hook: impl Hook,
+    timeout: Duration,
+    session: impl agent_harness::SessionStore,
+    recovered: Option<File>,
+) -> Result<TaskReport, TaskError> {
     if cancellation.is_cancelled() {
         return Err(TaskError::Cancelled {
             artifact_created: false,
@@ -218,27 +240,45 @@ pub async fn run_file_task(
     } else {
         None
     };
-    let artifact = Arc::new(Mutex::new(None));
+    let artifact = Arc::new(Mutex::new(recovered.map(|file| Artifact {
+        file,
+        complete: true,
+    })));
     let agent = Agent::new(model)
+        .session(session)
         .hook(hook)
         .tool(ReadInput(Arc::new(Mutex::new(input)), cancellation.clone()))
         .tool(WriteOutput {
             path: task.output,
             allowed: task.allow_write,
+            expected: task.expected.clone(),
             artifact: artifact.clone(),
             cancellation: cancellation.clone(),
         })
         .max_turns(8);
+    let timeout_cancellation = cancellation.clone();
+    let deadline = async move {
+        tokio::time::sleep(timeout).await;
+        timeout_cancellation.cancel();
+    };
+    tokio::pin!(deadline);
+    let run = agent.run(&task.prompt, &cancellation);
+    tokio::pin!(run);
     let response = tokio::select! {
-        biased;
-        _ = cancellation.cancelled() => {
+        response = &mut run => response,
+        _ = &mut deadline => {
+            match run.await {
+                Err(RunError::Cancelled { .. }) | Ok(_) => return Err(TaskError::Timeout),
+                Err(error) => return Err(TaskError::Harness(error)),
+            }
+        }
+    };
+    let response = match response {
+        Err(RunError::Cancelled { .. }) => {
             let artifact_created = artifact.lock().map_err(|_| TaskError::State)?.is_some();
             return Err(TaskError::Cancelled { artifact_created });
         }
-        response = tokio::time::timeout(timeout, agent.run(&task.prompt, &cancellation)) => {
-            response.map_err(|_| TaskError::Timeout)?
-                .map_err(TaskError::Harness)?
-        }
+        other => other.map_err(TaskError::Harness)?,
     };
     let mut guard = artifact.lock().map_err(|_| TaskError::State)?;
     if cancellation.is_cancelled() {
@@ -289,6 +329,7 @@ mod tests {
         let writer = WriteOutput {
             path: path.clone(),
             allowed: true,
+            expected: None,
             artifact: Arc::new(Mutex::new(None)),
             cancellation,
         };

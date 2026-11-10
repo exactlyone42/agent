@@ -1,13 +1,15 @@
 use crate::finish::finish;
 use crate::{
     Dispatch, DispatchAction, Hook, Message, Model, ModelError, ModelReply, Outcome, OutcomeAction,
-    Tool, ToolCall, ToolResult, ToolSpec, TurnStatus,
+    Session, SessionError, SessionStore, Tool, ToolCall, ToolResult, ToolSpec, TurnStatus,
 };
 use std::collections::HashSet;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
+    #[error("{0}")]
+    Session(#[from] SessionError),
     #[error("已要求停止")]
     Cancelled { messages: Vec<Message> },
     #[error("超過回合上限")]
@@ -33,7 +35,8 @@ enum CallError {
     Stopped(String),
 }
 
-pub struct Agent<M, H = ()> {
+pub struct Agent<M, H = (), S = ()> {
+    session: S,
     model: M,
     hook: H,
     tools: Vec<Box<dyn Tool>>,
@@ -43,6 +46,7 @@ pub struct Agent<M, H = ()> {
 impl<M: Model> Agent<M> {
     pub fn new(model: M) -> Self {
         Self {
+            session: (),
             model,
             hook: (),
             tools: Vec::new(),
@@ -51,9 +55,20 @@ impl<M: Model> Agent<M> {
     }
 }
 
-impl<M: Model, H: Hook> Agent<M, H> {
-    pub fn hook<N: Hook>(self, hook: N) -> Agent<M, N> {
+impl<M: Model, H: Hook, S: SessionStore> Agent<M, H, S> {
+    pub fn session<N: SessionStore>(self, session: N) -> Agent<M, H, N> {
         Agent {
+            model: self.model,
+            hook: self.hook,
+            tools: self.tools,
+            max_turns: self.max_turns,
+            session,
+        }
+    }
+
+    pub fn hook<N: Hook>(self, hook: N) -> Agent<M, N, S> {
+        Agent {
+            session: self.session,
             model: self.model,
             hook,
             tools: self.tools,
@@ -76,24 +91,87 @@ impl<M: Model, H: Hook> Agent<M, H> {
         prompt: &str,
         cancel: &CancellationToken,
     ) -> Result<RunOutput, RunError> {
+        let mut session = self.session.load()?.unwrap_or_else(|| Session {
+            revision: 0,
+            messages: vec![Message::User(prompt.to_owned())],
+            next_turn: 0,
+            completed: false,
+            unresolved_effect: false,
+        });
+        if session.completed || session.messages.first() != Some(&Message::User(prompt.to_owned()))
+        {
+            return Err(SessionError::Conflict.into());
+        }
+        if session.unresolved_effect {
+            return Err(SessionError::Unsettled.into());
+        }
+        let missing = crate::pending_calls(&session.messages)?;
+        if !missing.is_empty() {
+            session
+                .messages
+                .extend(missing.into_iter().map(|call| Message::Tool {
+                    call_id: call.id,
+                    content: "結果未知".into(),
+                    is_error: true,
+                }));
+            session.unresolved_effect = true;
+            self.persist(&mut session)?;
+            return Err(SessionError::Unsettled.into());
+        }
+        self.persist(&mut session)?;
         let specs: Vec<ToolSpec> = self.tools.iter().map(|t| t.spec()).collect();
-        let mut messages = vec![Message::User(prompt.to_owned())];
-        let mut turn = 0;
+        let mut remaining_turns = session.next_turn..self.max_turns;
         let mut finished = None;
-        while finished.is_none() && turn < self.max_turns {
-            finished = self.step(turn, &mut messages, &specs, cancel).await?;
-            turn += 1;
+        while finished.is_none() && remaining_turns.next().is_some() {
+            finished = self.advance(&mut session, &specs, cancel).await?;
         }
         finished.ok_or(RunError::TurnLimit)
     }
 
-    async fn step(
+    async fn advance(
         &self,
-        turn: usize,
-        messages: &mut Vec<Message>,
+        session: &mut Session,
         specs: &[ToolSpec],
         cancel: &CancellationToken,
     ) -> Result<Option<RunOutput>, RunError> {
+        self.inject(session, cancel)?;
+        let result = self.step(session, specs, cancel).await;
+        if let Err(RunError::Cancelled { messages }) = &result {
+            session.messages = messages.clone();
+        }
+        if matches!(result, Ok(None)) {
+            session.next_turn += 1;
+        }
+        self.persist(session)?;
+        result
+    }
+
+    fn inject(&self, session: &mut Session, cancel: &CancellationToken) -> Result<(), RunError> {
+        if cancel.is_cancelled() {
+            return Ok(());
+        }
+        let inputs = self.session.inputs(&session.messages)?;
+        if inputs.is_empty() {
+            return Ok(());
+        }
+        session
+            .messages
+            .extend(inputs.into_iter().map(Message::User));
+        self.persist(session)
+    }
+
+    fn persist(&self, session: &mut Session) -> Result<(), RunError> {
+        session.revision = self.session.save(session)?;
+        Ok(())
+    }
+
+    async fn step(
+        &self,
+        session: &mut Session,
+        specs: &[ToolSpec],
+        cancel: &CancellationToken,
+    ) -> Result<Option<RunOutput>, RunError> {
+        let messages = &mut session.messages;
         let reply = self
             .ask(messages, specs, cancel)
             .await
@@ -103,9 +181,11 @@ impl<M: Model, H: Hook> Agent<M, H> {
             Self::validate_calls(messages, &calls)?;
         }
         messages.push(reply.message);
+        self.persist(session)?;
         match reply.status {
             TurnStatus::Complete if calls.is_empty() => {
-                return Ok(Some(finish(std::mem::take(messages))));
+                session.completed = true;
+                return Ok(Some(finish(session.messages.clone())));
             }
             TurnStatus::Continue if calls.is_empty() => return Ok(None),
             TurnStatus::Truncated => return Err(RunError::Truncated),
@@ -117,7 +197,7 @@ impl<M: Model, H: Hook> Agent<M, H> {
                 )));
             }
         }
-        self.settle_calls(turn, messages, &calls, cancel).await?;
+        self.settle_calls(session, &calls, cancel).await?;
         Ok(None)
     }
 
@@ -146,14 +226,25 @@ impl<M: Model, H: Hook> Agent<M, H> {
 
     async fn settle_calls(
         &self,
-        turn: usize,
-        messages: &mut Vec<Message>,
+        session: &mut Session,
         calls: &[ToolCall],
         cancel: &CancellationToken,
     ) -> Result<(), RunError> {
         for (index, call) in calls.iter().enumerate() {
-            let result = self.answer(turn, call, cancel).await;
-            Self::settle_result(result, messages, &calls[index..])?;
+            let result = self.answer(session.next_turn, call, cancel).await;
+            session.unresolved_effect |=
+                matches!(result, Err(CallError::Cancelled { dispatched: true }));
+            let executed = result.as_ref().ok().and_then(|(_, result)| *result);
+            Self::settle_result(
+                result.map(|(message, _)| message),
+                &mut session.messages,
+                &calls[index..],
+            )?;
+            self.persist(session)?;
+            let action = self
+                .notify_outcome(session.next_turn, call, executed, cancel)
+                .await;
+            Self::check_outcome(action, &mut session.messages, &calls[index + 1..], cancel)?;
         }
         Ok(())
     }
@@ -165,7 +256,10 @@ impl<M: Model, H: Hook> Agent<M, H> {
     ) -> Result<(), RunError> {
         match result {
             Ok(result) => messages.push(result),
-            Err(CallError::Stopped(why)) => return Err(RunError::Stopped(why)),
+            Err(CallError::Stopped(why)) => {
+                Self::settle_unstarted(messages, remaining);
+                return Err(RunError::Stopped(why));
+            }
             Err(CallError::Cancelled { dispatched }) => {
                 return Err(Self::settle_cancelled(messages, remaining, dispatched));
             }
@@ -194,12 +288,22 @@ impl<M: Model, H: Hook> Agent<M, H> {
         }
     }
 
+    fn settle_unstarted(messages: &mut Vec<Message>, remaining: &[ToolCall]) {
+        for call in remaining {
+            messages.push(Message::Tool {
+                call_id: call.id.clone(),
+                content: "未執行".into(),
+                is_error: true,
+            });
+        }
+    }
+
     async fn answer(
         &self,
         turn: usize,
         call: &ToolCall,
         cancel: &CancellationToken,
-    ) -> Result<Message, CallError> {
+    ) -> Result<(Message, Option<ToolResult>), CallError> {
         if cancel.is_cancelled() {
             return Err(CallError::Cancelled { dispatched: false });
         }
@@ -229,11 +333,16 @@ impl<M: Model, H: Hook> Agent<M, H> {
         turn: usize,
         call: &ToolCall,
         cancel: &CancellationToken,
-    ) -> Result<Message, CallError> {
-        let tool_message = |content: String, is_error: bool| Message::Tool {
-            call_id: call.id.clone(),
-            content,
-            is_error,
+    ) -> Result<(Message, Option<ToolResult>), CallError> {
+        let tool_message = |content: String, is_error: bool| {
+            (
+                Message::Tool {
+                    call_id: call.id.clone(),
+                    content,
+                    is_error,
+                },
+                None,
+            )
         };
         if call.bad_args.is_some() {
             return Ok(tool_message("工具參數不是有效 JSON".into(), true));
@@ -267,17 +376,43 @@ impl<M: Model, H: Hook> Agent<M, H> {
         } else {
             ToolResult::Failed
         };
-        let hook_result = tokio::select! {
-            biased;
-            action = self.hook.on_outcome(Outcome { turn, call, result }) => action,
-            _ = cancel.cancelled() => OutcomeAction::Proceed,
+        let message = match outcome {
+            Ok(content) => tool_message(content, false).0,
+            Err(error) => tool_message(error.to_string(), true).0,
         };
-        if let OutcomeAction::Stop(why) = hook_result {
-            return Err(CallError::Stopped(why));
+        Ok((message, Some(result)))
+    }
+
+    async fn notify_outcome(
+        &self,
+        turn: usize,
+        call: &ToolCall,
+        result: Option<ToolResult>,
+        cancel: &CancellationToken,
+    ) -> OutcomeAction {
+        let Some(result) = result else {
+            return OutcomeAction::Proceed;
+        };
+        tokio::select! {
+            biased;
+            _ = cancel.cancelled() => OutcomeAction::Proceed,
+            action = self.hook.on_outcome(Outcome { turn, call, result }) => action,
         }
-        Ok(match outcome {
-            Ok(content) => tool_message(content, false),
-            Err(error) => tool_message(error.to_string(), true),
-        })
+    }
+
+    fn check_outcome(
+        action: OutcomeAction,
+        messages: &mut Vec<Message>,
+        remaining: &[ToolCall],
+        cancel: &CancellationToken,
+    ) -> Result<(), RunError> {
+        if matches!(action, OutcomeAction::Stop(_)) && cancel.is_cancelled() {
+            return Err(Self::settle_cancelled(messages, remaining, false));
+        }
+        if let OutcomeAction::Stop(why) = action {
+            Self::settle_unstarted(messages, remaining);
+            return Err(RunError::Stopped(why));
+        }
+        Ok(())
     }
 }

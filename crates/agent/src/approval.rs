@@ -15,6 +15,7 @@ pub type ApprovalGate = agent_harness_approval::ApprovalGate<TaskApprovals>;
 pub fn task_gate(
     store: Arc<Mutex<TaskStore>>,
     task_id: String,
+    generation: i64,
     cancellation: CancellationToken,
     manual: bool,
 ) -> ApprovalGate {
@@ -23,7 +24,7 @@ pub fn task_gate(
         ..Policy::default()
     };
     ApprovalGate::new(
-        Arc::new(TaskApprovals::new(store, task_id)),
+        Arc::new(TaskApprovals::new(store, task_id, generation)),
         cancellation,
         policy,
         task_messages(),

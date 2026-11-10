@@ -58,7 +58,6 @@ impl FileTaskRun {
     fn expected(&self) -> Value {
         match self.name {
             "review" | "write_limit" => Value::Null,
-            "write_failed" => json!(""),
             _ => json!("ORIGINAL FIXTURE"),
         }
     }
@@ -79,7 +78,7 @@ impl FileTaskRun {
                 "input": self.source,
                 "output": self.artifact,
                 "allow_read": allowed,
-                "allow_write": allowed,
+                "allow_write": allowed && self.name != "write_denied",
                 "expected": self.expected()
             }
         }));
@@ -138,7 +137,7 @@ impl FileTaskRun {
             return;
         }
         let message = match self.name {
-            "wrong" => "成果驗證未通過",
+            "denied" | "write_denied" => "工具未獲批准",
             "receipt_failed" => "任務結果未確認",
             "write_failed" => "成果未完整寫入",
             "redirect" | "corrupted_spec" | "reused_call_id" => "模型執行失敗",
@@ -164,7 +163,7 @@ impl FileTaskRun {
                     self.check_duplicate_write(requests);
                 }
             }
-            "wrong" => assert_eq!(read(&self.artifact), "incorrect content"),
+            "wrong" => assert!(!self.artifact.exists()),
             "existing" => assert_eq!(read(&self.artifact), "keep existing"),
             "existing_equal" => assert_eq!(read(&self.artifact), "ORIGINAL FIXTURE"),
             "write_failed" => assert_eq!(read(&self.artifact), ""),
@@ -184,17 +183,17 @@ impl FileTaskRun {
     }
 
     fn check_requests(&self, requests: &[Value]) {
-        if matches!(self.name, "redirect" | "corrupted_spec") {
+        if matches!(self.name, "redirect" | "corrupted_spec" | "denied") {
             assert_eq!(requests.len(), 1);
+            check_definitions(&requests[0]);
             return;
         }
         assert!(requests.len() >= 2);
-        if self.name == "reused_call_id" {
+        if matches!(self.name, "reused_call_id" | "write_denied") {
             assert_eq!(requests.len(), 2);
         }
         let messages = tool_messages(&requests[1]);
         match self.name {
-            "denied" => assert!(!json!(messages).to_string().contains("original fixture")),
             "source_grew" => {
                 let contents: Vec<&str> = messages
                     .iter()

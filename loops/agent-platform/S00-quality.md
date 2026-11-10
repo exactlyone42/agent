@@ -4,22 +4,26 @@
 
 ## 目標
 
-檢查入口（`cargo xtask gate`、`all`）真的能跑過，現有程式符合新設計規則（巢狀最多兩層、少用 else、一檔一函數），測試與檢查工具不再用 Python。
+檢查入口（`cargo xtask gate`、`all`）真的能跑過，現有程式符合新設計規則（巢狀最好一層、最多兩層，複雜邏輯才三層；提早返回；以型別及內聚性管理檔案），測試與檢查工具不再用 Python。
 
 ## 子任務
 
-| id | 做什麼 | 驗收 | 狀態 |
-| --- | --- | --- | --- |
-| Q1 | 使用者跑 `cargo xtask gate`，確認巢狀 17 處已清、無新警告 | gate 全綠；再跑一次原指令警告數為 0 | DONE（gate 結束碼 0、警告 0、76 測試過 0 失敗；我自己跑，cargo 已可用） |
-| Q2 | 修 gate 揭露的編譯或測試錯誤（這次 7 檔改動未編譯過） | 全工作區測試通過 | DONE（gate 無錯誤，無需修） |
-| Q3 | 動到的舊檔依「一檔一函數」拆開（agent.rs 的 finish、approvals.rs 自由函式等） | gate 通過、行為測試不變 | DONE（finish、digest、append、close_intents 各一檔；gate 0 警告，76 測試過） |
-| Q4 | 補變異漏抓：store/approvals.rs:188,317、approval_gate.rs、openai/agent_harness_openai.rs:41,130、cli main.rs:243、agent/approval.rs:26 | 變異測試修改檔 100%，等價者有可重現證據 | DONE（逾時例外已重驗：approvals.rs 132:38、207:9、261:19 皆被抓到，0 逾時；證據：/tmp/mut6） |
-| Q5 | 跑 `cargo xtask all` 到過 | summary.json 全過，列工具版本、總變異數、未跑項 | DONE（`xtask all` 通過：391 個變異，323 抓到、68 無法編譯、0 漏、0 逾時；依 PR #2 紀錄） |
-| Q6 | `test_cli.py`（765 行）改 Rust 整合測試 | 同案例在 Rust 通過；陰性對照失敗；刪舊檔；每案加逾時並重驗 Q4 的兩個逾時變異 | DONE（16 案全移植，舊 Python 與 relative 目錄已刪，案例時限 60 秒、子案例遇錯即停；快檢結束碼 0） |
-| Q7 | `render_plan.py` 與 `codex_file_contract.py` 改 Rust 或移除 | PLAN.pdf 重出、白底檢查 65535 | DONE（`xtask render-plan` 取代 Python 並刪檔，`codex_file_contract.py` 查無；PLAN.pdf 重出 38 頁，白底檢查 38 頁通過；gate 全過，含 3 個新測試） |
-| Q8 | 清殘留：docs/evidence、crates/cli/relative、docs/PLAN.html、scripts/__pycache__（使用者刪）；找出寫 `relative/path` 的測試改用暫存目錄 | git status 乾淨 | DONE（2026-10-30 查：docs/evidence、crates/cli/relative、docs/PLAN.html、scripts/__pycache__ 都已不在） |
-| Q9 | prettier、提交 feature/agent-plan、推送、開 PR 到 develop | PR 檢查通過；自己的 PR 可合 | DONE（PR #2 已合 develop，分支已刪） |
+| id  | 做什麼                                                                                                                                 | 驗收                                                                         | 狀態                                                                                                                                             |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Q1  | 使用者跑 `cargo xtask gate`，確認巢狀 17 處已清、無新警告                                                                              | gate 全綠；再跑一次原指令警告數為 0                                          | DONE（gate 結束碼 0、警告 0、76 測試過 0 失敗；我自己跑，cargo 已可用）                                                                          |
+| Q2  | 修 gate 揭露的編譯或測試錯誤（這次 7 檔改動未編譯過）                                                                                  | 全工作區測試通過                                                             | DONE（gate 無錯誤，無需修）                                                                                                                      |
+| Q3  | 動到的舊檔依「一檔一函數」拆開（agent.rs 的 finish、approvals.rs 自由函式等）                                                          | gate 通過、行為測試不變                                                      | DONE（finish、digest、append、close_intents 各一檔；gate 0 警告，76 測試過）                                                                     |
+| Q4  | 補變異漏抓：store/approvals.rs:188,317、approval_gate.rs、openai/agent_harness_openai.rs:41,130、cli main.rs:243、agent/approval.rs:26 | 變異測試修改檔 100%，等價者有可重現證據                                      | DONE（逾時例外已重驗：approvals.rs 132:38、207:9、261:19 皆被抓到，0 逾時；證據：/tmp/mut6）                                                     |
+| Q5  | 跑 `cargo xtask all` 到過                                                                                                              | summary.json 全過，列工具版本、總變異數、未跑項                              | DONE（`xtask all` 通過：391 個變異，323 抓到、68 無法編譯、0 漏、0 逾時；依 PR #2 紀錄）                                                         |
+| Q6  | `test_cli.py`（765 行）改 Rust 整合測試                                                                                                | 同案例在 Rust 通過；陰性對照失敗；刪舊檔；每案加逾時並重驗 Q4 的兩個逾時變異 | DONE（16 案全移植，舊 Python 與 relative 目錄已刪，案例時限 60 秒、子案例遇錯即停；快檢結束碼 0）                                                |
+| Q7  | `render_plan.py` 與 `codex_file_contract.py` 改 Rust 或移除                                                                            | PLAN.pdf 重出、白底檢查 65535                                                | DONE（`xtask render-plan` 取代 Python 並刪檔，`codex_file_contract.py` 查無；PLAN.pdf 重出 38 頁，白底檢查 38 頁通過；gate 全過，含 3 個新測試） |
+| Q8  | 清殘留：docs/evidence、crates/cli/relative、docs/PLAN.html、scripts/**pycache**（使用者刪）；找出寫 `relative/path` 的測試改用暫存目錄 | git status 乾淨                                                              | DONE（2026-10-30 查：docs/evidence、crates/cli/relative、docs/PLAN.html、scripts/**pycache** 都已不在）                                          |
+| Q9  | prettier、提交 feature/agent-plan、推送、開 PR 到 develop                                                                              | PR 檢查通過；自己的 PR 可合                                                  | DONE（PR #2 已合 develop，分支已刪）                                                                                                             |
 
 ## 完成條件
 
 Q1–Q9 全 DONE，`all` 通過，PR 已合 develop。Q7 只動檢查工具，不屬核心邏輯，依專案規則不補跑 `all`。
+
+## 同步依賴與驗收邊界（2026-11-04）
+
+現行規則以型別及內聚性管理檔案，不再要求一檔一函式；Q3 保留歷史成果，不作後續拆檔要求。文件同步不重判既有 DONE；後續修改依現行 gate／all 規則驗證。

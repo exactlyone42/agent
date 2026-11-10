@@ -28,7 +28,7 @@ pub(super) fn close_intents(
                 [task_id],
                 |r| r.get(0),
             )?;
-            transaction.execute("INSERT INTO events(event_id,task_id,seq,event_type,related_id) VALUES (?1,?2,?3,?4,?5)",params![Uuid::new_v4().to_string(),task_id,seq,kind,id])?;
+            transaction.execute("INSERT INTO events(event_id,task_id,seq,event_type,related_id,generation) SELECT ?1,?2,?3,?4,?5,generation FROM tasks WHERE task_id=?2",params![Uuid::new_v4().to_string(),task_id,seq,kind,id])?;
         }
     }
     Ok(())

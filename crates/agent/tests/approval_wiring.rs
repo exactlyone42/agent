@@ -46,7 +46,7 @@ fn rejecting_a_call_records_it_in_the_task() -> Result<(), Box<dyn std::error::E
         approval_mode: ApprovalMode::Manual,
     })?;
     let store = Arc::new(Mutex::new(store));
-    let approvals = TaskApprovals::new(store.clone(), id.clone());
+    let approvals = TaskApprovals::new(store.clone(), id.clone(), 1);
     let call = ToolCall {
         id: "call-1".into(),
         name: "write_output".into(),

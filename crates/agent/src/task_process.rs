@@ -101,6 +101,15 @@ impl TaskProcess {
     }
 
     fn validate_identity(&self) -> io::Result<()> {
+        match self.check_identity() {
+            Err(_) if self.exited().unwrap_or(false) => {
+                Err(io::Error::from(io::ErrorKind::NotFound))
+            }
+            result => result,
+        }
+    }
+
+    fn check_identity(&self) -> io::Result<()> {
         if Self::read(File::open("/proc/sys/kernel/random/boot_id")?)?.trim() != self.boot_id
             || Self::start_time(self.pid)? != self.process_start
         {
@@ -199,5 +208,59 @@ impl TaskProcess {
 
     fn identity_error() -> io::Error {
         io::Error::new(io::ErrorKind::InvalidData, "執行者身分不符，未送出終止訊號")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs::OpenOptions, process::Command, time::Duration};
+
+    #[test]
+    fn exited_executor_still_holding_the_lock_is_treated_as_gone() {
+        let root =
+            std::env::temp_dir().join(format!("agent-task-process-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let path = root.join("owner.lock");
+        let holder = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)
+            .unwrap();
+        holder.lock().unwrap();
+        let mut child = Command::new("true").spawn().unwrap();
+        let pid = child.id();
+        let status_file = format!("/proc/{pid}/stat");
+        let mut zombie = false;
+        for _ in 0..400 {
+            let stat = std::fs::read_to_string(&status_file).unwrap();
+            zombie = stat
+                .rsplit_once(')')
+                .and_then(|(_, rest)| rest.split_whitespace().next())
+                == Some("Z");
+            if zombie {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert!(zombie);
+        let record = serde_json::json!({
+            "version": 1,
+            "task_id": "task",
+            "generation": 1,
+            "pid": pid,
+            "process_start": TaskProcess::start_time(pid).unwrap(),
+            "boot_id": TaskProcess::read(File::open("/proc/sys/kernel/random/boot_id").unwrap())
+                .unwrap()
+                .trim(),
+            "descriptor": 3,
+        });
+        std::fs::write(&path, record.to_string()).unwrap();
+        let captured = TaskProcess::capture(File::open(&path).unwrap(), "task", 1);
+        child.wait().unwrap();
+        std::fs::remove_dir_all(&root).unwrap();
+        assert!(captured.unwrap().is_none());
     }
 }

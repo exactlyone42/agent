@@ -65,5 +65,5 @@ P05a 需 P04 恢復與 E01 權限，按需接 P02m；完整安裝及發布門檻
 - 交錯反例已修並抓到錯世代反轉。原件.runtime/p04-cross-cancel-20261110/。
 - 卡住執行者：cancel_stalled現過（5秒終止確認、之後10秒無寫入），停用SIGKILL陰性對照101。原件.runtime/p04-stalled-20261110/。真Gateway取消、程序樹未驗，新版all未跑。
 - R3切片1–4：instruct收下、去重（DB升8），下回合前交模型並標applied，取消不注入；待處理上限16；status加pending_instructions。具名測試過、改錯7種失敗；切片3快檢231過，切片4快檢2次未過。原件.runtime/p04-pending-limit-20261110/。
-- BLOCKED：cancel_stalled單獨跑8次敗3次（EACCES，與切片4無關，all基準同），成因未明。
-- 唯一下一步：查EACCES（task_process.rs），修好重跑快檢；真Gateway取消、程序樹、36種漏抓、R4–R6保留。
+- EACCES已修：目標為殭屍時視為已不在；新測試陰性對照過，cancel_stalled連跑12次全過，快檢238過。原件.runtime/p04-eacces-20261110/。
+- 唯一下一步：重跑切片4快檢；真Gateway取消、程序樹、36種漏抓、R4–R6保留。

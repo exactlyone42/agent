@@ -28,7 +28,7 @@ Protocol version: `1.3.1`（細節見 `agent-platform/` 子檔）
 | P02m | MCP 工具接入與自動安裝 | P02m-mcp.md | P02、E01 | PENDING |
 | P03a | Linux 安裝（內部預覽） | P03a-install.md | P02m | PENDING |
 | P04 | 接續、跨程序取消、單一擁有者 | P04-resume.md | P01核心、P02入口 | RUNNING |
-| P05a | 外部 RAG 接口與整合 | P05a-knowledge.md | P04 | PENDING |
+| P05a | 外部 RAG 接口與整合 | P05a-knowledge.md | P04 | WAITING |
 | P03b | 完整安裝整合 | P03b-install-full.md | P03a、P05a | PENDING |
 | P05b | 專業格式需求移交 RAG | P05b-knowledge-wide.md | 外部 rag | SUPERSEDED |
 | P06 | 長期記憶 | P06-memory.md | P04 | PENDING |

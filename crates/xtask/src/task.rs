@@ -3,6 +3,7 @@ use crate::error::XtaskError;
 use crate::gate::gate_steps;
 use crate::plan::Plan;
 use crate::run_steps::run_steps;
+use crate::run_structure::run_structure;
 use crate::text::text;
 use std::path::Path;
 
@@ -23,9 +24,17 @@ impl Task {
 
     pub fn run(self, root: &Path) -> Result<i32, XtaskError> {
         match self {
-            Self::Gate => run_steps(root, &gate_steps(root)),
+            Self::Gate => Self::gate(root),
             Self::All => Self::all(root),
         }
+    }
+
+    fn gate(root: &Path) -> Result<i32, XtaskError> {
+        let code = run_structure(root)?;
+        if code != 0 {
+            return Ok(code);
+        }
+        run_steps(root, &gate_steps(root))
     }
 
     fn all(root: &Path) -> Result<i32, XtaskError> {

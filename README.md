@@ -15,6 +15,7 @@ Windows、macOS、Linux 三平台必交的企業 Agent：先完成 CLI，再完�
 | [來源研究](docs/sources.md)                     | 選擇現成 Harness、框架、Rust 移植參考與授權              |
 | [評測與錯誤注入](docs/evaluation.md)            | 設計案例、判定成功、測試故障及比較改版                   |
 | [品質要求](docs/engineering-standards.md)       | 寫程式、安裝依賴、提交或推送之前                         |
+| [目錄結構](docs/directory-structure.md)         | 新增檔案、資料夾或 crate 之前，確認該放哪裡              |
 | [變異測試例外](docs/mutation-equivalents.md)    | 新增或調整變異測試排除項目之前                           |
 | [CLI 開發入口](docs/cli.md)                     | 執行目前的檔案任務、判讀結果與已知限制                   |
 | [共用 Git 規範](DEVELOPMENT.md)                 | 開分支、提交、整合與安裝 hooks                           |

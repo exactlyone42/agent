@@ -21,6 +21,7 @@
 | [變異測試例外](docs/mutation-equivalents.md)       | 新增或調整變異測試排除項目之前                           |
 | [H5 檢討](docs/aar-h5-simulation.md)               | 看 H5 測試用模擬代替真實情境的缺口與後續                 |
 | [CLI 開發入口](docs/cli.md)                        | 執行目前的檔案任務、判讀結果與已知限制                   |
+| [外部 RAG 接口](docs/rag-interface.md)             | 做 P05a：接 rag 函式庫之前，看已推得的接口與缺口         |
 | [共用 Git 規範](DEVELOPMENT.md)                    | 開分支、提交、整合與安裝 hooks                           |
 
 一個 repo 可有多個 Rust crate（可獨立編譯的套件）與服務，不代表必須一起部署。RAG 已在獨立 [rag repo](https://github.com/ifandonlyif42/rag) 開發；本 repo 只負責接口與整合驗收，不實作文件匯入、解析、索引及來源維護。Memory、Computer Use、Evaluation 保留獨立使用入口。

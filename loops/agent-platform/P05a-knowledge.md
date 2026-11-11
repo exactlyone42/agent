@@ -17,4 +17,4 @@ Agent 送出查詢並接收可追溯的原文、來源位置與版本；沿用�
 
 ## 目前狀態
 
-2026-11-10：rag 為純 Rust 函式庫，23 票僅在其本機 loop 檔、全 PENDING；Q3 工具封裝、C1 信封對應本接口。已在 Offora 向其對口 claude-code-ce0983 送 rag-tool/1 八條提案（message_id 2985616e4ffa0de7e35ae2446a03f1c5c8456e4439efd205f7e5712bf06ef70f：同程序依賴、請求不含身分、固定回覆欄位與 status 集合、錯誤碼含 retriable、取消與撤權處理、信封 JSON Schema），尚無回覆。使用者決定接口先留空、其他票先做；依 rag 設計文件推得的接口與缺口見 docs/rag-interface.md（未經對方同意）；K2–K4 等對方逐條回覆，未回覆不當成已同意。原 K0–K8 的 RAG 本體需求以 PLAN 範圍修訂及 docs/knowledge-plan.md 保留作移交參考，不代表對方已接手或完成。
+2026-11-11：使用者說 RAG 已完成，已讀 rag 程式碼（feature/project-scope，ed8166c）。docs/rag-interface.md 已改成程式碼核對的接口：工具為 rag_search、rag_query、live_*、選用 web_*，無 rag_read。Offora 八條提案（message_id 2985616e…）仍無回覆，對方未同意。K1 以程式碼為準；K2 可依該文件寫接入，K4 需 SQLite、PostgreSQL+pgvector、Ollama、tokenizer，且 rag 入口名 rag 已被 crates.io 占用，只能路徑依賴。rag 的測試我沒重跑。原 K0–K8 的 RAG 本體需求以 PLAN 範圍修訂及 docs/knowledge-plan.md 保留作移交參考。

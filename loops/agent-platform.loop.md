@@ -58,12 +58,12 @@ P05a 需 P04 恢復與 E01 權限，按需接 P02m；完整安裝及發布門檻
 
 ## 目前狀態
 
-- 唯一writer保留dirty，未提交推送，本輪未動正式；預算交期未知。
+- 唯一writer；未合併發布，未動正式；預算交期未知。
 - R1 VALIDATING：真Gateway兩次SIGKILL後第4次接續成功，成功只寫一次不重寫；2任務1成功1失敗，兩自有容器已停。原件.runtime/p04-resume-gateway-20261110/acceptance-summary.json。
-- 原all退出1：41漏抓，後補5，餘36未複驗；未全過不提交推送發布。
+- all退出1(11-11)：變異80漏抓／899抓到（前次41漏抓），其餘過；未過不合併發布。原件.runtime/checks/1794359096-257440/。
 - R2 RUNNING：已接cancel及清單/cancel 1，原CLI等待批准／模型取消後十秒無新寫入，接續仍需新批；缺執行者不假確認。有未明派工保留unknown。DB升7保舊列，事件4／新任務3，舊任務首次新狀態同交易升3。
 - 交錯反例已修並抓到錯世代反轉。原件.runtime/p04-cross-cancel-20261110/。
-- 卡住執行者：cancel_stalled現過（5秒終止確認、之後10秒無寫入），停用SIGKILL陰性對照101。原件.runtime/p04-stalled-20261110/。真Gateway取消、程序樹未驗，新版all未跑。
-- R3切片1–4：instruct收下、去重（DB升8），下回合前交模型並標applied，取消不注入；待處理上限16；status加pending_instructions。具名測試過、改錯7種失敗；切片3快檢231過，切片4快檢2次未過。原件.runtime/p04-pending-limit-20261110/。
+- 卡住執行者：cancel_stalled現過（5秒終止確認、之後10秒無寫入），停用SIGKILL陰性對照101。原件.runtime/p04-stalled-20261110/。真Gateway取消、程序樹未驗。
+- R3切片1–4：instruct收下、去重（DB升8），下回合前交模型並標applied，取消不注入；待處理上限16；status加pending_instructions。具名測試過、改錯7種失敗；切片3快檢231過。原件.runtime/p04-pending-limit-20261110/。
 - EACCES已修：目標為殭屍時視為已不在；新測試陰性對照過，cancel_stalled連跑12次全過，快檢238過。原件.runtime/p04-eacces-20261110/。
-- 切片4快檢已隨之通過。唯一下一步：真Gateway取消、程序樹、36種漏抓、R4–R6。
+- 唯一下一步：真Gateway取消、程序樹、80種漏抓、R4–R6。

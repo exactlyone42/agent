@@ -102,3 +102,7 @@ Qwen排序2/3，採先R2跨程序取消、不採將安全守門當優化及未�
 resume.rs 的具名測試在原 CLI 仍等批准時，另一個程序 resume 同任務，回 1 與 session_unavailable，模型請求數不變；快檢238過含此案。陰性對照：暫時改成不檢查擁有權鎖，同測試失敗101，但失敗點是第二個程序沒被拒、卡到 60 秒案例期限，不是退出碼斷言。還原後原檔雜湊相同，單獨重跑 1 過。原件.runtime/p04-eacces-20261110/r4-mutation.txt、r4-positive.txt。
 
 未驗：兩個 resume 同時搶（本案是原程序在跑，第二個才來）；崩潰後鎖由系統自動釋放已在 R1 驗過。R4 先標 VALIDATING，不標 DONE。
+
+## 完整檢查 2026-11-11
+
+`cargo xtask all` 退出 1：gate、secrets、coverage 過，變異測試未過。1115 個變異中 80 漏抓、899 抓到、135 不可行、1 逾時；前次是 41 漏抓。漏抓分布：store.rs 23、task_process.rs 20、recovery_call.rs 16、recovery_session.rs 5、xtask 6、harness／cli／agent 其餘 10，逾時 1 個在 task_cancellation.rs。尚未逐項補測。原件 `.runtime/checks/1794359096-257440/mutation.txt`。

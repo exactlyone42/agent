@@ -1,7 +1,7 @@
 mod fake_root;
 mod support;
 
-use agent_platform_xtask::{Plan, run_checks};
+use agent_platform_xtask::{Outcome, Plan, run_checks};
 use fake_root::{fail, fake_root, pass, read_json, write_reports};
 use serde_json::json;
 use std::fs;
@@ -26,7 +26,10 @@ fn all_steps_pass_and_summary_records_each() {
     let evidence = tempfile::tempdir().unwrap();
     write_reports(evidence.path(), 3);
     let plan = plan(vec![pass("pre")], vec![pass("coverage"), pass("mutation")]);
-    assert_eq!(run_checks(root.path(), evidence.path(), &plan).unwrap(), 0);
+    assert_eq!(
+        run_checks(root.path(), evidence.path(), &plan).unwrap(),
+        Outcome::Passed
+    );
     let summary = read_json(&evidence.path().join("summary.json"));
     assert_eq!(summary["passed"], json!(true));
     assert_eq!(summary["source_unchanged"], json!(true));
@@ -40,7 +43,10 @@ fn failed_preflight_skips_the_rest() {
     let evidence = tempfile::tempdir().unwrap();
     write_reports(evidence.path(), 3);
     let plan = plan(vec![fail("pre")], vec![touch("coverage", "marker")]);
-    assert_eq!(run_checks(root.path(), evidence.path(), &plan).unwrap(), 1);
+    assert_eq!(
+        run_checks(root.path(), evidence.path(), &plan).unwrap(),
+        Outcome::Failed
+    );
     assert!(!root.path().join("marker").exists());
     let summary = read_json(&evidence.path().join("summary.json"));
     assert_eq!(summary["passed"], json!(false));
@@ -53,7 +59,10 @@ fn changed_sources_fail_even_when_every_step_passes() {
     let evidence = tempfile::tempdir().unwrap();
     write_reports(evidence.path(), 3);
     let plan = plan(vec![pass("pre")], vec![touch("coverage", "crates/new")]);
-    assert_eq!(run_checks(root.path(), evidence.path(), &plan).unwrap(), 1);
+    assert_eq!(
+        run_checks(root.path(), evidence.path(), &plan).unwrap(),
+        Outcome::Failed
+    );
     let summary = read_json(&evidence.path().join("summary.json"));
     assert_eq!(summary["source_unchanged"], json!(false));
     assert_eq!(summary["passed"], json!(false));
@@ -65,7 +74,10 @@ fn missing_or_failing_reports_fail() {
     let root = fake_root();
     let evidence = tempfile::tempdir().unwrap();
     let plan = plan(vec![pass("pre")], vec![pass("coverage")]);
-    assert_eq!(run_checks(root.path(), evidence.path(), &plan).unwrap(), 1);
+    assert_eq!(
+        run_checks(root.path(), evidence.path(), &plan).unwrap(),
+        Outcome::Failed
+    );
     assert!(evidence.path().join("report-error.txt").exists());
     let broken = tempfile::tempdir().unwrap();
     write_reports(broken.path(), 0);
@@ -73,7 +85,10 @@ fn missing_or_failing_reports_fail() {
         preflight: vec![pass("pre")],
         main: vec![pass("coverage")],
     };
-    assert_eq!(run_checks(root.path(), broken.path(), &plan).unwrap(), 1);
+    assert_eq!(
+        run_checks(root.path(), broken.path(), &plan).unwrap(),
+        Outcome::Failed
+    );
     let summary = read_json(&broken.path().join("summary.json"));
     assert_eq!(summary["checks"]["reports"], json!(1));
     assert!(!broken.path().join("report-error.txt").exists());
@@ -90,7 +105,10 @@ fn leaked_credential_fails_the_run() {
     let evidence = tempfile::tempdir().unwrap();
     write_reports(evidence.path(), 3);
     let plan = plan(vec![pass("pre")], vec![pass("coverage")]);
-    assert_eq!(run_checks(root.path(), evidence.path(), &plan).unwrap(), 1);
+    assert_eq!(
+        run_checks(root.path(), evidence.path(), &plan).unwrap(),
+        Outcome::Failed
+    );
     let summary = read_json(&evidence.path().join("summary.json"));
     assert_ne!(summary["checks"]["secrets"], json!(0));
 }

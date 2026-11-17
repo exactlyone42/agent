@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use std::path::Path;
 use std::process::Command;
 
@@ -27,7 +28,7 @@ impl Step {
         let mut command = Command::new(&self.program);
         command
             .args(&self.arguments)
-            .env_remove("CARGO_PKG_NAME")
+            .env_remove(CARGO_PKG_NAME_VARIABLE)
             .envs(self.environment.iter().cloned())
             .current_dir(root);
         command

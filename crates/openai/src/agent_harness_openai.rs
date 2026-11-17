@@ -1,4 +1,17 @@
+mod model_failures;
+mod wire_keys;
+
 use agent_harness::{Message, Model, ModelError, ToolCall, ToolSpec};
+use model_failures::{
+    CLIENT_UNAVAILABLE, REPLY_NOT_JSON, REPLY_SHAPE, SERVICE_STATUS, SERVICE_UNREACHABLE,
+    TOOL_ARGUMENTS_NOT_JSON,
+};
+use wire_keys::{
+    ARGUMENTS, CALL_ARGUMENTS_POINTER, CALL_NAME_POINTER, CHAT_COMPLETIONS_PATH, CONTENT,
+    DESCRIPTION, FIRST_CHOICE_MESSAGE, FUNCTION, ID, MESSAGES, MODEL, NAME, PARAMETERS, ROLE,
+    ROLE_ASSISTANT, ROLE_TOOL, ROLE_USER, TOOL_CALL_ID, TOOL_CALLS, TOOLS, TYPE, TYPE_FUNCTION,
+};
+
 use serde_json::{Value, json};
 use std::time::Duration;
 use url::Url;
@@ -22,9 +35,12 @@ impl OpenAi {
             .redirect(reqwest::redirect::Policy::none())
             .timeout(timeout)
             .build()
-            .map_err(|_| ModelError("無法建立模型連線".into()))?;
+            .map_err(|_| ModelError(CLIENT_UNAVAILABLE.into()))?;
         let mut url = base.clone();
-        let path = format!("{}/chat/completions", base.path().trim_end_matches('/'));
+        let path = format!(
+            "{}/{CHAT_COMPLETIONS_PATH}",
+            base.path().trim_end_matches('/')
+        );
         url.set_path(&path);
         Ok(Self {
             http,
@@ -37,18 +53,18 @@ impl OpenAi {
 
 fn wire_message(message: &Message) -> Value {
     match message {
-        Message::User(text) => json!({"role": "user", "content": text}),
+        Message::User(text) => json!({ROLE: ROLE_USER, CONTENT: text}),
         Message::Assistant { text, calls } if calls.is_empty() => {
-            json!({"role": "assistant", "content": text})
+            json!({ROLE: ROLE_ASSISTANT, CONTENT: text})
         }
         Message::Assistant { text, calls } => {
             let calls: Vec<Value> = calls
                 .iter()
                 .map(|call| {
                     json!({
-                        "id": call.id,
-                        "type": "function",
-                        "function": {"name": call.name, "arguments": call.args.to_string()},
+                        ID: call.id,
+                        TYPE: TYPE_FUNCTION,
+                        FUNCTION: {NAME: call.name, ARGUMENTS: call.args.to_string()},
                     })
                 })
                 .collect();
@@ -57,53 +73,53 @@ fn wire_message(message: &Message) -> Value {
             } else {
                 json!(text)
             };
-            json!({"role": "assistant", "content": content, "tool_calls": calls})
+            json!({ROLE: ROLE_ASSISTANT, CONTENT: content, TOOL_CALLS: calls})
         }
         Message::Tool {
             call_id, content, ..
         } => {
-            json!({"role": "tool", "tool_call_id": call_id, "content": content})
+            json!({ROLE: ROLE_TOOL, TOOL_CALL_ID: call_id, CONTENT: content})
         }
     }
 }
 
 fn wire_tool(spec: &ToolSpec) -> Value {
     json!({
-        "type": "function",
-        "function": {
-            "name": spec.name,
-            "description": spec.description,
-            "parameters": spec.parameters,
+        TYPE: TYPE_FUNCTION,
+        FUNCTION: {
+            NAME: spec.name,
+            DESCRIPTION: spec.description,
+            PARAMETERS: spec.parameters,
         },
     })
 }
 
 fn read_reply(body: &Value) -> Result<Message, ModelError> {
-    let bad = || ModelError("模型回應格式不符".into());
-    let message = body.pointer("/choices/0/message").ok_or_else(bad)?;
+    let bad = || ModelError(REPLY_SHAPE.into());
+    let message = body.pointer(FIRST_CHOICE_MESSAGE).ok_or_else(bad)?;
     let text = message
-        .get("content")
+        .get(CONTENT)
         .and_then(Value::as_str)
         .unwrap_or("")
         .to_owned();
     let mut calls = Vec::new();
     for raw in message
-        .get("tool_calls")
+        .get(TOOL_CALLS)
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
     {
-        let id = raw.get("id").and_then(Value::as_str).ok_or_else(bad)?;
+        let id = raw.get(ID).and_then(Value::as_str).ok_or_else(bad)?;
         let name = raw
-            .pointer("/function/name")
+            .pointer(CALL_NAME_POINTER)
             .and_then(Value::as_str)
             .ok_or_else(bad)?;
         let arguments = raw
-            .pointer("/function/arguments")
+            .pointer(CALL_ARGUMENTS_POINTER)
             .and_then(Value::as_str)
             .ok_or_else(bad)?;
         let args = serde_json::from_str(arguments)
-            .map_err(|_| ModelError("工具參數不是有效 JSON".into()))?;
+            .map_err(|_| ModelError(TOOL_ARGUMENTS_NOT_JSON.into()))?;
         calls.push(ToolCall {
             id: id.to_owned(),
             name: name.to_owned(),
@@ -120,11 +136,11 @@ impl Model for OpenAi {
         tools: &[ToolSpec],
     ) -> Result<Message, ModelError> {
         let mut body = json!({
-            "model": self.model,
-            "messages": messages.iter().map(wire_message).collect::<Vec<_>>(),
+            MODEL: self.model,
+            MESSAGES: messages.iter().map(wire_message).collect::<Vec<_>>(),
         });
         if !tools.is_empty() {
-            body["tools"] = tools.iter().map(wire_tool).collect();
+            body[TOOLS] = tools.iter().map(wire_tool).collect();
         }
         let mut request = self.http.post(self.url.clone()).json(&body);
         if !self.key.is_empty() {
@@ -133,15 +149,15 @@ impl Model for OpenAi {
         let response = request
             .send()
             .await
-            .map_err(|_| ModelError("無法連線模型服務".into()))?;
+            .map_err(|_| ModelError(SERVICE_UNREACHABLE.into()))?;
         let status = response.status();
         if !status.is_success() {
-            return Err(ModelError(format!("模型服務回應 {status}")));
+            return Err(ModelError(format!("{SERVICE_STATUS} {status}")));
         }
         let body: Value = response
             .json()
             .await
-            .map_err(|_| ModelError("模型回應不是有效 JSON".into()))?;
+            .map_err(|_| ModelError(REPLY_NOT_JSON.into()))?;
         read_reply(&body)
     }
 }

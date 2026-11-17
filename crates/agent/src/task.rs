@@ -1,3 +1,9 @@
+use crate::task_settings::TASK_MAX_TURNS;
+pub use crate::task_settings::{
+    FILE_LIMIT, MANUAL_TASK_TIMEOUT, READ_INPUT_DESCRIPTION, READ_INPUT_TOOL, TASK_TIMEOUT,
+    WRITE_OUTPUT_DESCRIPTION, WRITE_OUTPUT_DONE, WRITE_OUTPUT_TOOL,
+};
+use crate::tool_refusal::ToolRefusal;
 use crate::verification::{VerificationError, verify_file};
 pub use agent_harness::CancellationToken;
 use agent_harness::{Agent, Hook, Model, RunError, Tool, ToolError, ToolFuture, ToolSpec};
@@ -10,10 +16,6 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
-
-pub const FILE_LIMIT: u64 = 1024 * 1024;
-pub const TASK_TIMEOUT: Duration = Duration::from_secs(120);
-pub const MANUAL_TASK_TIMEOUT: Duration = Duration::from_secs(900);
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -43,27 +45,27 @@ pub struct TaskReport {
 
 #[derive(Debug, thiserror::Error)]
 pub enum TaskError {
-    #[error("工具未獲批准或批准已失效；請查詢批准紀錄")]
+    #[error("the tool was not approved or the approval is no longer valid")]
     ApprovalDenied,
-    #[error("任務已停止；若已建立成果，請核對後再接續")]
+    #[error("the task was stopped")]
     Cancelled { artifact_created: bool },
-    #[error("任務內容不符合長度限制")]
+    #[error("the task content is outside the length limits")]
     InvalidTask,
-    #[error("來源必須是大小在限制內的一般檔案")]
+    #[error("the source must be a regular file within the size limit")]
     InvalidInput,
-    #[error("無法開啟獲准的來源檔案")]
+    #[error("could not open the authorized source file")]
     Input(#[source] std::io::Error),
-    #[error("模型執行失敗；可能已有部分成果，請核對後再接續")]
+    #[error("the model run failed")]
     Harness(#[source] RunError),
-    #[error("任務逾時；可能已有部分成果，請核對後再接續")]
+    #[error("the task timed out")]
     Timeout,
-    #[error("工具狀態異常，不能確認成果")]
+    #[error("the tool state is invalid, so the artifact cannot be confirmed")]
     State,
-    #[error("模型已結束，但沒有可驗證的成果檔案")]
+    #[error("the model finished but there is no artifact to verify")]
     MissingArtifact,
-    #[error("成果未完整寫入或保存，請核對現有檔案")]
+    #[error("the artifact was not completely written or saved")]
     IncompleteArtifact,
-    #[error("成果驗證未通過")]
+    #[error("the artifact failed verification")]
     Verification(#[source] VerificationError),
 }
 
@@ -92,22 +94,17 @@ struct WriteOutput {
 impl ReadInput {
     fn read(&self) -> Result<String, ToolError> {
         if self.1.is_cancelled() {
-            return Err(ToolError::refused("任務已要求停止，不再讀取"));
+            return Err(ToolRefusal::ReadCancelled.into());
         }
-        let mut guard = self
-            .0
-            .lock()
-            .map_err(|_| ToolError::refused("來源狀態異常"))?;
-        let file = guard
-            .as_mut()
-            .ok_or_else(|| ToolError::refused("使用者未授權讀取來源"))?;
+        let mut guard = self.0.lock().map_err(|_| ToolRefusal::SourceState)?;
+        let file = guard.as_mut().ok_or(ToolRefusal::ReadNotAuthorized)?;
         file.seek(SeekFrom::Start(0)).map_err(ToolError::failed)?;
         let mut content = String::new();
         file.take(FILE_LIMIT + 1)
             .read_to_string(&mut content)
             .map_err(ToolError::failed)?;
         if content.len() as u64 > FILE_LIMIT {
-            return Err(ToolError::refused("來源超出大小限制"));
+            return Err(ToolRefusal::SourceTooLarge.into());
         }
         Ok(content)
     }
@@ -116,16 +113,15 @@ impl ReadInput {
 impl Tool for ReadInput {
     fn spec(&self) -> ToolSpec {
         ToolSpec {
-            name: "read_input".into(),
-            description: "讀取使用者指定且獲准的來源檔案".into(),
+            name: READ_INPUT_TOOL.into(),
+            description: READ_INPUT_DESCRIPTION.into(),
             parameters: json!({"type":"object","properties":{},"additionalProperties":false}),
         }
     }
 
     fn call(&self, args: serde_json::Value) -> ToolFuture<'_> {
         Box::pin(async move {
-            serde_json::from_value::<ReadArgs>(args)
-                .map_err(|_| ToolError::refused("參數不符合規格"))?;
+            serde_json::from_value::<ReadArgs>(args).map_err(|_| ToolRefusal::InvalidArguments)?;
             self.read()
         })
     }
@@ -134,20 +130,20 @@ impl Tool for ReadInput {
 impl WriteOutput {
     fn write(&self, args: WriteArgs) -> Result<String, ToolError> {
         if self.cancellation.is_cancelled() {
-            return Err(ToolError::refused("任務已要求停止，不再寫入"));
+            return Err(ToolRefusal::WriteCancelled.into());
         }
         if !self.allowed {
-            return Err(ToolError::refused("使用者未授權寫入成果"));
+            return Err(ToolRefusal::WriteNotAuthorized.into());
         }
         if args.content.len() as u64 > FILE_LIMIT {
-            return Err(ToolError::refused("成果超出大小限制"));
+            return Err(ToolRefusal::ArtifactTooLarge.into());
         }
         let mut artifact = self
             .artifact
             .lock()
-            .map_err(|_| ToolError::refused("成果狀態異常"))?;
+            .map_err(|_| ToolRefusal::ArtifactState)?;
         if artifact.is_some() {
-            return Err(ToolError::refused("成果已寫入，不重複執行"));
+            return Err(ToolRefusal::ArtifactExists.into());
         }
         let file = OpenOptions::new()
             .read(true)
@@ -165,15 +161,15 @@ impl WriteOutput {
             .map_err(ToolError::failed)?;
         artifact.file.sync_all().map_err(ToolError::failed)?;
         artifact.complete = true;
-        Ok("成果已寫入，仍須獨立驗證".into())
+        Ok(WRITE_OUTPUT_DONE.into())
     }
 }
 
 impl Tool for WriteOutput {
     fn spec(&self) -> ToolSpec {
         ToolSpec {
-            name: "write_output".into(),
-            description: "建立使用者指定且獲准的新成果檔案，不覆寫既有資料".into(),
+            name: WRITE_OUTPUT_TOOL.into(),
+            description: WRITE_OUTPUT_DESCRIPTION.into(),
             parameters: json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}),
         }
     }
@@ -181,7 +177,7 @@ impl Tool for WriteOutput {
     fn call(&self, args: serde_json::Value) -> ToolFuture<'_> {
         Box::pin(async move {
             let args = serde_json::from_value::<WriteArgs>(args)
-                .map_err(|_| ToolError::refused("參數不符合規格"))?;
+                .map_err(|_| ToolRefusal::InvalidArguments)?;
             self.write(args)
         })
     }
@@ -228,7 +224,7 @@ pub async fn run_file_task(
             artifact: artifact.clone(),
             cancellation: cancellation.clone(),
         })
-        .max_turns(8);
+        .max_turns(TASK_MAX_TURNS);
     let response = tokio::select! {
         biased;
         _ = cancellation.cancelled() => {
@@ -278,7 +274,9 @@ mod tests {
         cancellation.cancel();
         let reader = ReadInput(Arc::new(Mutex::new(None)), cancellation.clone());
         let error = reader.call(json!({})).await.err();
-        assert!(error.is_some_and(|error| error.to_string().contains("不再讀取")));
+        assert!(
+            error.is_some_and(|error| error.to_string() == ToolRefusal::ReadCancelled.to_string())
+        );
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
             .as_nanos();
@@ -296,7 +294,9 @@ mod tests {
             .call(json!({"content": "must not write"}))
             .await
             .err();
-        assert!(error.is_some_and(|error| error.to_string().contains("不再寫入")));
+        assert!(
+            error.is_some_and(|error| error.to_string() == ToolRefusal::WriteCancelled.to_string())
+        );
         assert!(!path.exists());
         Ok(())
     }

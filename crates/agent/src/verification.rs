@@ -3,11 +3,11 @@ use std::io::{Read, Seek, SeekFrom};
 
 #[derive(Debug, thiserror::Error)]
 pub enum VerificationError {
-    #[error("無法讀回成果：{0}")]
+    #[error("could not read the artifact back: {0}")]
     Read(#[from] std::io::Error),
-    #[error("成果內容不符合任務要求")]
+    #[error("the artifact content does not match the expectation")]
     ContentMismatch,
-    #[error("成果必須是一般檔案")]
+    #[error("the artifact must be a regular file")]
     UnsupportedFile,
 }
 

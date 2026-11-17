@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[lib]
+path = "src/agent_platform.rs"
+
 [dependencies]
 agent-harness-openai.workspace = true
 agent-platform-agent.workspace = true

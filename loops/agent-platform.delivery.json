@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "task": "agent-platform",
+  "project": ".",
+  "steps": {
+    "S00": { "kind": "internal", "reason": "品質底座，不對外交付" },
+    "M00": { "kind": "internal", "reason": "只動文件與圖，沒有可部署的產物" }
+  }
+}

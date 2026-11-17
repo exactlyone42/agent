@@ -1,4 +1,5 @@
-use crate::{ApprovalStore, Claim, Fault, Messages, Policy};
+use crate::prelude::*;
+use crate::{ApprovalStore, Messages, Policy, approval_defaults::POLL};
 use agent_harness::{
     CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolCall, ToolResult,
 };
@@ -8,11 +9,8 @@ use std::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
-    time::Duration,
 };
 use tokio::time::{Instant, sleep};
-
-const POLL: Duration = Duration::from_millis(200);
 
 pub struct ApprovalGate<S> {
     store: Arc<S>,

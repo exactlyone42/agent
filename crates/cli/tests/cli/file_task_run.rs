@@ -6,6 +6,10 @@ use crate::open_database::open_database;
 use crate::outcome::Outcome;
 use crate::stored_result::stored_result;
 use crate::task_id_of::task_id_of;
+use agent_platform_agent::{
+    task::{READ_INPUT_DESCRIPTION, WRITE_OUTPUT_DESCRIPTION},
+    tool_refusal::ToolRefusal,
+};
 use serde_json::{Value, json};
 use std::path::PathBuf;
 
@@ -180,7 +184,7 @@ impl FileTaskRun {
         assert_eq!(requests.len(), 4);
         let messages = tool_messages(&requests[3]);
         let last = messages.last().unwrap()["content"].as_str().unwrap();
-        assert!(last.contains("成果已寫入，不重複執行"));
+        assert!(last.contains(&ToolRefusal::ArtifactExists.to_string()));
     }
 
     fn check_requests(&self, requests: &[Value]) {
@@ -200,7 +204,7 @@ impl FileTaskRun {
                 assert!(
                     contents
                         .iter()
-                        .any(|text| text.contains("來源超出大小限制"))
+                        .any(|text| text.contains(&ToolRefusal::SourceTooLarge.to_string()))
                 );
                 assert!(!contents.contains(&self.source_content.as_str()));
             }
@@ -252,11 +256,8 @@ fn check_definitions(request: &Value) {
     };
     let read = find("read_input");
     let write = find("write_output");
-    assert_eq!(read["description"], "讀取使用者指定且獲准的來源檔案");
-    assert_eq!(
-        write["description"],
-        "建立使用者指定且獲准的新成果檔案，不覆寫既有資料"
-    );
+    assert_eq!(read["description"], READ_INPUT_DESCRIPTION);
+    assert_eq!(write["description"], WRITE_OUTPUT_DESCRIPTION);
     assert_eq!(
         read["parameters"],
         json!({"type": "object", "properties": {}, "additionalProperties": false})

@@ -1,10 +1,12 @@
 use agent_platform_xtask::{Task, exit_status, repo_root};
 use std::process::ExitCode;
 
+const USAGE_STATUS: u8 = 2;
+
 fn main() -> ExitCode {
     let Some(task) = Task::parse(std::env::args().nth(1).as_deref()) else {
-        eprintln!("用法：cargo xtask gate|all");
-        return ExitCode::from(2);
+        eprintln!("usage: cargo xtask gate|all");
+        return ExitCode::from(USAGE_STATUS);
     };
-    ExitCode::from(exit_status(task.run(&repo_root())))
+    exit_status(task.run(&repo_root()))
 }

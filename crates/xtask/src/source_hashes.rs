@@ -1,4 +1,5 @@
-use crate::error::XtaskError;
+use crate::prelude::*;
+use crate::{scan_rules::ROOT_FILES, scan_rules::SOURCE_DIRECTORIES};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -23,11 +24,8 @@ fn collect(directory: &Path, files: &mut Vec<PathBuf>) -> Result<(), XtaskError>
 }
 
 pub fn source_hashes(root: &Path) -> Result<BTreeMap<String, String>, XtaskError> {
-    let mut files: Vec<PathBuf> = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"]
-        .iter()
-        .map(|name| root.join(name))
-        .collect();
-    for directory in ["crates", "scripts", ".cargo"] {
+    let mut files: Vec<PathBuf> = ROOT_FILES.iter().map(|name| root.join(name)).collect();
+    for directory in SOURCE_DIRECTORIES {
         collect(&root.join(directory), &mut files)?;
     }
     let mut hashes = BTreeMap::new();

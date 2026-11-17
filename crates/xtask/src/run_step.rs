@@ -1,5 +1,8 @@
-use crate::error::XtaskError;
-use crate::now_seconds::now_seconds;
+use crate::prelude::*;
+use crate::{
+    evidence_files::LOG_EXTENSION, evidence_files::RECORD_EXTENSION, record_keys::COMMAND_KEY,
+    record_keys::EXIT_CODE_KEY, record_keys::FINISHED_KEY,
+};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -11,39 +14,39 @@ pub fn run_step(
     root: &Path,
     evidence: &Path,
 ) -> Result<i32, XtaskError> {
-    println!("執行 {name}");
+    println!("running {name}");
     let started = now_seconds();
     let mut log = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(evidence.join(format!("{name}.txt")))?;
+        .open(evidence.join(format!("{name}.{LOG_EXTENSION}")))?;
     let exit_code = match command.split_first() {
         Some((program, arguments)) => {
             match Command::new(program)
                 .args(arguments)
                 .current_dir(root)
-                .env_remove("CARGO_PKG_NAME")
+                .env_remove(CARGO_PKG_NAME_VARIABLE)
                 .stdout(Stdio::from(log.try_clone()?))
                 .stderr(Stdio::from(log.try_clone()?))
                 .status()
             {
-                Ok(status) => status.code().unwrap_or(1),
+                Ok(status) => status.code().unwrap_or(FAILURE_CODE),
                 Err(error) => {
                     writeln!(log, "{:?}: {error}", error.kind())?;
-                    127
+                    COMMAND_UNAVAILABLE_CODE
                 }
             }
         }
-        None => 127,
+        None => COMMAND_UNAVAILABLE_CODE,
     };
     let record = serde_json::json!({
-        "command": command,
-        "started": started,
-        "finished": now_seconds(),
-        "exit_code": exit_code,
+        COMMAND_KEY: command,
+        STARTED_KEY: started,
+        FINISHED_KEY: now_seconds(),
+        EXIT_CODE_KEY: exit_code,
     });
     fs::write(
-        evidence.join(format!("{name}.json")),
+        evidence.join(format!("{name}.{RECORD_EXTENSION}")),
         serde_json::to_string_pretty(&record)?,
     )?;
     Ok(exit_code)

@@ -6,6 +6,10 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
+pub const LANGUAGE_ENV: &str = "AGENT_LANG";
+pub const TRADITIONAL_CHINESE: &str = "zh-TW";
+pub const ENGLISH: &str = "en";
+
 pub struct Case {
     directory: TempDir,
     deadline: Instant,
@@ -44,6 +48,7 @@ impl Case {
             .args(args)
             .current_dir(self.root())
             .env("AGENT_STATE_DIR", self.state())
+            .env(LANGUAGE_ENV, TRADITIONAL_CHINESE)
             .env_remove("AGENT_API_KEY");
         command
     }

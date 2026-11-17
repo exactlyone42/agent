@@ -1,12 +1,13 @@
-use crate::error::XtaskError;
+use crate::prelude::*;
+use std::process::ExitCode;
 
-pub fn exit_status(result: Result<i32, XtaskError>) -> u8 {
+pub fn exit_status(result: Result<Outcome, XtaskError>) -> ExitCode {
     match result {
-        Ok(0) => 0,
-        Ok(_) => 1,
+        Ok(Outcome::Passed) => ExitCode::SUCCESS,
+        Ok(Outcome::Failed) => ExitCode::FAILURE,
         Err(error) => {
             eprintln!("{error}");
-            1
+            ExitCode::FAILURE
         }
     }
 }

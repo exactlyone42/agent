@@ -1,6 +1,6 @@
 mod fake_root;
 
-use agent_platform_xtask::{Plan, XtaskError, check_all};
+use agent_platform_xtask::{Outcome, Plan, XtaskError, check_all};
 use fake_root::{fail, fake_root, pass, read_json, write_reports};
 use serde_json::json;
 use std::fs::{self, OpenOptions};
@@ -16,7 +16,7 @@ fn summaries(root: &std::path::Path) -> Vec<std::path::PathBuf> {
 #[test]
 fn passing_run_writes_summary_and_releases_the_claim() {
     let root = fake_root();
-    let code = check_all(root.path(), |evidence| {
+    let outcome = check_all(root.path(), |evidence| {
         write_reports(evidence, 3);
         Plan {
             preflight: vec![pass("pre")],
@@ -24,7 +24,7 @@ fn passing_run_writes_summary_and_releases_the_claim() {
         }
     })
     .unwrap();
-    assert_eq!(code, 0);
+    assert_eq!(outcome, Outcome::Passed);
     assert!(!root.path().join(".runtime/checks/active.json").exists());
     let found = summaries(root.path());
     assert_eq!(found.len(), 1);
@@ -32,9 +32,9 @@ fn passing_run_writes_summary_and_releases_the_claim() {
 }
 
 #[test]
-fn failing_run_returns_one() {
+fn failing_run_is_reported_and_still_releases_the_claim() {
     let root = fake_root();
-    let code = check_all(root.path(), |evidence| {
+    let outcome = check_all(root.path(), |evidence| {
         write_reports(evidence, 3);
         Plan {
             preflight: vec![fail("pre")],
@@ -42,7 +42,8 @@ fn failing_run_returns_one() {
         }
     })
     .unwrap();
-    assert_eq!(code, 1);
+    assert_eq!(outcome, Outcome::Failed);
+    assert!(!root.path().join(".runtime/checks/active.json").exists());
 }
 
 #[test]

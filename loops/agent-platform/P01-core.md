@@ -1,6 +1,6 @@
 # P01 核心迴圈與批准紀錄
 
-母檔：../agent-platform.loop.md。對應圖上框：agent-harness、批准閘門、批准轉接、任務紀錄檔。細節見 docs/harness-design.md、docs/agent-method.md。
+母檔：../agent-platform.loop.md。對應圖上框：agent-harness、批准閘門、批准轉接、任務紀錄檔。細節見 docs/mortal-agent.md、docs/agent-method.md。
 
 ## 目標
 
@@ -10,7 +10,7 @@
 
 | id | 做什麼 | 驗收 | 狀態 |
 | --- | --- | --- | --- |
-| H1 | 使用者確認 docs/harness-design.md 階段 0 取捨表（並修表內「任務資料庫」舊字） | 使用者回覆；取捨寫入文件 | WAITING |
+| H1 | 使用者確認 docs/mortal-agent.md 第四節 harness 取捨表（並修表內「任務資料庫」舊字） | 使用者回覆；取捨寫入文件 | WAITING |
 | H2 | 壞工具參數改為回報模型，不中止任務 | 失敗測試先紅後綠；openai `read_reply` 同步 | PENDING |
 | H3 | 呼叫與結果配對；停止原因列舉 | 缺結果、重複結果、錯配都有測試 | PENDING |
 | H4 | 取消後延遲工具不能再寫入 | 取消競爭測試；取消後無寫入 | PENDING |

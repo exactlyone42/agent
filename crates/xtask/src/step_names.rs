@@ -1,0 +1,11 @@
+pub(crate) const REPORTS_STEP: &str = "reports";
+pub(crate) const SECRETS_STEP: &str = "secrets";
+pub(crate) const VERSIONS_RUST_STEP: &str = "versions-rust";
+pub(crate) const VERSIONS_COVERAGE_STEP: &str = "versions-coverage";
+pub(crate) const VERSIONS_MUTATION_STEP: &str = "versions-mutation";
+pub(crate) const VERSIONS_SECRETS_STEP: &str = "versions-secrets";
+pub(crate) const VERSIONS_DEPENDENCIES_STEP: &str = "versions-dependencies";
+pub(crate) const COVERAGE_STEP: &str = "coverage";
+pub(crate) const MUTATION_STEP: &str = "mutation";
+pub(crate) const GATE_TASK: &str = "gate";
+pub(crate) const ALL_TASK: &str = "all";

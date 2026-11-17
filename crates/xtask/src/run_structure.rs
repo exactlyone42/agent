@@ -1,26 +1,34 @@
-use crate::error::XtaskError;
-use crate::structure_violations::structure_violations;
+use crate::prelude::*;
+use crate::{
+    duplicate_lines::duplicate_lines, empty_files::empty_files, locale_literals::locale_literals,
+    read_tracked::read_tracked, structure_violations::structure_violations,
+    unreferenced_docs::unreferenced_docs,
+};
 use std::path::Path;
 use std::process::Command;
 
-pub fn run_structure(root: &Path) -> Result<i32, XtaskError> {
-    println!("檢查目錄結構");
-    let listing = Command::new("git")
-        .args(["ls-files", "-z"])
+pub fn run_structure(root: &Path) -> Result<Outcome, XtaskError> {
+    println!("checking the directory structure");
+    let listing = Command::new(GIT)
+        .args([LIST_FILES, NUL_SEPARATED_FLAG])
         .current_dir(root)
         .output()?;
     if !listing.status.success() || listing.stdout.is_empty() {
-        eprintln!("無法列出 Git 追蹤檔案，不能判定目錄結構通過");
-        return Ok(1);
+        return Err(XtaskError::TrackedFilesUnavailable);
     }
     let paths: Vec<String> = String::from_utf8_lossy(&listing.stdout)
-        .split('\0')
+        .split(NUL)
         .filter(|path| !path.is_empty())
         .map(str::to_string)
         .collect();
-    let violations = structure_violations(&paths);
+    let files = read_tracked(root, &paths)?;
+    let mut violations = structure_violations(&paths);
+    violations.extend(empty_files(&files));
+    violations.extend(locale_literals(&files));
+    violations.extend(unreferenced_docs(&files));
+    violations.extend(duplicate_lines(&files));
     for violation in &violations {
         eprintln!("{violation}");
     }
-    Ok(i32::from(!violations.is_empty()))
+    Ok(Outcome::judge(violations.is_empty()))
 }

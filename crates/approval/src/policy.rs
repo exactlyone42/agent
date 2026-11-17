@@ -1,3 +1,4 @@
+use crate::approval_defaults::{DEFAULT_APPROVAL_WAIT, DEFAULT_MAX_CALLS, DEFAULT_RECEIPT_WAIT};
 use std::time::Duration;
 
 #[derive(Clone, Debug)]
@@ -12,9 +13,9 @@ impl Default for Policy {
     fn default() -> Self {
         Self {
             manual: false,
-            max_calls: 64,
-            approval_wait: Duration::from_secs(120),
-            receipt_wait: Duration::from_secs(2),
+            max_calls: DEFAULT_MAX_CALLS,
+            approval_wait: DEFAULT_APPROVAL_WAIT,
+            receipt_wait: DEFAULT_RECEIPT_WAIT,
         }
     }
 }

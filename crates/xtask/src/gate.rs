@@ -1,34 +1,28 @@
-use crate::step::Step;
+use crate::prelude::*;
+use crate::{
+    tool_arguments::ALL_FLAG, tool_arguments::ALL_TARGETS_FLAG, tool_arguments::BINS_FLAG,
+    tool_arguments::CHECK_FLAG, tool_arguments::CLIPPY, tool_arguments::CLIPPY_CONFIG_VARIABLE,
+    tool_arguments::CLIPPY_LINT_PREFIX, tool_arguments::DENY_FLAG, tool_arguments::FMT_COMMAND,
+    tool_arguments::LIB_FLAG, tool_arguments::LINTS, tool_arguments::TEST_COMMAND,
+    tool_arguments::TOOL_ARGUMENTS, tool_arguments::WARNINGS,
+};
 use std::path::Path;
-
-pub const LINTS: [&str; 10] = [
-    "unwrap_used",
-    "expect_used",
-    "panic",
-    "todo",
-    "unimplemented",
-    "unreachable",
-    "disallowed_macros",
-    "mod_module_files",
-    "excessive_nesting",
-    "redundant_else",
-];
 
 pub fn gate_steps(root: &Path) -> Vec<Step> {
     let lint_flags: Vec<String> = LINTS
         .iter()
-        .flat_map(|lint| ["-D".to_string(), format!("clippy::{lint}")])
+        .flat_map(|lint| [DENY_FLAG.to_string(), format!("{CLIPPY_LINT_PREFIX}{lint}")])
         .collect();
     let mut strict = vec![
-        "clippy",
-        "--workspace",
-        "--lib",
-        "--bins",
-        "--all-features",
-        "--locked",
-        "--",
-        "-D",
-        "warnings",
+        CLIPPY,
+        WORKSPACE_FLAG,
+        LIB_FLAG,
+        BINS_FLAG,
+        ALL_FEATURES_FLAG,
+        LOCKED_FLAG,
+        TOOL_ARGUMENTS,
+        DENY_FLAG,
+        WARNINGS,
     ]
     .into_iter()
     .map(str::to_string)
@@ -36,26 +30,26 @@ pub fn gate_steps(root: &Path) -> Vec<Step> {
     strict.extend(lint_flags);
     let strict_refs: Vec<&str> = strict.iter().map(String::as_str).collect();
     vec![
-        Step::new("cargo", &["fmt", "--all", "--check"]),
-        Step::new("cargo", &["machete"]),
+        Step::new(CARGO, &[FMT_COMMAND, ALL_FLAG, CHECK_FLAG]),
+        Step::new(CARGO, &[MACHETE]),
         Step::new(
-            "cargo",
+            CARGO,
             &[
-                "clippy",
-                "--workspace",
-                "--all-targets",
-                "--all-features",
-                "--locked",
-                "--",
-                "-D",
-                "warnings",
+                CLIPPY,
+                WORKSPACE_FLAG,
+                ALL_TARGETS_FLAG,
+                ALL_FEATURES_FLAG,
+                LOCKED_FLAG,
+                TOOL_ARGUMENTS,
+                DENY_FLAG,
+                WARNINGS,
             ],
         ),
-        Step::new("cargo", &strict_refs)
-            .with_environment("CLIPPY_CONF_DIR", &root.join("scripts/policy")),
+        Step::new(CARGO, &strict_refs)
+            .with_environment(CLIPPY_CONFIG_VARIABLE, &root.join(POLICY_DIRECTORY)),
         Step::new(
-            "cargo",
-            &["test", "--workspace", "--all-features", "--locked"],
+            CARGO,
+            &[TEST_COMMAND, WORKSPACE_FLAG, ALL_FEATURES_FLAG, LOCKED_FLAG],
         ),
     ]
 }

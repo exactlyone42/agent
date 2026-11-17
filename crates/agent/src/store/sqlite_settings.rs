@@ -1,0 +1,26 @@
+use std::time::Duration;
+
+pub(crate) const APPLICATION_ID: i64 = 0x41504754;
+pub(crate) const UNSET_APPLICATION_ID: i64 = 0;
+pub(crate) const UNSET_USER_VERSION: i64 = 0;
+pub(crate) const FIRST_SCHEMA_VERSION: i64 = 1;
+pub(crate) const SECOND_SCHEMA_VERSION: i64 = 2;
+pub(crate) const SCHEMA_VERSION: i64 = 3;
+pub(crate) const MIN_SQLITE_VERSION: i32 = 3_051_003;
+pub(crate) const BUSY_TIMEOUT: Duration = Duration::from_millis(500);
+pub(crate) const MAX_SPEC_BYTES: usize = 131_072;
+pub(crate) const FIRST_SEQ: i64 = 1;
+pub(crate) const USES_AVAILABLE: i64 = 1;
+pub(crate) const USES_SPENT: i64 = 0;
+pub(crate) const SYNCHRONOUS_FULL: i64 = 2;
+pub(crate) const FOREIGN_KEYS_ON: i64 = 1;
+pub(crate) const JOURNAL_MODE_WAL: &str = "wal";
+pub(crate) const SYNCHRONOUS_MODE_FULL: &str = "FULL";
+pub(crate) const PRAGMA_USER_VERSION: &str = "user_version";
+pub(crate) const PRAGMA_APPLICATION_ID: &str = "application_id";
+pub(crate) const PRAGMA_JOURNAL_MODE: &str = "journal_mode";
+pub(crate) const PRAGMA_SYNCHRONOUS: &str = "synchronous";
+pub(crate) const PRAGMA_FOREIGN_KEYS: &str = "foreign_keys";
+pub(crate) const PRAGMA_TRUSTED_SCHEMA: &str = "trusted_schema";
+pub(crate) const TIMESTAMP_NOW: &str = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+pub const EVENT_PAGE_SIZE: i64 = 100;

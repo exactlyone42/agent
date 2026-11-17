@@ -76,3 +76,26 @@ fn secret_scanner_detects_canary_and_redacts_it() {
         );
     }
 }
+
+#[test]
+fn scanner_command_keeps_the_flags_that_stop_bypass() {
+    let directory = tempfile::tempdir().unwrap();
+    let command = secret_command(directory.path()).unwrap();
+    let evidence = directory.path().to_string_lossy().into_owned();
+    let value_after = |flag: &str| {
+        let position = command.iter().position(|part| part == flag).unwrap();
+        command[position + 1].clone()
+    };
+    assert_eq!(&command[..3], ["gitleaks", "dir", "."]);
+    for flag in ["--redact", "--no-banner", "--ignore-gitleaks-allow"] {
+        assert!(command.iter().any(|part| part == flag), "{flag}");
+    }
+    assert_eq!(value_after("--report-format"), "json");
+    assert!(value_after("--config").starts_with(&evidence));
+    assert!(value_after("--gitleaks-ignore-path").starts_with(&evidence));
+    assert!(value_after("--report-path").starts_with(&evidence));
+    assert_eq!(
+        fs::read_to_string(value_after("--gitleaks-ignore-path")).unwrap(),
+        ""
+    );
+}

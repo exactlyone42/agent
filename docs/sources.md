@@ -1,16 +1,16 @@
 # 現成專案與 Harness 研究
 
-查證日：2026-10-24。以下固定 Git commit 與已讀檔案，不以星數當證據。原始碼已讀，尚未在本機建置或跑完整任務；採用建議須由 P01 實測確認。
+查證日：2026-10-24。以下每個專案都固定在某個 Git commit（程式碼的某一版），並列出實際讀過的檔案；不拿 GitHub 星數當證據。原始碼只讀過，尚未在本機建置或跑完整任務；採用建議須由 P01（PLAN.md 的核心迴圈階段）實測確認。各節開頭的「語言 / 授權」，如「Rust / MIT」，指程式語言與開源授權。
 
 ## 大公司開源 Harness
 
-OpenAI Codex 本身已是 Rust，優先試接 app-server；Google Gemini CLI、Microsoft Agent Framework、ByteDance DeerFlow 參考串流、恢復與長任務。Anthropic SDK 與文章可參考，但不是完整 Claude Code 核心原始碼。
+Harness 是包在語言模型外面的程式，讓模型能呼叫工具、取得授權並接續中斷的工作。OpenAI Codex 本身已是 Rust，優先試接它的 app-server（供外部程式連線的服務）；Google Gemini CLI、Microsoft Agent Framework、ByteDance DeerFlow 參考串流（邊產生邊回傳）、恢復與長任務。Anthropic SDK 與文章可參考，但不是完整 Claude Code 核心原始碼。
 
-產品 Harness 管模型、工具、授權與接續；評測 Harness 建測試環境並獨立判結果。P01 選前者，P02 開始建後者，不互相代替。
+Harness 分兩種：產品 Harness 管模型、工具、授權與接續；評測 Harness 建測試環境並獨立判結果。P01 選前者，P02 開始建後者，不互相代替。
 
 ## 0xPlaygrounds/rig
 
-Rust / MIT。直接使用組件候選；engine.rs處理模型、工具步驟與取消，不照搬其mod.rs命名。
+Rust / MIT。2026-10-28 起已從本案移除，核心改用自寫的 `crates/harness`；下列只保留當時的調查證據，不是現行候選。
 
 固定版本：`55cd481a2421fd5da468b5bd6afc6ac876883599`。
 
@@ -19,7 +19,7 @@ Rust / MIT。直接使用組件候選；engine.rs處理模型、工具步驟與�
 
 ## modelcontextprotocol/rust-sdk
 
-Rust SDK候選。根LICENSE為MIT與Apache-2.0轉換期，文件CC-BY-4.0；不是無授權。client.rs含放棄請求的取消通知；P01須再核對選定crate的實際授權。
+MCP（讓外部程式提供工具給 Agent 的標準協定）的 Rust SDK（開發套件）候選。根目錄 LICENSE 為 MIT 與 Apache-2.0 轉換期，文件為 CC-BY-4.0；不是無授權。client.rs 含放棄請求時送出的取消通知；P01 須再核對選定 crate 的實際授權。
 
 固定版本：`8aec3891dd07fc537b21c2eb2596235640de9025`。
 
@@ -29,7 +29,7 @@ Rust SDK候選。根LICENSE為MIT與Apache-2.0轉換期，文件CC-BY-4.0；不�
 
 ## aaif-goose/goose
 
-Rust / Apache-2.0。agent.rs接入PermissionManager與CancellationToken，參考授權與取消，不搬整套桌面。
+Rust / Apache-2.0。agent.rs 把授權管理（PermissionManager）與取消訊號（CancellationToken）接進主流程；我們參考它的授權與取消做法，不搬整套桌面程式。
 
 固定版本：`c3bfc5f7b0e230180ba3164ec1ee84fd951eaf0d`。
 
@@ -38,7 +38,7 @@ Rust / Apache-2.0。agent.rs接入PermissionManager與CancellationToken，參考
 
 ## infiniflow/ragflow
 
-Apache-2.0。本次讀到Go retrieval.go的不同檢索服務契約；不能沿用舊印象稱全是Python。只移植來源、權限及檢索邊界。
+Apache-2.0。本次讀到 Go 語言寫的 retrieval.go，內容是不同檢索服務（先查來源文件、再讓模型回答）的介面約定；所以不能沿用舊印象，說它全是 Python。我們只移植來源、權限及檢索範圍的做法。
 
 固定版本：`a55dccee4c211046b4e4d216a538bc60fae78dfd`。
 
@@ -47,7 +47,7 @@ Apache-2.0。本次讀到Go retrieval.go的不同檢索服務契約；不能沿�
 
 ## mem0ai/mem0
 
-Python / Apache-2.0。main.py提供add/search及scope，抽取失敗拋錯。Rust版保留同意、來源、隔離，不搬全部儲存依賴。
+Python / Apache-2.0。main.py 提供新增（add）、搜尋（search）及限定範圍（scope），從對話抽取記憶失敗時會丟出錯誤。Rust 版保留使用者同意、來源標示、不同使用者之間的隔離，不搬全部儲存依賴。
 
 固定版本：`2c81af3bbe27d9bccb09c772d583df9e9be72ee5`。
 
@@ -56,7 +56,7 @@ Python / Apache-2.0。main.py提供add/search及scope，抽取失敗拋錯。Rus
 
 ## promptfoo/promptfoo
 
-TypeScript / MIT。assertions/index.ts處理型別化斷言及未知類型錯誤，作為Rust評測器參考。
+TypeScript / MIT。assertions/index.ts 依型別處理斷言（對模型輸出的檢查條件），遇到未知類型就報錯；作為 Rust 評測器的參考。
 
 固定版本：`c0b88a324175c60019cc80de1b2e32b4c849d4c3`。
 
@@ -65,7 +65,7 @@ TypeScript / MIT。assertions/index.ts處理型別化斷言及未知類型錯誤
 
 ## Shopify/toxiproxy
 
-Go / MIT。timeout.go可斷開或持續阻塞連線。直接用測試容器，由Rust控制API，不重寫網路代理。
+Go / MIT。toxiproxy 是故意製造網路故障的代理程式；timeout.go 能讓連線斷開或一直卡住。我們直接用它的測試容器，由 Rust 呼叫它的控制 API，不重寫網路代理。
 
 固定版本：`49299d8838525126e09c85ebe0ba89940a3261e5`。
 
@@ -74,7 +74,7 @@ Go / MIT。timeout.go可斷開或持續阻塞連線。直接用測試容器，�
 
 ## trycua/cua
 
-根MIT，子套件另查。讀到cua-driver的macOS權限與程序要求；未實測Linux，不直接選定。作為現成Computer Use驅動候選。
+根目錄授權為 MIT，子套件另查。讀到 cua-driver 對 macOS 權限與程序的要求；Linux 未實測，不直接選定。它是現成 Computer Use（讓 AI 操作電腦畫面）驅動程式的候選。
 
 固定版本：`f06f203291c6c5a12e7c9134ec6b1b918acaf5d1`。
 
@@ -83,7 +83,7 @@ Go / MIT。timeout.go可斷開或持續阻塞連線。直接用測試容器，�
 
 ## openai/codex
 
-Rust / Apache-2.0。主要Harness試接候選；app-server供Client接會話與授權，turn.rs傳遞CancellationToken。優先程序介面，不依賴內部crate。
+Rust / Apache-2.0。主要的 Harness 試接候選。app-server 讓用戶端程式接上對話（會話）與授權，turn.rs 把取消訊號（CancellationToken）一路傳下去。優先用它的程序介面（另開程序、靠訊息溝通），不依賴它的內部 crate。
 
 固定版本：`970111f6cb62cc02fe36a82ea7d71b37a2889c97`。
 
@@ -93,7 +93,7 @@ Rust / Apache-2.0。主要Harness試接候選；app-server供Client接會話與�
 
 ## google-gemini/gemini-cli
 
-TypeScript / Apache-2.0。client.ts的sendMessageStream傳遞AbortSignal，參考串流及中止，不搬供應商綁定。
+TypeScript / Apache-2.0。client.ts 的 sendMessageStream（串流送出訊息）把中止訊號（AbortSignal）傳下去；我們參考它的串流及中止做法，不搬它與特定模型供應商綁定的部分。
 
 固定版本：`cd1b45c2db0a5ea7b7fc3b67c1ba5879601d6005`。
 
@@ -102,7 +102,7 @@ TypeScript / Apache-2.0。client.ts的sendMessageStream傳遞AbortSignal，參�
 
 ## microsoft/agent-framework
 
-Python與.NET / MIT。_checkpoint.py保存工作流與graph_signature_hash，參考恢復時核對流程版本。
+Python 與 .NET / MIT。_checkpoint.py 保存工作流（一連串步驟）的進度，並存 graph_signature_hash（流程結構算出的指紋值）；我們參考它在恢復時核對流程版本的做法。
 
 固定版本：`4982e4c61ec81cc4f9ba0cbdb5594ed530dbbcfe`。
 
@@ -112,7 +112,7 @@ Python與.NET / MIT。_checkpoint.py保存工作流與graph_signature_hash，參
 
 ## anthropics/claude-agent-sdk-python
 
-Python SDK / MIT。subprocess_cli.py啟動CLI子程序。SDK開源不代表Claude Code核心可複製改成Rust；服務條款及模型成本另算。
+Python SDK / MIT。subprocess_cli.py 啟動命令列（CLI）子程序。SDK 開源，不代表 Claude Code 核心可以複製後改成 Rust；服務條款及模型費用另算。
 
 固定版本：`0e89b298e771259378a6cd3734e00d323dff5703`。
 
@@ -121,7 +121,7 @@ Python SDK / MIT。subprocess_cli.py啟動CLI子程序。SDK開源不代表Claud
 
 ## bytedance/deer-flow
 
-Python / MIT。lead_agent/agent.py以create_agent組裝middleware及checkpoint模式，參考長任務與上下文，不移植多agent全套。
+Python / MIT。lead_agent/agent.py 用 create_agent 組裝 middleware（夾在模型呼叫前後的處理層）與 checkpoint（存檔點）模式；我們參考它處理長任務與上下文的做法，不移植它的多 Agent 全套。
 
 固定版本：`9a11f9aec71b754ffe392b47a4950bfbce669454`。
 
@@ -130,7 +130,7 @@ Python / MIT。lead_agent/agent.py以create_agent組裝middleware及checkpoint�
 
 ## google/adk-python
 
-Python / Apache-2.0。agent_evaluator.py讀資料集並透過eval_service評量，參考評測接法，環境結果與工具軌跡分開。
+Python / Apache-2.0。agent_evaluator.py 讀入測試資料集，透過 eval_service 評分；我們參考它的評測接法，它把「環境最後的結果」與「工具呼叫的過程（軌跡）」分開評。
 
 固定版本：`25d191710985371dfb93a131f2fa797734850952`。
 
@@ -139,16 +139,15 @@ Python / Apache-2.0。agent_evaluator.py讀資料集並透過eval_service評量�
 
 ## 移植與授權
 
-本次未複製第三方產品程式，只有來源與分析。翻成 Rust 仍需保留來源 commit、檔案、原授權及必要 NOTICE，註明修改；換語言不免除授權。子套件、資料集、模型權重與雲端 API 必須分別核對；付費託管版不因程式開源而免費。
+本次未複製第三方產品程式，只有來源與分析。翻成 Rust 仍需保留來源 commit、檔案、原授權及必要 NOTICE（授權要求隨附的聲明檔），並註明修改；換語言不免除授權。子套件、資料集、模型權重（訓練完成的模型參數檔）與雲端 API 必須分別核對；付費託管版不因程式開源而免費。
 
 ## 一手資料
 
-- [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)：多 crate 共用 lock 與 target。
-- [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)：桌面環境依賴。
+- [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)：多個 crate 共用同一份鎖定檔（lock）與編譯輸出資料夾（target）。
 - [Anthropic 長任務 Harness](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)：跨上下文保存進度及逐段驗收；文章不是完整核心程式。
-- [OSWorld](https://arxiv.org/abs/2404.07972)：真環境結果驗證。
-- [τ-bench](https://arxiv.org/abs/2406.12045)：工具結果與重複可靠性。
+- [OSWorld](https://arxiv.org/abs/2404.07972)：在真實電腦環境測 AI 的評測集，用真環境的結果驗證。
+- [τ-bench](https://arxiv.org/abs/2406.12045)：測 Agent 使用工具的評測集，看工具結果是否正確，以及同題重複執行是否穩定。
 
 ## 同題試接決策
 
-P01 兩候選都跑：假模型入口、讀寫工具、拒絕授權、串流中止、重開接續、Gateway 協定及離線評測。每格記 pass/fail/not_run 與證據，任何安全要求失敗都不可選。優先 Codex 現成程序；若多模型/工具/授權契約不可行，再用自寫 agent-harness 補最小核心（2026-10-28 起 Rig 已移除）。只維護一套主迴圈，不因大公司開源就免驗收。
+P01 要讓兩個候選（Codex app-server 與自寫 agent-harness；Rig 已於 2026-10-28 移除，由自寫取代）都跑同一組項目：假模型入口（用假模型代替真模型來測）、讀寫工具、拒絕授權、串流中止、重開接續、Gateway 協定（與模型閘道的通訊約定）及離線評測。每格（候選乘上項目）記 pass（通過）、fail（失敗）或 not_run（沒跑），並附證據；任何安全要求失敗的候選都不可選。Codex 這一邊的比較仍待做。只維護一套主迴圈（Agent 反覆呼叫模型與工具的核心流程），不因為是大公司開源就免驗收。

@@ -3,20 +3,34 @@ use rusqlite::{
     Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior, params,
 };
 use serde::Serialize;
-use std::{path::Path, time::Duration};
+use std::path::Path;
 use uuid::Uuid;
 mod append;
+mod approval_limits;
+mod approval_status;
 mod approvals;
 mod close_intents;
+mod decision_source;
 mod digest;
-pub use approvals::{
-    APPROVAL_TTL_SECONDS, ApprovalMode, ApprovalRecord, Claim, PreparedIntent, TOOL_CALL_LIMIT,
-    TaskSpec,
+mod event_kind;
+mod intent_status;
+mod sqlite_settings;
+mod task_state;
+pub use approval_limits::{APPROVAL_LIST_LIMIT, APPROVAL_TTL_SECONDS, TOOL_CALL_LIMIT};
+pub use approval_status::ApprovalStatus;
+pub use approvals::{ApprovalMode, ApprovalRecord, Claim, PreparedIntent, TaskSpec};
+use event_kind::EventKind;
+use intent_status::IntentStatus;
+pub use sqlite_settings::EVENT_PAGE_SIZE;
+use sqlite_settings::{
+    APPLICATION_ID, BUSY_TIMEOUT, FIRST_SCHEMA_VERSION, FIRST_SEQ, FOREIGN_KEYS_ON,
+    JOURNAL_MODE_WAL, MAX_SPEC_BYTES, MIN_SQLITE_VERSION, PRAGMA_APPLICATION_ID,
+    PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_SYNCHRONOUS, PRAGMA_TRUSTED_SCHEMA,
+    PRAGMA_USER_VERSION, SCHEMA_VERSION, SECOND_SCHEMA_VERSION, SYNCHRONOUS_FULL,
+    SYNCHRONOUS_MODE_FULL, TIMESTAMP_NOW, UNSET_APPLICATION_ID, UNSET_USER_VERSION, USES_AVAILABLE,
+    USES_SPENT,
 };
-
-const APPLICATION_ID: i64 = 0x41504754;
-const SCHEMA_VERSION: i64 = 3;
-pub const EVENT_PAGE_SIZE: i64 = 100;
+pub use task_state::TaskState;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum StoreAccess {
@@ -27,19 +41,19 @@ pub enum StoreAccess {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
-    #[error("無法保存或讀取任務紀錄")]
+    #[error("could not save or read the task record")]
     Database(#[from] rusqlite::Error),
-    #[error("任務資料庫版本或設定不相容")]
+    #[error("the task database version or settings are incompatible")]
     Incompatible,
-    #[error("找不到任務")]
+    #[error("the task was not found")]
     NotFound,
-    #[error("任務紀錄已變動，不可用舊狀態保存結果或重複執行")]
+    #[error("the task record changed; a stale state cannot be saved or rerun")]
     Conflict,
-    #[error("事件位置不可小於零")]
+    #[error("the event cursor must not be negative")]
     InvalidCursor,
-    #[error("任務規格不符合限制，不能繼續執行")]
+    #[error("the task specification is outside the limits")]
     InvalidSpec,
-    #[error("工具名稱或參數不符合限制")]
+    #[error("the tool name or arguments are outside the limits")]
     InvalidToolCall,
 }
 
@@ -86,7 +100,7 @@ impl TaskStore {
 
     fn connect(path: &Path, access: StoreAccess) -> Result<Self, StoreError> {
         let create = access == StoreAccess::Create;
-        if rusqlite::version_number() < 3_051_003 {
+        if rusqlite::version_number() < MIN_SQLITE_VERSION {
             return Err(StoreError::Incompatible);
         }
         let flags = if create {
@@ -100,17 +114,19 @@ impl TaskStore {
             path,
             flags | OpenFlags::SQLITE_OPEN_NO_MUTEX | OpenFlags::SQLITE_OPEN_NOFOLLOW,
         )?;
-        connection.busy_timeout(Duration::from_millis(500))?;
-        let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        connection.busy_timeout(BUSY_TIMEOUT)?;
+        let version: i64 =
+            connection.pragma_query_value(None, PRAGMA_USER_VERSION, |r| r.get(0))?;
         let application: i64 =
-            connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
+            connection.pragma_query_value(None, PRAGMA_APPLICATION_ID, |r| r.get(0))?;
         if !matches!(
             (application, version),
-            (0, 0) | (APPLICATION_ID, 1..=SCHEMA_VERSION)
+            (UNSET_APPLICATION_ID, UNSET_USER_VERSION)
+                | (APPLICATION_ID, FIRST_SCHEMA_VERSION..=SCHEMA_VERSION)
         ) {
             return Err(StoreError::Incompatible);
         }
-        if version == 0 && !create {
+        if version == UNSET_USER_VERSION && !create {
             return Err(StoreError::Incompatible);
         }
         if access == StoreAccess::Write && version != SCHEMA_VERSION {
@@ -120,20 +136,30 @@ impl TaskStore {
             Self::migrate(&mut connection)?;
         }
         let journal: String = if create {
-            connection.pragma_update_and_check(None, "journal_mode", "wal", |r| r.get(0))?
+            connection.pragma_update_and_check(
+                None,
+                PRAGMA_JOURNAL_MODE,
+                JOURNAL_MODE_WAL,
+                |r| r.get(0),
+            )?
         } else {
-            connection.pragma_query_value(None, "journal_mode", |r| r.get(0))?
+            connection.pragma_query_value(None, PRAGMA_JOURNAL_MODE, |r| r.get(0))?
         };
-        connection.pragma_update(None, "synchronous", "FULL")?;
-        connection.pragma_update(None, "foreign_keys", true)?;
-        connection.pragma_update(None, "trusted_schema", false)?;
-        let synchronous: i64 = connection.pragma_query_value(None, "synchronous", |r| r.get(0))?;
+        connection.pragma_update(None, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_MODE_FULL)?;
+        connection.pragma_update(None, PRAGMA_FOREIGN_KEYS, true)?;
+        connection.pragma_update(None, PRAGMA_TRUSTED_SCHEMA, false)?;
+        let synchronous: i64 =
+            connection.pragma_query_value(None, PRAGMA_SYNCHRONOUS, |r| r.get(0))?;
         let foreign_keys: i64 =
-            connection.pragma_query_value(None, "foreign_keys", |r| r.get(0))?;
-        if (create && journal != "wal") || synchronous != 2 || foreign_keys != 1 {
+            connection.pragma_query_value(None, PRAGMA_FOREIGN_KEYS, |r| r.get(0))?;
+        if (create && journal != JOURNAL_MODE_WAL)
+            || synchronous != SYNCHRONOUS_FULL
+            || foreign_keys != FOREIGN_KEYS_ON
+        {
             return Err(StoreError::Incompatible);
         }
-        let schema_version = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let schema_version =
+            connection.pragma_query_value(None, PRAGMA_USER_VERSION, |r| r.get(0))?;
         Ok(Self {
             connection,
             schema_version,
@@ -141,29 +167,32 @@ impl TaskStore {
     }
 
     fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
-        connection.pragma_update(None, "foreign_keys", false)?;
+        connection.pragma_update(None, PRAGMA_FOREIGN_KEYS, false)?;
         let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let mut version = Self::stored_version(&transaction)?;
-        if version == 1 {
-            transaction.execute_batch(include_str!("store_v2.sql"))?;
-            version = 2;
+        if version == FIRST_SCHEMA_VERSION {
+            transaction.execute_batch(include_str!("../../../sql/store_v2.sql"))?;
+            version = SECOND_SCHEMA_VERSION;
         }
-        if version == 2 {
-            transaction.execute_batch(include_str!("store_v3.sql"))?;
+        if version == SECOND_SCHEMA_VERSION {
+            transaction.execute_batch(include_str!("../../../sql/store_v3.sql"))?;
         }
-        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.pragma_update(None, PRAGMA_USER_VERSION, SCHEMA_VERSION)?;
         transaction.commit()?;
         Ok(())
     }
 
     fn stored_version(transaction: &Transaction<'_>) -> Result<i64, StoreError> {
-        let version: i64 = transaction.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let version: i64 =
+            transaction.pragma_query_value(None, PRAGMA_USER_VERSION, |r| r.get(0))?;
         let application: i64 =
-            transaction.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if (application, version) == (0, 0) {
+            transaction.pragma_query_value(None, PRAGMA_APPLICATION_ID, |r| r.get(0))?;
+        if (application, version) == (UNSET_APPLICATION_ID, UNSET_USER_VERSION) {
             return Self::install_first_version(transaction);
         }
-        if application != APPLICATION_ID || !(1..=SCHEMA_VERSION).contains(&version) {
+        if application != APPLICATION_ID
+            || !(FIRST_SCHEMA_VERSION..=SCHEMA_VERSION).contains(&version)
+        {
             return Err(StoreError::Incompatible);
         }
         Ok(version)
@@ -178,9 +207,9 @@ impl TaskStore {
         if tables != 0 {
             return Err(StoreError::Incompatible);
         }
-        transaction.execute_batch(include_str!("store_v1.sql"))?;
-        transaction.pragma_update(None, "application_id", APPLICATION_ID)?;
-        Ok(1)
+        transaction.execute_batch(include_str!("../../../sql/store_v1.sql"))?;
+        transaction.pragma_update(None, PRAGMA_APPLICATION_ID, APPLICATION_ID)?;
+        Ok(FIRST_SCHEMA_VERSION)
     }
 
     fn missing_cause(
@@ -211,7 +240,10 @@ impl TaskStore {
             .map(serde_json::to_string)
             .transpose()
             .map_err(|_| StoreError::InvalidSpec)?;
-        if spec_json.as_ref().is_some_and(|value| value.len() > 131072) {
+        if spec_json
+            .as_ref()
+            .is_some_and(|value| value.len() > MAX_SPEC_BYTES)
+        {
             return Err(StoreError::InvalidSpec);
         }
         let task_id = Uuid::new_v4().to_string();
@@ -219,13 +251,13 @@ impl TaskStore {
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let (generation, seq) = transaction.query_row(
-            "INSERT INTO tasks (task_id, recorded_state, last_seq) VALUES (?1, 'running', 1) RETURNING generation, last_seq",
-            [&task_id],
-            |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)?)),
+            "INSERT INTO tasks (task_id, recorded_state, last_seq) VALUES (?1, ?2, ?3) RETURNING generation, last_seq",
+            params![task_id, TaskState::Running, FIRST_SEQ],
+            |r| Ok((r.get::<_, i64>("generation")?, r.get::<_, i64>("last_seq")?)),
         )?;
         transaction.execute(
-            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, 'started')",
-            params![Uuid::new_v4().to_string(), task_id, seq],
+            "INSERT INTO events (event_id, task_id, seq, event_type) VALUES (?1, ?2, ?3, ?4)",
+            params![Uuid::new_v4().to_string(), task_id, seq, EventKind::Started],
         )?;
         if let Some(spec_json) = spec_json {
             transaction.execute(
@@ -245,22 +277,28 @@ impl TaskStore {
     ) -> Result<(), StoreError> {
         let state = match result {
             Ok(report) => match report.artifact {
-                ArtifactState::Verified => "succeeded",
-                ArtifactState::AwaitingReview => "needs_review",
+                ArtifactState::Verified => TaskState::Succeeded,
+                ArtifactState::AwaitingReview => TaskState::NeedsReview,
             },
-            Err(TaskError::Cancelled { .. }) => "cancelled",
-            Err(TaskError::Timeout | TaskError::Harness(_) | TaskError::State) => "outcome_unknown",
-            Err(_) => "failed",
+            Err(TaskError::Cancelled { .. }) => TaskState::Cancelled,
+            Err(TaskError::Timeout | TaskError::Harness(_) | TaskError::State) => {
+                TaskState::OutcomeUnknown
+            }
+            Err(_) => TaskState::Failed,
         };
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let unresolved: bool = transaction.query_row(
-            "SELECT EXISTS(SELECT 1 FROM tool_intents WHERE task_id=?1 AND status='dispatched')",
-            [task_id],
+            "SELECT EXISTS(SELECT 1 FROM tool_intents WHERE task_id=?1 AND status=?2)",
+            params![task_id, IntentStatus::Dispatched],
             |r| r.get(0),
         )?;
-        let state = if unresolved { "outcome_unknown" } else { state };
+        let state = if unresolved {
+            TaskState::OutcomeUnknown
+        } else {
+            state
+        };
         let artifact_created = match result {
             Ok(_) | Err(TaskError::IncompleteArtifact | TaskError::Verification(_)) => Some(true),
             Err(TaskError::Cancelled { artifact_created }) => Some(*artifact_created),
@@ -273,10 +311,10 @@ impl TaskStore {
             Err(_) => None,
         };
         let seq: Option<i64> = transaction.query_row(
-            "UPDATE tasks SET recorded_state = ?1, last_seq = last_seq + 1, artifact_created = ?4,
-             updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-             WHERE task_id = ?2 AND recorded_state IN ('running','waiting_approval') AND generation = ?3 RETURNING last_seq",
-            params![state, task_id, expected_generation, artifact_created], |r| r.get(0),
+            &format!("UPDATE tasks SET recorded_state = ?1, last_seq = last_seq + 1, artifact_created = ?4,
+             updated_at = {TIMESTAMP_NOW}
+             WHERE task_id = ?2 AND recorded_state IN (?5,?6) AND generation = ?3 RETURNING last_seq"),
+            params![state, task_id, expected_generation, artifact_created, TaskState::Running, TaskState::WaitingApproval], |r| r.get(0),
         ).optional()?;
         let Some(seq) = seq else {
             return Err(Self::missing_cause(&transaction, task_id)?);
@@ -287,8 +325,8 @@ impl TaskStore {
         )?;
         close_intents::close_intents(&transaction, task_id)?;
         transaction.execute(
-            "UPDATE tool_intents SET status='cancelled' WHERE task_id=?1 AND status='prepared'",
-            [task_id],
+            "UPDATE tool_intents SET status=?2 WHERE task_id=?1 AND status=?3",
+            params![task_id, IntentStatus::Cancelled, IntentStatus::Prepared],
         )?;
         transaction.commit()?;
         Ok(())
@@ -302,13 +340,13 @@ impl TaskStore {
                 [task_id],
                 |r| {
                     Ok(TaskRecord {
-                        task_id: r.get(0)?,
-                        schema_version: r.get(1)?,
-                        generation: r.get(2)?,
-                        recorded_state: r.get(3)?,
-                        last_seq: r.get(4)?,
-                        updated_at: r.get(5)?,
-                        artifact_created: r.get(6)?,
+                        task_id: r.get("task_id")?,
+                        schema_version: r.get("schema_version")?,
+                        generation: r.get("generation")?,
+                        recorded_state: r.get("recorded_state")?,
+                        last_seq: r.get("last_seq")?,
+                        updated_at: r.get("updated_at")?,
+                        artifact_created: r.get("artifact_created")?,
                     })
                 },
             )
@@ -321,25 +359,25 @@ impl TaskStore {
             return Err(StoreError::InvalidCursor);
         }
         self.status(task_id)?;
-        let related = if self.schema_version == 1 {
+        let related = if self.schema_version == FIRST_SCHEMA_VERSION {
             "NULL"
         } else {
             "related_id"
         };
         let mut query = self.connection.prepare(&format!(
-            "SELECT event_id, task_id, schema_version, generation, seq, event_type, created_at, {related}
+            "SELECT event_id, task_id, schema_version, generation, seq, event_type, created_at, {related} AS related_id
              FROM events WHERE task_id = ?1 AND seq > ?2 ORDER BY seq LIMIT ?3"
         ))?;
         let rows = query.query_map(params![task_id, after_seq, EVENT_PAGE_SIZE], |r| {
             Ok(TaskEvent {
-                event_id: r.get(0)?,
-                task_id: r.get(1)?,
-                schema_version: r.get(2)?,
-                generation: r.get(3)?,
-                seq: r.get(4)?,
-                event_type: r.get(5)?,
-                created_at: r.get(6)?,
-                related_id: r.get(7)?,
+                event_id: r.get("event_id")?,
+                task_id: r.get("task_id")?,
+                schema_version: r.get("schema_version")?,
+                generation: r.get("generation")?,
+                seq: r.get("seq")?,
+                event_type: r.get("event_type")?,
+                created_at: r.get("created_at")?,
+                related_id: r.get("related_id")?,
             })
         })?;
         Ok(rows.collect::<Result<Vec<_>, _>>()?)

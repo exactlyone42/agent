@@ -92,7 +92,7 @@ assert len(cases)==36
 for start in range(0,len(cases),4):
     cards=[]
     for ident,title,fields in cases[start:start+4]:
-        body=f'<h3 id="{ident}">{ident}｜{html.escape(title)}</h3><div class="state">{html.escape(fields["階段"])}｜{html.escape(fields["狀態"])}</div>'
+        body=f'<h3 id="{ident}">{ident}｜{html.escape(title)}</h3><div class="state">{html.escape(fields["階段"])}</div>'
         for key in ['前置','操作','通過','失敗對照','證據','AI／真人']:
             body+=f'<p><b>{key}：</b>{html.escape(fields[key])}</p>'
         cards.append('<article class="card">'+body+'</article>')

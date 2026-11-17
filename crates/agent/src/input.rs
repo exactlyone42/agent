@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use crate::task_settings::FILE_ID_BYTES;
 use std::{
     fs::{File, OpenOptions},
     io,
@@ -6,9 +8,9 @@ use std::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum InputError {
-    #[error("檔案類型、大小或身分不符合要求")]
+    #[error("the file type, size or identity is not acceptable")]
     InvalidFile,
-    #[error("作業系統無法開啟或核對檔案")]
+    #[error("the operating system could not open or check the file")]
     Io(#[from] io::Error),
 }
 
@@ -65,7 +67,7 @@ pub fn open_checked(path: &Path, limit: u64) -> Result<File, InputError> {
 }
 
 #[cfg(windows)]
-fn file_identity(file: &File) -> io::Result<(u64, [u8; 16])> {
+fn file_identity(file: &File) -> io::Result<(u64, [u8; FILE_ID_BYTES])> {
     use std::os::windows::io::AsRawHandle;
     use windows_sys::Win32::Storage::FileSystem::{
         FILE_ID_INFO, FileIdInfo, GetFileInformationByHandleEx,

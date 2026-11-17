@@ -1,7 +1,7 @@
 use agent_harness::ToolCall;
 use agent_harness_approval::{ApprovalStore, Policy};
 use agent_platform_agent::{
-    approval::{TaskApprovals, task_messages},
+    approval::TaskApprovals,
     store::{APPROVAL_TTL_SECONDS, ApprovalMode, TOOL_CALL_LIMIT, TaskSpec, TaskStore},
     task::FileTask,
 };
@@ -19,11 +19,6 @@ fn gate_defaults_match_store_limits() {
         policy.approval_wait,
         Duration::from_secs(APPROVAL_TTL_SECONDS as u64)
     );
-}
-
-#[test]
-fn task_messages_are_the_chinese_ones() {
-    assert_eq!(task_messages().cancelled, "任務已要求停止");
 }
 
 #[test]

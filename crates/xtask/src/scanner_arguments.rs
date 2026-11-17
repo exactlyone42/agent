@@ -1,0 +1,10 @@
+pub(crate) const SCAN_DIRECTORY_COMMAND: &str = "dir";
+pub(crate) const SCAN_TARGET: &str = ".";
+pub(crate) const REDACT_FLAG: &str = "--redact";
+pub(crate) const NO_BANNER_FLAG: &str = "--no-banner";
+pub(crate) const CONFIG_FLAG: &str = "--config";
+pub(crate) const IGNORE_PATH_FLAG: &str = "--gitleaks-ignore-path";
+pub(crate) const IGNORE_ALLOW_COMMENTS_FLAG: &str = "--ignore-gitleaks-allow";
+pub(crate) const REPORT_FORMAT_FLAG: &str = "--report-format";
+pub(crate) const REPORT_FORMAT_JSON: &str = "json";
+pub(crate) const REPORT_PATH_FLAG: &str = "--report-path";

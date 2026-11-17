@@ -1,9 +1,8 @@
-use crate::check_all::check_all;
-use crate::error::XtaskError;
-use crate::gate::gate_steps;
-use crate::plan::Plan;
-use crate::run_steps::run_steps;
-use crate::text::text;
+use crate::prelude::*;
+use crate::{
+    check_all::check_all, gate::gate_steps, run_steps::run_steps, run_structure::run_structure,
+    step_names::ALL_TASK,
+};
 use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,20 +14,27 @@ pub enum Task {
 impl Task {
     pub fn parse(name: Option<&str>) -> Option<Self> {
         match name {
-            Some("gate") => Some(Self::Gate),
-            Some("all") => Some(Self::All),
+            Some(GATE_TASK) => Some(Self::Gate),
+            Some(ALL_TASK) => Some(Self::All),
             _ => None,
         }
     }
 
-    pub fn run(self, root: &Path) -> Result<i32, XtaskError> {
+    pub fn run(self, root: &Path) -> Result<Outcome, XtaskError> {
         match self {
-            Self::Gate => run_steps(root, &gate_steps(root)),
+            Self::Gate => Self::gate(root),
             Self::All => Self::all(root),
         }
     }
 
-    fn all(root: &Path) -> Result<i32, XtaskError> {
+    fn gate(root: &Path) -> Result<Outcome, XtaskError> {
+        if run_structure(root)? == Outcome::Failed {
+            return Ok(Outcome::Failed);
+        }
+        run_steps(root, &gate_steps(root))
+    }
+
+    fn all(root: &Path) -> Result<Outcome, XtaskError> {
         let executable = text(&std::env::current_exe()?);
         check_all(root, |evidence| {
             Plan::real(&executable, evidence, cfg!(windows))

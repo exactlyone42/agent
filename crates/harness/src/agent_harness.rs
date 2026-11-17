@@ -1,8 +1,10 @@
 mod agent;
+mod agent_defaults;
 mod finish;
 mod hook;
 mod message;
 mod model;
+mod prelude;
 mod tool;
 
 pub use agent::{Agent, RunError, RunOutput};

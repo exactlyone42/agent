@@ -1,9 +1,9 @@
 use agent_platform_xtask::{
-    Step, Task, XtaskError, all_passed, exit_status, now_seconds, run_steps, source_hashes,
+    Outcome, Step, Task, XtaskError, all_passed, exit_status, now_seconds, run_steps, source_hashes,
 };
 use std::collections::BTreeMap;
 use std::fs;
-use std::process::Command;
+use std::process::{Command, ExitCode};
 
 #[test]
 fn clock_is_after_2023() {
@@ -22,9 +22,12 @@ fn all_passed_needs_every_code_zero() {
 
 #[test]
 fn exit_status_maps_results() {
-    assert_eq!(exit_status(Ok(0)), 0);
-    assert_eq!(exit_status(Ok(5)), 1);
-    assert_eq!(exit_status(Err(XtaskError::EmptySnapshot)), 1);
+    assert_eq!(exit_status(Ok(Outcome::Passed)), ExitCode::SUCCESS);
+    assert_eq!(exit_status(Ok(Outcome::Failed)), ExitCode::FAILURE);
+    assert_eq!(
+        exit_status(Err(XtaskError::EmptySnapshot)),
+        ExitCode::FAILURE
+    );
 }
 
 #[test]
@@ -50,16 +53,10 @@ fn run_steps_stops_at_first_failure() {
     let good = Step::new("rustc", &["--print", "sysroot"]);
     let bad = Step::new("rustc", &["--print", "no-such-print-value"]);
     let mark = Step::new("git", &["init", "-q", "marker"]);
-    let expected = Command::new("rustc")
-        .args(["--print", "no-such-print-value"])
-        .output()
-        .unwrap()
-        .status
-        .code();
-    let code = run_steps(root, &[good.clone(), bad, mark.clone()]).unwrap();
-    assert_eq!(Some(code), expected);
+    let outcome = run_steps(root, &[good.clone(), bad, mark.clone()]).unwrap();
+    assert_eq!(outcome, Outcome::Failed);
     assert!(!root.join("marker").exists());
-    assert_eq!(run_steps(root, &[good, mark]).unwrap(), 0);
+    assert_eq!(run_steps(root, &[good, mark]).unwrap(), Outcome::Passed);
     assert!(root.join("marker").exists());
 }
 

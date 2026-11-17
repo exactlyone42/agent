@@ -1,19 +1,19 @@
-use crate::finish::finish;
+use crate::prelude::*;
 use crate::{
-    Dispatch, DispatchAction, Hook, Message, Model, ModelError, Outcome, OutcomeAction, Tool,
-    ToolCall, ToolResult, ToolSpec,
+    Dispatch, DispatchAction, Hook, Model, ModelError, Outcome, OutcomeAction, Tool, ToolResult,
+    agent_defaults::DEFAULT_MAX_TURNS, finish::finish,
 };
 use tokio_util::sync::CancellationToken;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RunError {
-    #[error("已要求停止")]
+    #[error("the run was asked to stop")]
     Cancelled,
-    #[error("超過回合上限")]
+    #[error("the turn limit was exceeded")]
     TurnLimit,
-    #[error("模型失敗：{0}")]
+    #[error("the model failed: {0}")]
     Model(#[from] ModelError),
-    #[error("被攔截而停止：{0}")]
+    #[error("the run was stopped by a hook: {0}")]
     Stopped(String),
 }
 
@@ -36,7 +36,7 @@ impl<M: Model> Agent<M> {
             model,
             hook: (),
             tools: Vec::new(),
-            max_turns: 8,
+            max_turns: DEFAULT_MAX_TURNS,
         }
     }
 }
@@ -125,7 +125,10 @@ impl<M: Model, H: Hook> Agent<M, H> {
             is_error,
         };
         let Some(tool) = self.tools.iter().find(|t| t.spec().name == call.name) else {
-            return Ok(tool_message(format!("沒有名為 {} 的工具", call.name), true));
+            return Ok(tool_message(
+                format!("there is no tool named {}", call.name),
+                true,
+            ));
         };
         match self.hook.on_dispatch(Dispatch { turn, call }).await {
             DispatchAction::Stop(why) => return Err(RunError::Stopped(why)),

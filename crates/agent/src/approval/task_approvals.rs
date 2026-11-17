@@ -1,5 +1,6 @@
 use super::fault_of::fault_of;
-use crate::store::{Claim as StoreClaim, PreparedIntent, TaskStore};
+use crate::prelude::*;
+use crate::{store::Claim as StoreClaim, store::PreparedIntent};
 use agent_harness::ToolCall;
 use agent_harness_approval::{ApprovalStore, Claim, Fault};
 use std::sync::{Arc, Mutex};

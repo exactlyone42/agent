@@ -1,15 +1,19 @@
 #[derive(Debug, thiserror::Error)]
 pub enum XtaskError {
-    #[error("檔案操作失敗：{0}")]
+    #[error("file operation failed: {0}")]
     Io(#[from] std::io::Error),
-    #[error("JSON 格式錯誤：{0}")]
+    #[error("invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
-    #[error("秘密掃描拒絕讀取專案外連結：{0}")]
+    #[error("the secret scan refused a link that leaves the project: {0}")]
     OutsideLink(String),
-    #[error("秘密掃描沒有任何檔案，不能判定通過")]
+    #[error("the secret scan found no files, so it cannot be judged as passed")]
     EmptySnapshot,
-    #[error("完整檢查已在執行；請接續原程序，不要重開。")]
+    #[error("could not list the files tracked by Git, so the structure cannot be judged as passed")]
+    TrackedFilesUnavailable,
+    #[error(
+        "the full check is already running; continue the running process instead of starting another"
+    )]
     AlreadyRunning,
-    #[error("報告欄位缺失或型別錯誤：{0}")]
+    #[error("a report field is missing or has the wrong type: {0}")]
     Report(&'static str),
 }

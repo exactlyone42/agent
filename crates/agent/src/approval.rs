@@ -1,14 +1,12 @@
 mod fault_of;
 mod task_approvals;
-mod task_messages;
 
-use crate::store::TaskStore;
+use crate::prelude::*;
 use agent_harness::CancellationToken;
-use agent_harness_approval::Policy;
+use agent_harness_approval::{Messages, Policy};
 use std::sync::{Arc, Mutex};
 
 pub use task_approvals::TaskApprovals;
-pub use task_messages::task_messages;
 
 pub type ApprovalGate = agent_harness_approval::ApprovalGate<TaskApprovals>;
 
@@ -26,6 +24,6 @@ pub fn task_gate(
         Arc::new(TaskApprovals::new(store, task_id)),
         cancellation,
         policy,
-        task_messages(),
+        Messages::default(),
     )
 }

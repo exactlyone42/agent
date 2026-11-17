@@ -1,5 +1,16 @@
-use crate::strings::strings;
-use crate::text::text;
+use crate::prelude::*;
+use crate::{
+    step_names::COVERAGE_STEP, step_names::MUTATION_STEP, step_names::VERSIONS_COVERAGE_STEP,
+    step_names::VERSIONS_DEPENDENCIES_STEP, step_names::VERSIONS_MUTATION_STEP,
+    step_names::VERSIONS_RUST_STEP, step_names::VERSIONS_SECRETS_STEP, strings::strings,
+    tool_arguments::AGENT_EXCLUDE_PATTERN, tool_arguments::CARGO_LOCKED_ARGUMENT,
+    tool_arguments::EXCLUDE_FLAG, tool_arguments::IN_PLACE_FLAG, tool_arguments::JSON_FLAG,
+    tool_arguments::LLVM_COV, tool_arguments::MUTANTS, tool_arguments::MUTATION_TIMEOUT_SECONDS,
+    tool_arguments::OUTPUT_FLAG, tool_arguments::OUTPUT_PATH_FLAG, tool_arguments::RUSTC,
+    tool_arguments::TASK_EXCLUDE_PATTERN, tool_arguments::TEST_WORKSPACE_FLAG,
+    tool_arguments::TIMEOUT_FLAG, tool_arguments::TRUE_VALUE, tool_arguments::VERSION_COMMAND,
+    tool_arguments::VERSION_FLAG,
+};
 use std::path::Path;
 
 pub type NamedCommand = (String, Vec<String>);
@@ -16,50 +27,50 @@ impl Plan {
     }
 
     pub fn real(executable: &str, evidence: &Path, windows: bool) -> Self {
-        let report = text(&evidence.join("coverage-report.json"));
+        let report = text(&evidence.join(COVERAGE_REPORT));
         let mut mutation = strings(&[
-            "cargo",
-            "mutants",
-            "--in-place",
-            "--workspace",
-            "--test-workspace",
-            "true",
-            "--all-features",
-            "--timeout",
-            "90",
-            "--cargo-arg=--locked",
-            "--exclude-re",
-            r"crates/xtask/src/task\.rs:\d+:\d+: replace Task::(run|all) -> ",
+            CARGO,
+            MUTANTS,
+            IN_PLACE_FLAG,
+            WORKSPACE_FLAG,
+            TEST_WORKSPACE_FLAG,
+            TRUE_VALUE,
+            ALL_FEATURES_FLAG,
+            TIMEOUT_FLAG,
+            MUTATION_TIMEOUT_SECONDS,
+            CARGO_LOCKED_ARGUMENT,
+            EXCLUDE_FLAG,
+            TASK_EXCLUDE_PATTERN,
         ]);
         if !windows {
-            mutation.extend(strings(&[
-                "--exclude-re",
-                r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):",
-            ]));
+            mutation.extend(strings(&[EXCLUDE_FLAG, AGENT_EXCLUDE_PATTERN]));
         }
-        mutation.extend(strings(&["--output", &text(&evidence.join("mutation"))]));
+        mutation.extend(strings(&[
+            OUTPUT_FLAG,
+            &text(&evidence.join(MUTATION_OUTPUT_DIRECTORY)),
+        ]));
         let mut coverage = strings(&[
-            "cargo",
-            "llvm-cov",
-            "--workspace",
-            "--all-features",
-            "--locked",
-            "--json",
-            "--output-path",
+            CARGO,
+            LLVM_COV,
+            WORKSPACE_FLAG,
+            ALL_FEATURES_FLAG,
+            LOCKED_FLAG,
+            JSON_FLAG,
+            OUTPUT_PATH_FLAG,
         ]);
         coverage.push(report);
         Self {
             preflight: vec![
-                Self::entry("gate", &[executable, "gate"]),
-                Self::entry("versions-rust", &["rustc", "--version"]),
-                Self::entry("versions-coverage", &["cargo", "llvm-cov", "--version"]),
-                Self::entry("versions-mutation", &["cargo", "mutants", "--version"]),
-                Self::entry("versions-secrets", &["gitleaks", "version"]),
-                Self::entry("versions-dependencies", &["cargo", "machete", "--version"]),
+                Self::entry(GATE_TASK, &[executable, GATE_TASK]),
+                Self::entry(VERSIONS_RUST_STEP, &[RUSTC, VERSION_FLAG]),
+                Self::entry(VERSIONS_COVERAGE_STEP, &[CARGO, LLVM_COV, VERSION_FLAG]),
+                Self::entry(VERSIONS_MUTATION_STEP, &[CARGO, MUTANTS, VERSION_FLAG]),
+                Self::entry(VERSIONS_SECRETS_STEP, &[GITLEAKS, VERSION_COMMAND]),
+                Self::entry(VERSIONS_DEPENDENCIES_STEP, &[CARGO, MACHETE, VERSION_FLAG]),
             ],
             main: vec![
-                ("coverage".to_string(), coverage),
-                ("mutation".to_string(), mutation),
+                (COVERAGE_STEP.to_string(), coverage),
+                (MUTATION_STEP.to_string(), mutation),
             ],
         }
     }

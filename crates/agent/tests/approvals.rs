@@ -198,7 +198,7 @@ fn migration_preserves_v1_tasks_events_and_read_only_access()
 -> Result<(), Box<dyn std::error::Error>> {
     let path = path();
     let connection = Connection::open(&path)?;
-    connection.execute_batch(include_str!("../src/store_v1.sql"))?;
+    connection.execute_batch(include_str!("../../../sql/store_v1.sql"))?;
     connection.execute_batch("PRAGMA application_id=1095780180; PRAGMA user_version=1; INSERT INTO tasks(task_id,recorded_state,last_seq) VALUES ('old','running',1); INSERT INTO events(event_id,task_id,seq,event_type) VALUES ('old-event','old',1,'started');")?;
     drop(connection);
     let reader = TaskStore::read(&path)?;
@@ -228,8 +228,8 @@ fn v2_migration_preserves_approvals_and_rolls_back_on_failure()
         let path = path();
         let connection = Connection::open(&path)?;
         connection.pragma_update(None, "foreign_keys", false)?;
-        connection.execute_batch(include_str!("../src/store_v1.sql"))?;
-        connection.execute_batch(include_str!("../src/store_v2.sql"))?;
+        connection.execute_batch(include_str!("../../../sql/store_v1.sql"))?;
+        connection.execute_batch(include_str!("../../../sql/store_v2.sql"))?;
         connection.execute_batch("PRAGMA application_id=1095780180; PRAGMA user_version=2;
             INSERT INTO tasks(task_id,recorded_state,last_seq) VALUES ('legacy','running',1);
             INSERT INTO events(event_id,task_id,seq,event_type) VALUES ('legacy-event','legacy',1,'started');

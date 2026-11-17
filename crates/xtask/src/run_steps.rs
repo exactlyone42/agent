@@ -1,14 +1,12 @@
-use crate::error::XtaskError;
-use crate::step::Step;
+use crate::prelude::*;
 use std::path::Path;
 
-pub fn run_steps(root: &Path, steps: &[Step]) -> Result<i32, XtaskError> {
+pub fn run_steps(root: &Path, steps: &[Step]) -> Result<Outcome, XtaskError> {
     for step in steps {
-        println!("執行 {} {}", step.program, step.arguments.join(" "));
-        let code = step.command(root).status()?.code().unwrap_or(1);
-        if code != 0 {
-            return Ok(code);
+        println!("running {} {}", step.program, step.arguments.join(" "));
+        if !step.command(root).status()?.success() {
+            return Ok(Outcome::Failed);
         }
     }
-    Ok(0)
+    Ok(Outcome::Passed)
 }

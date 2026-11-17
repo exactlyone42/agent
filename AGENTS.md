@@ -26,3 +26,20 @@
 - 設計原則（使用者 2026-10-29 定）：每一步流程都要切割並封裝，遵守 SOLID（五條物件導向設計原則）、低耦合高內聚（部件少牽連、內部職責集中）。程式巢狀（層層包在裡面的 if、迴圈）最好一層、最多兩層，複雜邏輯才可三層；不寫 callback hell（回呼層層嵌套）與 if-else 地獄。能提早返回（條件不符就立刻離開函式）就不用 else，只有語意上真的適合才用 match（Rust 依值分支的語法）。由 clippy（Rust 的程式檢查工具）的 excessive_nesting（門檻 3）與 redundant_else 在 gate 擋；細則見 docs/engineering-standards.md「設計原則」列。
 
 - mortal agent（使用者 2026-11-16 定）：最新架構名稱叫 mortal agent，指有身分與目標的 Agent；專案與 repo 不改名。迴圈（模型反覆思考直到做完）、工具呼叫（模型請程式代為執行工具）、批准、排程統一稱「能力」。新增 `capabilities` 與 `scheduler` 兩個 crate 已獲同意，在要放程式的步驟才建（見 PLAN.md「mortal agent 實作步驟」）。所有優先級判斷用程式與算法實現，每個算法先文件化並寫取捨（見 docs/mortal-agent.md）。凡事要有記錄且夠白話，盡量用 PAR、AAR、ORID、PDCA、YWT、GRAI 這六種固定格式寫記事；格式與位置見 docs/records.md。
+
+## 檔案放哪裡
+
+- 建檔或建資料夾前先看目錄地圖：下表。地圖沒寫的位置不要自己發明，先沿用同類檔案現在的位置。
+- 暫存檔、試跑輸出與審查收據放 `.runtime/`（已被 .gitignore 排除），不放根目錄。
+- 新增根目錄項目、模組或改依賴方向時，同一次修改更新這份地圖，交付時列出原因。不開 `utils`、`common`、`misc`、`temp` 這類看不出職責的資料夾。
+- commit 時 `~/.agents/guards/git_guard.py` 會擋下地圖沒寫的根目錄新增項目，以及上述名稱的新資料夾。
+
+| 根目錄資料夾    | 放什麼                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| `.cargo/`       | Rust 工具設定：編譯別名與變異測試的設定                                                   |
+| `.repo-policy/` | 分支與提交政策檢查，以及安裝 hooks 的程式                                                 |
+| `crates/`       | Rust 程式，一個資料夾一個 crate：`agent`、`approval`、`cli`、`harness`、`openai`、`xtask` |
+| `docs/`         | 設計與規範文件，索引在根目錄 README.md                                                    |
+| `loops/`        | 全案 LOOP 與各階段票據、檢查點紀錄                                                        |
+| `sql/`          | 任務庫資料表版本檔（store_v1 起），見 docs/directory-structure.md                         |
+| `scripts/`      | clippy 與 gitleaks 的設定，以及把計畫轉成 PDF 的腳本                                      |

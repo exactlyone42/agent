@@ -14,6 +14,7 @@ fn registered_layout_passes() {
     assert!(
         violations(&[
             "README.md",
+            "CLAUDE.md",
             "docs/cli.md",
             "crates/agent/Cargo.toml",
             "crates/agent/src/store/mod.rs",

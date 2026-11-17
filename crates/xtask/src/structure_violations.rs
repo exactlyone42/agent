@@ -14,11 +14,12 @@ pub(crate) const TOOLCHAIN_FILE: &str = "rust-toolchain.toml";
 const CRATE_FOLDER_PARTS: usize = 2;
 const CRATE_ENTRY_INDEX: usize = 2;
 
-const TOP_LEVEL: [&str; 17] = [
+const TOP_LEVEL: [&str; 18] = [
     CARGO_DIRECTORY,
     ".gitignore",
     REPO_POLICY_DIRECTORY,
     "AGENTS.md",
+    "CLAUDE.md",
     CARGO_LOCK,
     CARGO_TOML,
     "DEVELOPMENT.md",

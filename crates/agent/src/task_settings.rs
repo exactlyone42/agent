@@ -10,7 +10,3 @@ pub const WRITE_OUTPUT_DESCRIPTION: &str = "Create the new artifact file that th
 pub const WRITE_OUTPUT_DONE: &str =
     "the artifact was written and still needs independent verification";
 pub(crate) const TASK_MAX_TURNS: usize = 8;
-#[cfg(windows)]
-pub(crate) const FILE_ID_BYTES: usize = 16;
-#[cfg(unix)]
-pub(crate) const SINGLE_LINK_COUNT: u64 = 1;

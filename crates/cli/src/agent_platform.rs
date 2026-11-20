@@ -1,35 +1,25 @@
-mod approvals_command;
-mod decide_command;
-mod en_store_text;
-mod en_task_text;
-mod en_text;
-mod events_command;
-mod help_command;
+mod command;
 mod locale;
 mod message;
 mod open_store;
 mod output;
 mod prelude;
 mod request;
-mod run_command;
 mod settings;
-mod status_command;
-mod zh_tw_store_text;
-mod zh_tw_task_text;
-mod zh_tw_text;
+mod state_dir;
+mod text;
 
-use approvals_command::approvals_command;
-use decide_command::decide_command;
-use events_command::events_command;
-use help_command::help_command;
+use command::{
+    approvals_command::approvals_command, decide_command::decide_command,
+    events_command::events_command, help_command::help_command, run_command::run_command,
+    status_command::status_command,
+};
 use locale::Locale;
 use message::Message;
-use run_command::run_command;
 use settings::{
     COMMAND_APPROVALS, COMMAND_APPROVE, COMMAND_DENY, COMMAND_EVENTS, COMMAND_HELP, COMMAND_RUN,
     COMMAND_STATUS,
 };
-use status_command::status_command;
 use std::{path::Path, process::ExitCode};
 
 async fn run(locale: Locale) -> Result<ExitCode, Message> {

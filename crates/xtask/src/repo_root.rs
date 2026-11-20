@@ -1,4 +1,4 @@
-use crate::scan_rules::ROOT_FROM_MANIFEST;
+use crate::scan::scan_rules::ROOT_FROM_MANIFEST;
 use std::path::PathBuf;
 
 pub fn repo_root() -> PathBuf {

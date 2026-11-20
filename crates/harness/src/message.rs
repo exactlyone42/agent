@@ -40,11 +40,4 @@ impl Message {
             calls: vec![call],
         }
     }
-
-    pub(crate) fn calls(&self) -> &[ToolCall] {
-        match self {
-            Self::Assistant { calls, .. } => calls,
-            _ => &[],
-        }
-    }
 }

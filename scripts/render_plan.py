@@ -5,7 +5,7 @@ import markdown
 
 root = Path(__file__).resolve().parents[1]
 docs = root / 'docs'
-evaluation = (docs / 'evaluation.md').read_text()
+evaluation = (docs / 'research' / 'evaluation.md').read_text()
 css = '''
 @page{size:A3 landscape;margin:0;background:white}
 @page appendix{size:A3 landscape;margin:12mm 0;background:white}
@@ -72,7 +72,7 @@ flow([box('固定需求與資料','版本、範圍、完成條件、真人負責
 mapping=[('入口、安裝、平台、更新','A01–A04、A28、A34–A36'),('核心、模型、授權、工具、隔離','A05–A08、A29–A31'),('取消、接續、上下文、儲存','A09–A12、A33'),('全機發現、解析、切片、向量與搜尋','A13–A20、A24'),('主動查證、知識發布與高頻維護','A21–A24、A31'),('記憶、電腦操作與真人接手','A25–A28'),('彈性、全流程、安全、稽核及維運','A29–A36')]
 page('coverage','覆蓋與門檻｜不能用平均分數掩蓋安全失敗',table(['部件／需求群','對應驗收卡'],mapping)+'<h2>量化門檻與發布範圍</h2>'+table(['領域','必要目標'],[['任務／長任務','檔案20題×3輪，每輪≥18/20；長任務3個×30分鐘，每個2次壓縮及2次重啟，禁止條件全保留'],['知識品質','調整60＋保留60；Recall@5≥27/30、@10≥28/30、nDCG@10≥0.80；定位≥29/30；正確有支持≥27/30；無答案／矛盾／隔離各10/10'],['效能與安全','2並行、冷暖各1000次，查詢＋重排P95≤2秒/P99≤5秒；前景增幅≤20%；安全違規與假成功0；各平台24小時混合負載'],['CLI／Desktop','兩次都是企業正式交付；CLI不要求Tauri畫面，Desktop增加真桌面及跨入口；每次都要三平台／必交CPU完整證據']],'metrics')+'<p class="note">以上是本案待達成目標，不是論文保證或實測結果。更多資源／方法收斂條件沿用工作拆解。A01–A36 覆蓋產品流程，F01–F15 對應可控故障；仍須把每個格式、平台與能力矩陣展開成實際執行紀錄。</p>')
 
-architecture=(docs/'architecture.md').read_text()
+architecture=(docs/'design'/'architecture.md').read_text()
 section=architecture.split('## 部件責任與替換驗收')[1].split('## 整體完整性檢查')[0]
 rows=[]
 for line in section.splitlines():
@@ -109,5 +109,5 @@ def absolute_links(match):
 canonical=re.sub(r'\[([^\]]+)\]\(([^)]+)\)',absolute_links,canonical)
 appendix='<section class="appendix" id="canonical"><h1>附錄｜唯一主計畫全文</h1><p>以下由根目錄 PLAN.md 同次產生，與前面圖形及驗收卡共同閱讀。</p>'+markdown.markdown(canonical,extensions=['tables','fenced_code'])+'</section>'
 nav='<nav><b>Agent Platform</b><a href="#start">總覽</a><a href="#deploy">架構</a><a href="#rag">RAG</a><a href="#platform">三平台</a><a href="#accept">驗收</a><a href="#cases-1">操作卡</a><a href="#canonical">主計畫全文</a><button onclick="window.print()">列印</button></nav>'
-(docs/'PLAN.html').write_text('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>Agent Platform｜架構與完整驗收</title><style>'+css+'</style></head><body>'+nav+''.join(pages)+appendix+'</body></html>')
+(docs/'diagrams'/'PLAN.html').write_text('<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>Agent Platform｜架構與完整驗收</title><style>'+css+'</style></head><body>'+nav+''.join(pages)+appendix+'</body></html>')
 print(f'HTML generated: {len(pages)} designed pages, {len(cases)} acceptance cards, canonical appendix')

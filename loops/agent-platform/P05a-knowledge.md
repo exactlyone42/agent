@@ -1,6 +1,6 @@
 # P05a 知識檢索（常用格式）
 
-母檔：../agent-platform.loop.md。依賴 P04。方案見 docs/knowledge-plan.md；門檻見 docs/evaluation.md「RAG 階段映射與可執行門檻」。
+母檔：../agent-platform.loop.md。依賴 P04。方案見 docs/design/knowledge-plan.md；門檻見 docs/research/evaluation.md「RAG 階段映射與可執行門檻」。
 
 ## 目標
 

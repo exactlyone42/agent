@@ -15,7 +15,8 @@ fn registered_layout_passes() {
         violations(&[
             "README.md",
             "CLAUDE.md",
-            "docs/cli.md",
+            "docs/design/cli.md",
+            "docs/diagrams/a.pdf",
             "crates/agent/Cargo.toml",
             "crates/agent/src/store/mod.rs",
             "crates/agent/tests/input.rs",
@@ -34,7 +35,7 @@ fn unregistered_top_level_is_rejected() {
 #[test]
 fn dump_directories_are_rejected_at_any_depth() {
     assert_eq!(violations(&["crates/agent/src/utils/a.rs"]).len(), 1);
-    assert_eq!(violations(&["docs/Misc/a.md"]).len(), 1);
+    assert_eq!(violations(&["docs/design/Misc/a.md"]).len(), 1);
     assert_eq!(violations(&["scripts/shared/a.py"]).len(), 1);
 }
 
@@ -76,9 +77,19 @@ fn scripts_are_allowed_only_in_registered_roots() {
 
 #[test]
 fn docs_hold_only_markdown_and_pdf() {
-    assert_eq!(violations(&["docs/architecture.svg"]).len(), 1);
-    assert_eq!(violations(&["docs/notes"]).len(), 1);
-    assert!(violations(&["docs/a.md", "docs/a.pdf"]).is_empty());
+    assert_eq!(violations(&["docs/design/architecture.svg"]).len(), 1);
+    assert_eq!(violations(&["docs/design/notes"]).len(), 1);
+    assert!(violations(&["docs/design/a.md", "docs/diagrams/a.pdf"]).is_empty());
+}
+
+#[test]
+fn docs_must_sit_in_a_registered_category() {
+    assert_eq!(violations(&["docs/a.md"]).len(), 1);
+    assert_eq!(violations(&["docs/notes/a.md"]).len(), 1);
+    assert!(!violations(&["docs/design"]).is_empty());
+    for category in ["design", "standards", "research", "diagrams"] {
+        assert!(violations(&[&format!("docs/{category}/a.md")]).is_empty());
+    }
 }
 
 #[test]

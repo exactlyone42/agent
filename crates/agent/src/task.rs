@@ -1,3 +1,4 @@
+use crate::agent_runtime::AgentRuntime;
 use crate::task_settings::TASK_MAX_TURNS;
 pub use crate::task_settings::{
     FILE_LIMIT, MANUAL_TASK_TIMEOUT, READ_INPUT_DESCRIPTION, READ_INPUT_TOOL, TASK_TIMEOUT,
@@ -6,7 +7,11 @@ pub use crate::task_settings::{
 use crate::tool_refusal::ToolRefusal;
 use crate::verification::{VerificationError, verify_file};
 pub use agent_harness::CancellationToken;
-use agent_harness::{Agent, Hook, Model, RunError, Tool, ToolError, ToolFuture, ToolSpec};
+use agent_harness::{
+    AgentId, AgentIdentity, Hook, Model, MortalAgent, RunError, Tool, ToolError, ToolFuture,
+    ToolSpec,
+};
+use agent_harness_capabilities::{Loop, ToolCalling};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
@@ -215,16 +220,23 @@ pub async fn run_file_task(
         None
     };
     let artifact = Arc::new(Mutex::new(None));
-    let agent = Agent::new(model)
-        .hook(hook)
-        .tool(ReadInput(Arc::new(Mutex::new(input)), cancellation.clone()))
-        .tool(WriteOutput {
-            path: task.output,
-            allowed: task.allow_write,
-            artifact: artifact.clone(),
-            cancellation: cancellation.clone(),
-        })
-        .max_turns(TASK_MAX_TURNS);
+    let identity = AgentIdentity {
+        name: "file-task".to_owned(),
+    };
+    let mut agent = AgentRuntime::new(
+        MortalAgent::new(AgentId(uuid::Uuid::new_v4().to_string()), identity),
+        model,
+    )
+    .hook(hook)
+    .tool(ReadInput(Arc::new(Mutex::new(input)), cancellation.clone()))
+    .tool(WriteOutput {
+        path: task.output,
+        allowed: task.allow_write,
+        artifact: artifact.clone(),
+        cancellation: cancellation.clone(),
+    })
+    .capability(Loop::new().max_turns(TASK_MAX_TURNS))
+    .capability(ToolCalling::new());
     let response = tokio::select! {
         biased;
         _ = cancellation.cancelled() => {

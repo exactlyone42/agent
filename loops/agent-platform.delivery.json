@@ -4,6 +4,7 @@
   "project": ".",
   "steps": {
     "S00": { "kind": "internal", "reason": "品質底座，不對外交付" },
-    "M00": { "kind": "internal", "reason": "只動文件與圖，沒有可部署的產物" }
+    "M00": { "kind": "internal", "reason": "只動文件與圖，沒有可部署的產物" },
+    "PLE1": { "kind": "internal", "reason": "比賽本機測試環境，產物在 ple-harness 資料夾，不部署" }
   }
 }

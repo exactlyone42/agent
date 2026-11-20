@@ -1,6 +1,6 @@
 # P02 可用 CLI，連真 Gateway
 
-母檔：../agent-platform.loop.md。依賴 P01。對應：CLI、任務執行、Gateway 連線 → Gateway。契約見 docs/cli.md。
+母檔：../agent-platform.loop.md。依賴 P01。對應：CLI、任務執行、Gateway 連線 → Gateway。契約見 docs/design/cli.md。
 
 ## 目標
 

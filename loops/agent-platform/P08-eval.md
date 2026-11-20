@@ -1,6 +1,6 @@
 # P08 整體評測
 
-母檔：../agent-platform.loop.md。最小版在 P02（C8）建立，這裡彙整全案。規則見 docs/evaluation.md。
+母檔：../agent-platform.loop.md。最小版在 P02（C8）建立，這裡彙整全案。規則見 docs/research/evaluation.md。
 
 ## 子任務
 

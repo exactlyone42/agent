@@ -1,6 +1,6 @@
 # E01 身分政策、隔離、稽核、秘密
 
-母檔：../agent-platform.loop.md。依賴 P01。對應 docs/architecture.md 的「身分與企業政策」「授權與工具閘門」「隔離與秘密」「診斷、稽核與支援」；企業門檻見 PLAN.md「企業正式發布門檻」。
+母檔：../agent-platform.loop.md。依賴 P01。對應 docs/design/architecture.md 的「身分與企業政策」「授權與工具閘門」「隔離與秘密」「診斷、稽核與支援」；企業門檻見 PLAN.md「企業正式發布門檻」。
 
 ## 目標
 

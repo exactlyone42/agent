@@ -1,3 +1,4 @@
+use crate::docs_violations::docs_violations;
 use crate::kind_violations::kind_violations;
 
 pub(crate) const GIT_PATH_SEPARATOR: char = '/';
@@ -10,6 +11,8 @@ pub(crate) const SQL_DIRECTORY: &str = "sql";
 pub(crate) const CARGO_TOML: &str = "Cargo.toml";
 pub(crate) const CARGO_LOCK: &str = "Cargo.lock";
 pub(crate) const TOOLCHAIN_FILE: &str = "rust-toolchain.toml";
+
+pub(crate) const DOCS_CATEGORIES: [&str; 4] = ["design", "standards", "research", "diagrams"];
 
 const CRATE_FOLDER_PARTS: usize = 2;
 const CRATE_ENTRY_INDEX: usize = 2;
@@ -57,6 +60,9 @@ pub fn structure_violations(paths: &[String]) -> Vec<String> {
             violations.push(format!("forbidden catch-all directory {name}: {path}"));
         }
         violations.extend(kind_violations(path));
+        if parts[0] == DOCS_DIRECTORY {
+            violations.extend(docs_violations(&parts, path));
+        }
         if parts[0] != CRATES_DIRECTORY {
             continue;
         }

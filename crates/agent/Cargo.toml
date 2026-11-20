@@ -11,6 +11,7 @@ path = "src/agent_platform_agent.rs"
 [dependencies]
 agent-harness.workspace = true
 agent-harness-approval.workspace = true
+agent-harness-capabilities.workspace = true
 thiserror.workspace = true
 serde.workspace = true
 serde_json.workspace = true

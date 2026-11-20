@@ -7,4 +7,6 @@
 !/.env.example
 /.runtime/
 *.log
-/docs/PLAN.html
+/docs/diagrams/PLAN.html
+/.state/
+/loops/*.lock

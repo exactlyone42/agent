@@ -3,6 +3,7 @@ mod candidate_lines;
 mod check_all;
 mod claim_run;
 mod copy_snapshot;
+mod docs_violations;
 mod duplicate_lines;
 mod empty_files;
 mod error;

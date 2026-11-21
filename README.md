@@ -17,6 +17,7 @@
 | [評測與錯誤注入](docs/research/evaluation.md)                                                                     | 設計案例、判定成功、測試故障及比較改版                                                                                |
 | [品質要求](docs/standards/engineering-standards.md)                                                               | 寫程式、安裝依賴、提交或推送之前                                                                                      |
 | [目錄結構](docs/standards/directory-structure.md)                                                                 | 新增檔案、資料夾或 crate（Rust 的獨立編譯套件）之前，確認該放哪裡                                                     |
+| [過時檢查](docs/standards/drift-review.md)                                                                        | 定期找文件、圖與程式對不上、或可刪的過時文件；要跑、排程或調整門檻之前                                                |
 | [變異測試例外](docs/standards/mutation-equivalents.md)                                                            | 新增或調整變異測試（故意改壞程式、看測試能否抓到）排除項目之前                                                        |
 | [變異測試既有債務](docs/standards/mutation-debt.md)                                                               | 要判斷變異測試漏抓是不是既有問題、或要補這些測試之前                                                                  |
 | [CLI 開發入口](docs/design/cli.md)                                                                                | 執行目前的檔案任務、判讀結果與已知限制                                                                                |

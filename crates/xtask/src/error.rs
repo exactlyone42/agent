@@ -16,4 +16,10 @@ pub enum XtaskError {
     AlreadyRunning,
     #[error("a report field is missing or has the wrong type: {0}")]
     Report(&'static str),
+    #[error("could not read the Git history, so the age of files cannot be judged")]
+    GitHistoryUnavailable,
+    #[error("the review tool failed: {0}")]
+    ReviewTool(String),
+    #[error("another drift review is already running; remove {0} only if no run is active")]
+    DriftAlreadyRunning(String),
 }

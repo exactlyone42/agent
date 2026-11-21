@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly drift review of docs, code and diagrams (AI only suggests, never edits)
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO@
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/bin/cargo xtask drift
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=3h

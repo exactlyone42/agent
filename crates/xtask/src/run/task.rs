@@ -1,7 +1,12 @@
 use crate::prelude::*;
 use crate::{
-    run::check_all::check_all, run::gate::gate_steps, run::run_steps::run_steps,
-    run::step_names::ALL_TASK, scan::run_structure::run_structure,
+    drift::drift_scan_task::drift_scan_task,
+    drift::drift_task::drift_task,
+    run::check_all::check_all,
+    run::gate::gate_steps,
+    run::run_steps::run_steps,
+    run::step_names::{ALL_TASK, DRIFT_SCAN_TASK, DRIFT_TASK},
+    scan::run_structure::run_structure,
 };
 use std::path::Path;
 
@@ -9,6 +14,8 @@ use std::path::Path;
 pub enum Task {
     Gate,
     All,
+    Drift,
+    DriftScan,
 }
 
 impl Task {
@@ -16,6 +23,8 @@ impl Task {
         match name {
             Some(GATE_TASK) => Some(Self::Gate),
             Some(ALL_TASK) => Some(Self::All),
+            Some(DRIFT_TASK) => Some(Self::Drift),
+            Some(DRIFT_SCAN_TASK) => Some(Self::DriftScan),
             _ => None,
         }
     }
@@ -24,6 +33,8 @@ impl Task {
         match self {
             Self::Gate => Self::gate(root),
             Self::All => Self::all(root),
+            Self::Drift => drift_task(root),
+            Self::DriftScan => drift_scan_task(root),
         }
     }
 

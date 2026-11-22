@@ -8,4 +8,5 @@ pub(crate) mod read_tracked;
 pub(crate) mod run_structure;
 pub(crate) mod scan_rules;
 pub(crate) mod structure_violations;
+pub(crate) mod tracked_paths;
 pub(crate) mod unreferenced_docs;

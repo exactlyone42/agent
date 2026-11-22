@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{en_text::en_text, zh_tw_text::zh_tw_text};
+use crate::text::{en_text::en_text, zh_tw_text::zh_tw_text};
 use agent_platform_agent::{store::StoreError, task::TaskError};
 
 #[derive(Debug)]
@@ -11,7 +11,6 @@ pub enum Message {
     StateDirCreateFailed,
     StateDirMissing,
     StateDirNotPlain,
-    #[cfg(unix)]
     StateDirTooOpen,
     DatabaseNotPlain,
     DatabaseHardLink,

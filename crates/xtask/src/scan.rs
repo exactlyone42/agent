@@ -1,0 +1,11 @@
+pub(crate) mod candidate_lines;
+pub(crate) mod docs_violations;
+pub(crate) mod duplicate_lines;
+pub(crate) mod empty_files;
+pub(crate) mod kind_violations;
+pub(crate) mod locale_literals;
+pub(crate) mod read_tracked;
+pub(crate) mod run_structure;
+pub(crate) mod scan_rules;
+pub(crate) mod structure_violations;
+pub(crate) mod unreferenced_docs;

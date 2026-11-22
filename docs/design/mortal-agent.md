@@ -316,7 +316,7 @@ O5 第 5 條已定案（使用者 2026-11-18）：「接收序號」與「能力
 | `agent`                              | 組裝、任務、任務庫、驗證                                                                | 以上全部加 `approval`                                      | 已有              |
 | `approval`、`openai`、`cli`、`xtask` | 不變                                                                                    | 不變                                                       | 已有              |
 
-`capabilities` 與 `scheduler` 互不依賴。使用者 2026-11-16 同意新增這兩個 crate；依 AGENTS.md「不建立未使用 crate」，它們在要放程式的那一步才建立，同一個提交更新 [目錄結構](../standards/directory-structure.md) 與 `crates/xtask/src/structure_violations.rs`（結構檢查的登記表）。把登記處、解析器、快照放進 `capabilities` 是本次文件的安排，屬於這個已核准 crate 的範圍；`AgentRuntime` 放既有的 `agent` crate，不新增 crate（P5）。
+`capabilities` 與 `scheduler` 互不依賴。使用者 2026-11-16 同意新增這兩個 crate；依 AGENTS.md「不建立未使用 crate」，它們在要放程式的那一步才建立，同一個提交更新 [目錄結構](../standards/directory-structure.md) 與 `crates/xtask/src/scan/structure_violations.rs`（結構檢查的登記表）。把登記處、解析器、快照放進 `capabilities` 是本次文件的安排，屬於這個已核准 crate 的範圍；`AgentRuntime` 放既有的 `agent` crate，不新增 crate（P5）。
 
 ### 現有程式怎麼拆（M3 前的對照；舊 `Agent`、`finish.rs` 已在 M3 刪除）
 
@@ -652,7 +652,7 @@ PLE 是 Google 與 Mercor 的工程題自動做題比賽。官網 ple-bench.com�
 - 檢查像工具一樣登記在 `AgentRuntime`，是一個介面：確定性檢查與獨立審查都是它的實作，獨立審查的實作自己持有模型連線並組裝全新對話。`AgentRuntime` 只認「檢查」這個介面，不認識驗證能力的名字（符合 P5）。
 - 仲裁關係：停止高於要求修正，要求修正高於接受答案；執行檢查與它們相容。答案在所有待回報的檢查到齊前不算數，做法比照現有「工具回報到齊才問模型」。沒有任何能力回應「答案已提出」時，答案照舊直接成立，所以沒載入驗證能力的組合行為不變。
 - 沒載入驗證能力時，結果標為「未驗證」，不得當成通過（P6）。
-- 現有程式的一個落差（2026-11-19 讀 `crates/agent/src/arbitration.rs` 與 `agent_runtime.rs`）：停止成立時，仲裁只取消「問模型」與「答案」，同一輪提出的工具呼叫照樣執行。時間預算用盡的停止不該再啟動新的命令，所以做 P17 時要把「停止之後不啟動新效果」補進仲裁並加測試；這是 `agent` crate 的核心邏輯變更，要跑完整檢查。
+- 現有程式的一個落差（2026-11-19 讀 `crates/agent/src/runtime/arbitration.rs` 與 `runtime/agent_runtime.rs`）：停止成立時，仲裁只取消「問模型」與「答案」，同一輪提出的工具呼叫照樣執行。時間預算用盡的停止不該再啟動新的命令，所以做 P17 時要把「停止之後不啟動新效果」補進仲裁並加測試；這是 `agent` crate 的核心邏輯變更，要跑完整檢查。
 
 驗證證據與成果的對應粒度（O7）先採最簡單的做法：以交付檔為單位，檔案一改，綁在這個檔上的檢查結果全部失效並重跑。更細的粒度等量到重跑成本太高再做。
 

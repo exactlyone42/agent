@@ -19,28 +19,15 @@ pub fn open_store(access: StoreAccess) -> Result<TaskStore, Message> {
         return Err(Message::StateDirNotAbsolute);
     }
     if create {
-        let mut builder = std::fs::DirBuilder::new();
-        builder.recursive(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::DirBuilderExt;
-            builder.mode(crate::settings::STATE_DIR_MODE);
-        }
-        builder
-            .create(&directory)
+        crate::state_dir::create_directory(&directory)
             .map_err(|_| Message::StateDirCreateFailed)?;
     }
     let metadata = std::fs::symlink_metadata(&directory).map_err(|_| Message::StateDirMissing)?;
     if !metadata.is_dir() {
         return Err(Message::StateDirNotPlain);
     }
-    #[cfg(unix)]
-    {
-        use crate::settings::OTHER_ACCESS_MASK;
-        use std::os::unix::fs::PermissionsExt;
-        if metadata.permissions().mode() & OTHER_ACCESS_MASK != 0 {
-            return Err(Message::StateDirTooOpen);
-        }
+    if !crate::state_dir::is_private(&metadata) {
+        return Err(Message::StateDirTooOpen);
     }
     let path = directory.join(DATABASE_FILE);
     match std::fs::symlink_metadata(&path) {

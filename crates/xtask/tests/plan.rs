@@ -50,13 +50,10 @@ fn mutation_command_excludes_input_lines_only_off_windows() {
         assert!(command.contains(&"--cargo-arg=--locked".to_string()));
     }
     assert!(
-        unix.contains(
-            &r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):".to_string()
-        )
+        unix.contains(&r"crates/agent/src/file_check/(input|single_link)/windows\.rs:".to_string())
     );
     assert!(
-        !windows.contains(
-            &r"crates/agent/src/(input\.rs:(30|61|69|82)|single_link\.rs:11):".to_string()
-        )
+        !windows
+            .contains(&r"crates/agent/src/file_check/(input|single_link)/windows\.rs:".to_string())
     );
 }

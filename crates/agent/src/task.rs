@@ -1,11 +1,11 @@
-use crate::agent_runtime::AgentRuntime;
+use crate::file_check::verification::{VerificationError, verify_file};
+use crate::runtime::agent_runtime::AgentRuntime;
 use crate::task_settings::TASK_MAX_TURNS;
 pub use crate::task_settings::{
     FILE_LIMIT, MANUAL_TASK_TIMEOUT, READ_INPUT_DESCRIPTION, READ_INPUT_TOOL, TASK_TIMEOUT,
     WRITE_OUTPUT_DESCRIPTION, WRITE_OUTPUT_DONE, WRITE_OUTPUT_TOOL,
 };
 use crate::tool_refusal::ToolRefusal;
-use crate::verification::{VerificationError, verify_file};
 pub use agent_harness::CancellationToken;
 use agent_harness::{
     AgentId, AgentIdentity, Hook, Model, MortalAgent, RunError, Tool, ToolError, ToolFuture,
@@ -211,9 +211,11 @@ pub async fn run_file_task(
     }
     let input = if task.allow_read {
         let file =
-            crate::input::open_checked(&task.input, FILE_LIMIT).map_err(|error| match error {
-                crate::input::InputError::InvalidFile => TaskError::InvalidInput,
-                crate::input::InputError::Io(error) => TaskError::Input(error),
+            crate::file_check::input::open_checked(&task.input, FILE_LIMIT).map_err(|error| {
+                match error {
+                    crate::file_check::input::InputError::InvalidFile => TaskError::InvalidInput,
+                    crate::file_check::input::InputError::Io(error) => TaskError::Input(error),
+                }
             })?;
         Some(file)
     } else {

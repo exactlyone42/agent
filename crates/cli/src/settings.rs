@@ -22,7 +22,3 @@ pub const TASK_FILE_LIMIT: u64 = TASK_FILE_LIMIT_KIB * BYTES_PER_KIB;
 pub const MODEL_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 pub const INTERRUPTED_EXIT_CODE: u8 = 130;
 pub const REVIEW_NEEDED_EXIT_CODE: u8 = 2;
-#[cfg(unix)]
-pub const STATE_DIR_MODE: u32 = 0o700;
-#[cfg(unix)]
-pub const OTHER_ACCESS_MASK: u32 = 0o077;

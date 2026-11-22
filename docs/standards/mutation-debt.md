@@ -10,13 +10,13 @@
 
 | 類別                                 | 數量 | 位置                                                                                                                                                                               | 目前判斷                                                                                      |
 | ------------------------------------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 只在 Windows 編譯的程式              | 13   | `input.rs`（12 項）、`single_link.rs`（1 項）                                                                                                                                      | Linux 永遠碰不到，必在 Windows 實機驗；現行排除規則用行號，行號已偏移，規則失效               |
-| 已有等價說明但行號偏移，或未重新證明 | 14   | `task_store.rs`（9 項）、`store_approval_limits.rs`（2 項，說明裡沒有）、`store_approvals.rs`（2 項）、`approval_gate.rs`（1 項）                                                  | 行號偏移讓 `.cargo/mutants.toml` 的排除不再對到；是否真的等價沒有重新逐項證明，不得當作已解決 |
+| 只在 Windows 編譯的程式              | 13   | `file_check/input/windows.rs`（12 項）、`file_check/single_link/windows.rs`（1 項）                                                                                                | Linux 永遠碰不到，必在 Windows 實機驗；現行排除規則用行號，行號已偏移，規則失效               |
+| 已有等價說明但行號偏移，或未重新證明 | 14   | `store/task_store.rs`（9 項）、`store/approval_limits.rs`（2 項，說明裡沒有）、`store/approvals.rs`（2 項）、`approval/gate.rs`（1 項）                                            | 行號偏移讓 `.cargo/mutants.toml` 的排除不再對到；是否真的等價沒有重新逐項證明，不得當作已解決 |
 | 沒有排除、是真的測試缺口             | 11   | `cli/agent_platform.rs`（事件指令分支）、三個 CLI 文字檔（6 項，替換成空字串沒被測試發現）、`xtask` 的 `read_tracked.rs`、`run_structure.rs`、`structure_violations.rs`、`task.rs` | 需補測試                                                                                      |
 
 ## 排除設定的問題
 
-- `.cargo/mutants.toml` 與 `crates/xtask/src/tool_arguments.rs` 的 `AGENT_EXCLUDE_PATTERN` 都用「行號」比對；程式一動行號就偏，排除就悄悄失效，也可能誤排新程式碼。
+- `.cargo/mutants.toml` 與 `crates/xtask/src/run/tool_arguments.rs` 的 `AGENT_EXCLUDE_PATTERN` 都用「行號」比對；程式一動行號就偏，排除就悄悄失效，也可能誤排新程式碼。
 - 修法（另開票，不在 M3）：改用函式名稱比對，再逐項重新證明等價。
 
 ## M3 驗收怎麼寫

@@ -42,4 +42,4 @@
 | `docs/`         | 文件，分 `design/`、`standards/`、`research/`、`run-history/`、`diagrams/` 五類，索引在根目錄 README.md   |
 | `loops/`        | 全案 LOOP 與各階段票據、檢查點紀錄                                                                        |
 | `sql/`          | 任務庫資料表版本檔（store_v1 起），見 docs/standards/directory-structure.md                               |
-| `scripts/`      | clippy 與 gitleaks 的設定，以及把計畫轉成 PDF 的腳本                                                      |
+| `scripts/`      | clippy 與 gitleaks 的設定、把計畫轉成 PDF 的腳本，以及 `schedule/` 的排程單元與安裝腳本                   |

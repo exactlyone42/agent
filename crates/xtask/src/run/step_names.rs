@@ -9,3 +9,5 @@ pub(crate) const COVERAGE_STEP: &str = "coverage";
 pub(crate) const MUTATION_STEP: &str = "mutation";
 pub(crate) const GATE_TASK: &str = "gate";
 pub(crate) const ALL_TASK: &str = "all";
+pub(crate) const DRIFT_TASK: &str = "drift";
+pub(crate) const DRIFT_SCAN_TASK: &str = "drift-scan";

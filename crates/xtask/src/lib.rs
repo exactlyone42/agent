@@ -1,3 +1,4 @@
+mod drift;
 mod error;
 mod evidence;
 mod now_seconds;
@@ -8,6 +9,23 @@ mod scan;
 mod strings;
 mod text;
 
+pub use drift::candidate::Candidate;
+pub use drift::candidate_kind::CandidateKind;
+pub use drift::dead_references::dead_references;
+pub use drift::evidence::Evidence;
+pub use drift::file_group::FileGroup;
+pub use drift::finding::Finding;
+pub use drift::group_candidates::group_candidates;
+pub use drift::parse_log::parse_log;
+pub use drift::referenced_paths::referenced_paths;
+pub use drift::review_state::ReviewState;
+pub use drift::reviewers::{ReviewCall, Reviewers};
+pub use drift::run_drift::{DRIFT_DIRECTORY, run_drift};
+pub use drift::run_lock::RunLock;
+pub use drift::scan_candidates::scan_candidates;
+pub use drift::select_files::select_files;
+pub use drift::selection::Selection;
+pub use drift::verdict::Verdict;
 pub use error::XtaskError;
 pub use evidence::claim_run::claim_run;
 pub use evidence::copy_snapshot::copy_snapshot;

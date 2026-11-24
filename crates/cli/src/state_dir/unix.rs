@@ -1,9 +1,5 @@
-use std::{
-    fs::{DirBuilder, Metadata},
-    io,
-    os::unix::fs::{DirBuilderExt, PermissionsExt},
-    path::Path,
-};
+use crate::prelude::*;
+use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 
 pub const MODE_HINT: &str = "700";
 

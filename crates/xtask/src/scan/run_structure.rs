@@ -4,8 +4,6 @@ use crate::{
     scan::locale_literals::locale_literals, scan::read_tracked::read_tracked,
     scan::structure_violations::structure_violations, scan::unreferenced_docs::unreferenced_docs,
 };
-use std::path::Path;
-use std::process::Command;
 
 pub fn run_structure(root: &Path) -> Result<Outcome, XtaskError> {
     println!("checking the directory structure");

@@ -1,4 +1,4 @@
-use agent_platform_agent::task::ArtifactState;
+use crate::prelude::*;
 use serde::Serialize;
 
 #[derive(Serialize)]

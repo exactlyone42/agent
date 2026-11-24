@@ -1,4 +1,4 @@
-use std::time::Duration;
+use crate::prelude::*;
 
 pub(crate) const POLL: Duration = Duration::from_millis(200);
 pub(crate) const DEFAULT_MAX_CALLS: usize = 64;

@@ -13,7 +13,6 @@ use crate::{
     run::tool_arguments::TIMEOUT_FLAG, run::tool_arguments::TRUE_VALUE,
     run::tool_arguments::VERSION_COMMAND, run::tool_arguments::VERSION_FLAG, strings::strings,
 };
-use std::path::Path;
 
 pub type NamedCommand = (String, Vec<String>);
 

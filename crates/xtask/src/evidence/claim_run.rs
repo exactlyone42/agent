@@ -1,8 +1,5 @@
 use crate::evidence::record_keys::PID_KEY;
 use crate::prelude::*;
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::Path;
 
 pub fn claim_run<T>(
     marker: &Path,

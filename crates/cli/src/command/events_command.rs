@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use agent_platform_agent::store::StoreAccess;
-use std::{ffi::OsStr, process::ExitCode};
 
 pub fn events_command(task_id: &OsStr, after: Option<&OsStr>) -> Result<ExitCode, Message> {
     let task_id = task_id.to_str().ok_or(Message::InvalidTaskId)?;

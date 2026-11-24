@@ -1,8 +1,4 @@
 use crate::prelude::*;
-use std::collections::BTreeMap;
-use std::fs;
-use std::io::ErrorKind;
-use std::path::Path;
 
 pub fn read_tracked(
     root: &Path,

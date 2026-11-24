@@ -1,4 +1,4 @@
-use serde_json::Value;
+use crate::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CapabilityBinding {

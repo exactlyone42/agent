@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use agent_harness::ToolCall;
 
 pub trait ApprovalStore: Send + Sync {
     type Prepared: Send;

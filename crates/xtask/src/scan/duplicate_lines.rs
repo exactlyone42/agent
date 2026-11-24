@@ -1,6 +1,6 @@
+use crate::prelude::*;
 use crate::scan::candidate_lines::candidate_lines;
 use crate::scan::scan_rules::{LOOPS_PREFIX, MARKDOWN_SUFFIX, PREVIEW_CHARS};
-use std::collections::{BTreeMap, BTreeSet};
 
 pub fn duplicate_lines(files: &BTreeMap<String, Vec<u8>>) -> Vec<String> {
     let mut owners: BTreeMap<String, BTreeSet<&str>> = BTreeMap::new();

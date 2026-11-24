@@ -1,8 +1,4 @@
-use std::{
-    fs::{File, Metadata},
-    io,
-    path::Path,
-};
+use crate::prelude::*;
 
 #[cfg_attr(unix, path = "input/unix.rs")]
 #[cfg_attr(windows, path = "input/windows.rs")]

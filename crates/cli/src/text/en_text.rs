@@ -1,6 +1,5 @@
 use super::{en_store_text::en_store_text, en_task_text::en_task_text};
 use crate::prelude::*;
-use agent_platform_agent::store::{APPROVAL_TTL_SECONDS, EVENT_PAGE_SIZE};
 
 pub fn en_text(message: &Message) -> String {
     match message {

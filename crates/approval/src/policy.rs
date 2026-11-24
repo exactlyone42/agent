@@ -1,5 +1,5 @@
 use crate::approval_defaults::{DEFAULT_APPROVAL_WAIT, DEFAULT_MAX_CALLS, DEFAULT_RECEIPT_WAIT};
-use std::time::Duration;
+use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Policy {

@@ -1,5 +1,6 @@
-use crate::plan::{error::PlanError, step_check::StepCheck};
-use std::{collections::BTreeMap, sync::Arc};
+use crate::plan::step_check::StepCheck;
+use crate::prelude::*;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Default)]
 pub struct Checks {

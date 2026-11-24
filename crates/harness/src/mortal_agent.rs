@@ -1,8 +1,5 @@
 use crate::prelude::*;
-use crate::{
-    AgentId, AgentIdentity, CapabilityBinding, Goal, Model, RunError, Work, ask_model::ask_model,
-};
-use tokio_util::sync::CancellationToken;
+use crate::{AgentId, AgentIdentity, CapabilityBinding, Goal, Work, ask_model::ask_model};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MortalAgent {

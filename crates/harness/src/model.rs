@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::future::Future;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]

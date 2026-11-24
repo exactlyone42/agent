@@ -1,3 +1,4 @@
+use crate::prelude::*;
 mod command;
 mod locale;
 mod message;
@@ -14,13 +15,7 @@ use command::{
     events_command::events_command, help_command::help_command, run_command::run_command,
     status_command::status_command,
 };
-use locale::Locale;
-use message::Message;
-use settings::{
-    COMMAND_APPROVALS, COMMAND_APPROVE, COMMAND_DENY, COMMAND_EVENTS, COMMAND_HELP, COMMAND_RUN,
-    COMMAND_STATUS,
-};
-use std::{path::Path, process::ExitCode};
+use settings::COMMAND_HELP;
 
 async fn run(locale: Locale) -> Result<ExitCode, Message> {
     let mut arguments = std::env::args_os();

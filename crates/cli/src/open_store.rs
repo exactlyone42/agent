@@ -1,9 +1,6 @@
 use crate::prelude::*;
 use crate::settings::DATABASE_FILE;
-use agent_platform_agent::{
-    single_link::single_link,
-    store::{StoreAccess, TaskStore},
-};
+use agent_platform_agent::{single_link::single_link, store::TaskStore};
 use std::path::PathBuf;
 
 pub fn open_store(access: StoreAccess) -> Result<TaskStore, Message> {

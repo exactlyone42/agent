@@ -87,7 +87,7 @@ fn docs_must_sit_in_a_registered_category() {
     assert_eq!(violations(&["docs/a.md"]).len(), 1);
     assert_eq!(violations(&["docs/notes/a.md"]).len(), 1);
     assert!(!violations(&["docs/design"]).is_empty());
-    for category in ["design", "standards", "research", "diagrams"] {
+    for category in ["design", "standards", "research", "run-history", "diagrams"] {
         assert!(violations(&[&format!("docs/{category}/a.md")]).is_empty());
     }
 }

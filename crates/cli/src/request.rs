@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::{settings::SCHEME_HTTP, settings::SCHEME_HTTPS, settings::TASK_FILE_LIMIT};
-use agent_platform_agent::{input::open_checked, store::ApprovalMode, task::FileTask};
+use agent_platform_agent::{input::open_checked, task::FileTask};
 use serde::Deserialize;
-use std::{io::Read, path::Path};
+use std::io::Read;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

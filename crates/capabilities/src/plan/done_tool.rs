@@ -1,9 +1,8 @@
-use crate::plan::{board::PlanBoard, error::PlanError, step_checks::Checks};
-use agent_harness::{Tool, ToolError, ToolFuture, ToolSpec};
-use serde::Deserialize;
-use serde_json::{Value, json};
+use crate::prelude::*;
 
-#[derive(Deserialize)]
+const DESCRIPTION: &str = "Report that the current step is finished. The program runs the step's check; the step counts as done only when the check passes.";
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct DoneArgs {
     step: String,
@@ -61,15 +60,7 @@ impl PlanDoneTool {
 
 impl Tool for PlanDoneTool {
     fn spec(&self) -> ToolSpec {
-        ToolSpec {
-            name: Self::NAME.to_owned(),
-            description: "Report that the current step is finished. The program runs the step's check; the step counts as done only when the check passes.".to_owned(),
-            parameters: json!({
-                "type": "object",
-                "properties": {"step": {"type": "string"}},
-                "required": ["step"]
-            }),
-        }
+        ToolSpec::typed::<DoneArgs>(Self::NAME, DESCRIPTION)
     }
 
     fn call(&self, args: Value) -> ToolFuture<'_> {

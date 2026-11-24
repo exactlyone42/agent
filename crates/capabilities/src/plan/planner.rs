@@ -1,5 +1,6 @@
-use crate::plan::{board::PlanBoard, done_tool::PlanDoneTool, set_tool::PlanSetTool};
-use agent_harness::{Capability, CapabilityContext, Event, Intent, Message, StopReason, ToolCall};
+use crate::plan::{done_tool::PlanDoneTool, set_tool::PlanSetTool};
+use crate::prelude::*;
+use agent_harness::ToolCall;
 
 const DEFAULT_MAX_NUDGES: usize = 3;
 

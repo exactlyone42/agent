@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use agent_harness_approval::Fault;
 
 pub fn fault_of(error: StoreError) -> Fault {
     match error {

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::future::Future;
 
 pub struct Dispatch<'a> {
     pub turn: usize,

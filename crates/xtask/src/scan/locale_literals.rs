@@ -4,7 +4,6 @@ use crate::{
     scan::scan_rules::RUST_SUFFIX, scan::scan_rules::SOURCE_DIRECTORY,
     scan::scan_rules::SOURCE_DIRECTORY_INDEX,
 };
-use std::collections::BTreeMap;
 
 fn is_product_source(path: &str) -> bool {
     let parts: Vec<&str> = path.split(GIT_PATH_SEPARATOR).collect();

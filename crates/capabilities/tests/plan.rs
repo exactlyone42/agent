@@ -183,3 +183,60 @@ fn checks_list_registered_names_in_order() {
         PlanError::UnknownCheck { available, .. } if available == "a, b"
     ));
 }
+
+#[test]
+fn plan_set_schema_lists_registered_checks() {
+    use agent_harness::Tool;
+    use agent_harness_capabilities::{CheckFuture, Checks, PlanSetTool, StepCheck};
+    use serde_json::json;
+    struct Pass;
+    impl StepCheck for Pass {
+        fn run(&self) -> CheckFuture<'_> {
+            Box::pin(async { Ok(()) })
+        }
+    }
+    let checks = Checks::new().with("b", Pass).with("a", Pass);
+    let spec = PlanSetTool::new(PlanBoard::new(), checks).spec();
+    assert_eq!(spec.name, "plan_set");
+    assert_eq!(
+        spec.parameters,
+        json!({
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "id": {"type": "string"},
+                            "goal": {"type": "string"},
+                            "check": {"type": "string", "enum": ["a", "b"]},
+                            "tools": {"type": "array", "items": {"type": "string"}, "default": []}
+                        },
+                        "required": ["id", "goal", "check"]
+                    }
+                }
+            },
+            "required": ["steps"]
+        })
+    );
+}
+
+#[test]
+fn plan_done_schema_requires_the_step() {
+    use agent_harness::Tool;
+    use agent_harness_capabilities::{Checks, PlanDoneTool};
+    use serde_json::json;
+    let spec = PlanDoneTool::new(PlanBoard::new(), Checks::new()).spec();
+    assert_eq!(
+        spec.parameters,
+        json!({
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {"step": {"type": "string"}},
+            "required": ["step"]
+        })
+    );
+}

@@ -1,4 +1,5 @@
-use std::{fs::Metadata, os::unix::fs::MetadataExt};
+use crate::prelude::*;
+use std::os::unix::fs::MetadataExt;
 
 const SINGLE_LINK_COUNT: u64 = 1;
 

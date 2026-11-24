@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use crate::{scan::scan_rules::DOCS_PREFIX, scan::scan_rules::TEXT_SUFFIXES};
-use std::collections::BTreeMap;
 
 pub fn unreferenced_docs(files: &BTreeMap<String, Vec<u8>>) -> Vec<String> {
     let texts: Vec<(&String, String)> = files

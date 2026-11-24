@@ -13,6 +13,7 @@ agent-harness.workspace = true
 agent-harness-approval.workspace = true
 agent-harness-capabilities.workspace = true
 thiserror.workspace = true
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

@@ -1,9 +1,9 @@
 use agent_harness::ToolCall;
 use agent_harness_approval::{ApprovalStore, Policy};
 use agent_platform_agent::{
-    approval::TaskApprovals,
     store::{APPROVAL_TTL_SECONDS, ApprovalMode, TOOL_CALL_LIMIT, TaskSpec, TaskStore},
     task::FileTask,
+    task_approval::TaskApprovals,
 };
 use serde_json::json;
 use std::{

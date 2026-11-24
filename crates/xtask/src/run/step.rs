@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use std::path::Path;
-use std::process::Command;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Step {

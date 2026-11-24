@@ -2,4 +2,4 @@
 #[cfg_attr(windows, path = "state_dir/windows.rs")]
 mod sys;
 
-pub use sys::{MODE_HINT, create_directory, is_private};
+pub(crate) use sys::{MODE_HINT, create_directory, is_private};

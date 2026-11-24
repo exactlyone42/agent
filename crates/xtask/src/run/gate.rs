@@ -7,7 +7,6 @@ use crate::{
     run::tool_arguments::LIB_FLAG, run::tool_arguments::LINTS, run::tool_arguments::TEST_COMMAND,
     run::tool_arguments::TOOL_ARGUMENTS, run::tool_arguments::WARNINGS,
 };
-use std::path::Path;
 
 pub fn gate_steps(root: &Path) -> Vec<Step> {
     let lint_flags: Vec<String> = LINTS

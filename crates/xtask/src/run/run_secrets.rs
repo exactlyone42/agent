@@ -6,10 +6,6 @@ use crate::{
     run::tool_arguments::CACHED_FLAG, run::tool_arguments::EXCLUDE_STANDARD_FLAG,
     run::tool_arguments::OTHERS_FLAG,
 };
-use serde_json::json;
-use std::fs;
-use std::path::Path;
-use std::process::Command;
 
 pub fn run_secrets(root: &Path, evidence: &Path) -> Result<i32, XtaskError> {
     let snapshot = evidence.join(SNAPSHOT_DIRECTORY);

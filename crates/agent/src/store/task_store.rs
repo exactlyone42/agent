@@ -1,7 +1,17 @@
 use crate::prelude::*;
+use crate::store::{
+    approvals::TaskSpec,
+    close_intents::close_intents,
+    sqlite_settings::{
+        APPLICATION_ID, BUSY_TIMEOUT, EVENT_PAGE_SIZE, FIRST_SCHEMA_VERSION, FIRST_SEQ,
+        FOREIGN_KEYS_ON, JOURNAL_MODE_WAL, MAX_SPEC_BYTES, MIN_SQLITE_VERSION,
+        PRAGMA_APPLICATION_ID, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_SYNCHRONOUS,
+        PRAGMA_TRUSTED_SCHEMA, PRAGMA_USER_VERSION, SCHEMA_VERSION, SECOND_SCHEMA_VERSION,
+        SYNCHRONOUS_FULL, SYNCHRONOUS_MODE_FULL, UNSET_APPLICATION_ID, UNSET_USER_VERSION,
+    },
+};
 use crate::task::{ArtifactState, TaskError, TaskReport};
 use rusqlite::{Connection, OpenFlags};
-use std::path::Path;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum StoreAccess {

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{ApprovalStore, Messages, Policy, approval_defaults::POLL};
 use agent_harness::{
-    CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolCall, ToolResult,
+    CancellationToken, Dispatch, DispatchAction, Hook, Outcome, OutcomeAction, ToolResult,
 };
 use std::{
     ops::ControlFlow,

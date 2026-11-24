@@ -1,9 +1,9 @@
-use crate::plan::{board::PlanBoard, step::Step, step_checks::Checks};
-use agent_harness::{Tool, ToolError, ToolFuture, ToolSpec};
-use serde::Deserialize;
-use serde_json::{Value, json};
+use crate::prelude::*;
+use serde_json::json;
 
-#[derive(Deserialize)]
+const DESCRIPTION: &str = "Save the step plan, or revise the steps that are not done yet. Steps run in order. Each step names a check that the program runs before the step counts as done.";
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct StepArgs {
     id: String,
@@ -13,7 +13,7 @@ struct StepArgs {
     tools: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct SetArgs {
     steps: Vec<StepArgs>,
@@ -46,29 +46,14 @@ impl PlanSetTool {
 
 impl Tool for PlanSetTool {
     fn spec(&self) -> ToolSpec {
-        ToolSpec {
-            name: Self::NAME.to_owned(),
-            description: "Save the step plan, or revise the steps that are not done yet. Steps run in order. Each step names a check that the program runs before the step counts as done.".to_owned(),
-            parameters: json!({
-                "type": "object",
-                "properties": {
-                    "steps": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "id": {"type": "string"},
-                                "goal": {"type": "string"},
-                                "check": {"type": "string", "enum": self.checks.names()},
-                                "tools": {"type": "array", "items": {"type": "string"}}
-                            },
-                            "required": ["id", "goal", "check"]
-                        }
-                    }
-                },
-                "required": ["steps"]
-            }),
+        let mut spec = ToolSpec::typed::<SetArgs>(Self::NAME, DESCRIPTION);
+        if let Some(check) = spec
+            .parameters
+            .pointer_mut("/properties/steps/items/properties/check")
+        {
+            check["enum"] = json!(self.checks.names());
         }
+        spec
     }
 
     fn call(&self, args: Value) -> ToolFuture<'_> {

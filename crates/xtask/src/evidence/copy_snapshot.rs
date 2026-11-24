@@ -1,7 +1,4 @@
 use crate::prelude::*;
-use std::collections::BTreeSet;
-use std::fs;
-use std::path::Path;
 
 pub fn copy_snapshot(root: &Path, snapshot: &Path, names: &[String]) -> Result<usize, XtaskError> {
     let root_resolved = root.canonicalize()?;

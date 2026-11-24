@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use crate::{Model, RunError};
-use tokio_util::sync::CancellationToken;
 
 pub(crate) async fn ask_model(
     model: &impl Model,

@@ -1,9 +1,5 @@
-use std::{
-    fs::{File, Metadata, OpenOptions},
-    io,
-    os::windows::{fs::OpenOptionsExt, io::AsRawHandle},
-    path::Path,
-};
+use crate::prelude::*;
+use std::os::windows::{fs::OpenOptionsExt, io::AsRawHandle};
 use windows_sys::Win32::Storage::FileSystem::{
     FILE_FLAG_BACKUP_SEMANTICS, FILE_ID_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_READ, FileIdInfo,
     GetFileInformationByHandleEx,

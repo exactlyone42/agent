@@ -15,6 +15,8 @@
 | [記事](docs/standards/records.md)                                                                                 | 查工作紀錄格式、每輪記事                                                                                              |
 | [來源研究](docs/research/sources.md)                                                                              | 選擇現成 Harness（執行核心）、框架、Rust 移植參考與授權                                                               |
 | [評測與錯誤注入](docs/research/evaluation.md)                                                                     | 設計案例、判定成功、測試故障及比較改版                                                                                |
+| [任務切分與交接](docs/research/task-splitting.md)                                                                 | 改 PLE harness 的規劃、切分、上下文處理或交接筆記之前                                                                 |
+| [PLE 跑題記錄](docs/run-history/ple-runs.md)                                                                      | 每次跑 PLEBench 題目後記分數、沒過的檢查、模型與耗時；要看過去結果之前                                                |
 | [品質要求](docs/standards/engineering-standards.md)                                                               | 寫程式、安裝依賴、提交或推送之前                                                                                      |
 | [目錄結構](docs/standards/directory-structure.md)                                                                 | 新增檔案、資料夾或 crate（Rust 的獨立編譯套件）之前，確認該放哪裡                                                     |
 | [變異測試例外](docs/standards/mutation-equivalents.md)                                                            | 新增或調整變異測試（故意改壞程式、看測試能否抓到）排除項目之前                                                        |

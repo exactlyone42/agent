@@ -8,8 +8,6 @@ use crate::{
     evidence::record_keys::UNVIABLE_KEY,
 };
 use serde_json::Value;
-use std::fs;
-use std::path::Path;
 
 fn number(value: &Value, key: &'static str) -> Result<u64, XtaskError> {
     value

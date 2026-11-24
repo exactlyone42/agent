@@ -12,7 +12,8 @@ pub(crate) const CARGO_TOML: &str = "Cargo.toml";
 pub(crate) const CARGO_LOCK: &str = "Cargo.lock";
 pub(crate) const TOOLCHAIN_FILE: &str = "rust-toolchain.toml";
 
-pub(crate) const DOCS_CATEGORIES: [&str; 4] = ["design", "standards", "research", "diagrams"];
+pub(crate) const DOCS_CATEGORIES: [&str; 5] =
+    ["design", "standards", "research", "run-history", "diagrams"];
 
 const CRATE_FOLDER_PARTS: usize = 2;
 const CRATE_ENTRY_INDEX: usize = 2;

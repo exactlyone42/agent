@@ -1,10 +1,6 @@
 use crate::prelude::*;
 use crate::{scan::scan_rules::ROOT_FILES, scan::scan_rules::SOURCE_DIRECTORIES};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
-use std::fs;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
 
 fn collect(directory: &Path, files: &mut Vec<PathBuf>) -> Result<(), XtaskError> {
     let entries = match fs::read_dir(directory) {

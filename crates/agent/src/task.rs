@@ -1,26 +1,14 @@
 use crate::file_check::verification::{VerificationError, verify_file};
+use crate::prelude::*;
 use crate::runtime::agent_runtime::AgentRuntime;
-use crate::task_settings::TASK_MAX_TURNS;
-pub use crate::task_settings::{
-    FILE_LIMIT, MANUAL_TASK_TIMEOUT, READ_INPUT_DESCRIPTION, READ_INPUT_TOOL, TASK_TIMEOUT,
-    WRITE_OUTPUT_DESCRIPTION, WRITE_OUTPUT_DONE, WRITE_OUTPUT_TOOL,
+use crate::task_settings::{
+    READ_INPUT_DESCRIPTION, TASK_MAX_TURNS, WRITE_OUTPUT_DESCRIPTION, WRITE_OUTPUT_DONE,
 };
 use crate::tool_refusal::ToolRefusal;
-pub use agent_harness::CancellationToken;
-use agent_harness::{
-    AgentId, AgentIdentity, Hook, Model, MortalAgent, RunError, Tool, ToolError, ToolFuture,
-    ToolSpec,
-};
+use agent_harness::{AgentId, AgentIdentity, ToolFuture};
 use agent_harness_capabilities::{Loop, ToolCalling};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom, Write},
-    path::PathBuf,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use schemars::JsonSchema;
+use std::io::Write;
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -74,11 +62,11 @@ pub enum TaskError {
     Verification(#[source] VerificationError),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ReadArgs {}
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct WriteArgs {
     pub(crate) content: String,
@@ -117,11 +105,7 @@ impl ReadInput {
 
 impl Tool for ReadInput {
     fn spec(&self) -> ToolSpec {
-        ToolSpec {
-            name: READ_INPUT_TOOL.into(),
-            description: READ_INPUT_DESCRIPTION.into(),
-            parameters: json!({"type":"object","properties":{},"additionalProperties":false}),
-        }
+        ToolSpec::typed::<ReadArgs>(READ_INPUT_TOOL, READ_INPUT_DESCRIPTION)
     }
 
     fn call(&self, args: serde_json::Value) -> ToolFuture<'_> {
@@ -172,11 +156,7 @@ impl WriteOutput {
 
 impl Tool for WriteOutput {
     fn spec(&self) -> ToolSpec {
-        ToolSpec {
-            name: WRITE_OUTPUT_TOOL.into(),
-            description: WRITE_OUTPUT_DESCRIPTION.into(),
-            parameters: json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}),
-        }
+        ToolSpec::typed::<WriteArgs>(WRITE_OUTPUT_TOOL, WRITE_OUTPUT_DESCRIPTION)
     }
 
     fn call(&self, args: serde_json::Value) -> ToolFuture<'_> {
@@ -280,6 +260,7 @@ pub async fn run_file_task(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[tokio::test]
     async fn cancelled_tools_refuse_before_touching_files() -> Result<(), Box<dyn std::error::Error>>

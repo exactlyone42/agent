@@ -9,10 +9,6 @@ use crate::{
     evidence::validate_reports::validate_reports, run::all_passed::all_passed,
     run::run_secrets::run_secrets, run::step_names::REPORTS_STEP,
 };
-use serde_json::json;
-use std::collections::BTreeMap;
-use std::fs;
-use std::path::Path;
 
 pub fn run_checks(root: &Path, evidence: &Path, plan: &Plan) -> Result<Outcome, XtaskError> {
     println!("evidence for this run: {}", evidence.display());

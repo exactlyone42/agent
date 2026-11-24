@@ -1,21 +1,20 @@
 use crate::prelude::*;
-use agent_harness::CancellationToken;
+use crate::task_approval::task_approvals::TaskApprovals;
 use agent_harness_approval::{Messages, Policy};
-use std::sync::{Arc, Mutex};
 
-pub type ApprovalGate = agent_harness_approval::ApprovalGate<TaskApprovals>;
+pub type TaskGate = agent_harness_approval::ApprovalGate<TaskApprovals>;
 
 pub fn task_gate(
     store: Arc<Mutex<TaskStore>>,
     task_id: String,
     cancellation: CancellationToken,
     manual: bool,
-) -> ApprovalGate {
+) -> TaskGate {
     let policy = Policy {
         manual,
         ..Policy::default()
     };
-    ApprovalGate::new(
+    TaskGate::new(
         Arc::new(TaskApprovals::new(store, task_id)),
         cancellation,
         policy,

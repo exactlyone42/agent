@@ -3,7 +3,6 @@ use crate::{
     run::check_all::check_all, run::gate::gate_steps, run::run_steps::run_steps,
     run::step_names::ALL_TASK, scan::run_structure::run_structure,
 };
-use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Task {

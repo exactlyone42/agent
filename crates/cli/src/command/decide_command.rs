@@ -1,7 +1,6 @@
 use crate::output::Decision;
 use crate::prelude::*;
-use agent_platform_agent::store::{ApprovalStatus, StoreAccess};
-use std::{ffi::OsStr, process::ExitCode};
+use agent_platform_agent::store::ApprovalStatus;
 
 pub fn decide_command(
     approve: bool,

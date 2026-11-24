@@ -1,4 +1,4 @@
-use std::path::Path;
+use crate::prelude::*;
 
 pub fn text(path: &Path) -> String {
     path.to_string_lossy().into_owned()

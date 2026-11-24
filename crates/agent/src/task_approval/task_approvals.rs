@@ -1,7 +1,9 @@
 use crate::prelude::*;
-use agent_harness::ToolCall;
-use agent_harness_approval::{ApprovalStore, Claim, Fault};
-use std::sync::{Arc, Mutex};
+use crate::{
+    store::approvals::{Claim as StoreClaim, PreparedIntent},
+    task_approval::fault_of::fault_of,
+};
+use agent_harness_approval::{ApprovalStore, Claim};
 
 pub struct TaskApprovals {
     store: Arc<Mutex<TaskStore>>,

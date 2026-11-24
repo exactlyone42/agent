@@ -9,8 +9,6 @@ use crate::{
     run::scanner_arguments::REPORT_PATH_FLAG, run::scanner_arguments::SCAN_DIRECTORY_COMMAND,
     run::scanner_arguments::SCAN_TARGET,
 };
-use std::fs;
-use std::path::Path;
 
 pub fn secret_command(evidence: &Path) -> Result<Vec<String>, XtaskError> {
     let config = evidence.join(CONFIG_FILE);

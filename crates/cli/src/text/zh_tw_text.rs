@@ -1,6 +1,5 @@
 use super::{zh_tw_store_text::zh_tw_store_text, zh_tw_task_text::zh_tw_task_text};
 use crate::prelude::*;
-use agent_platform_agent::store::{APPROVAL_TTL_SECONDS, EVENT_PAGE_SIZE};
 
 pub fn zh_tw_text(message: &Message) -> String {
     match message {

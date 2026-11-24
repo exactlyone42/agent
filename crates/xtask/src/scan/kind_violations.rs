@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use crate::scan::structure_violations::{DOCS_DIRECTORY, REPO_POLICY_DIRECTORY, SQL_DIRECTORY};
-use std::path::Path;
 
 const RUNTIME_SUFFIXES: [&str; 6] = ["log", "pid", "tmp", "out", "err", "lock"];
 const SCRIPT_SUFFIXES: [&str; 4] = ["py", "sh", "ps1", "bat"];

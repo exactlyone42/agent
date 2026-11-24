@@ -5,16 +5,12 @@ use crate::{
 };
 use agent_harness_openai::OpenAi;
 use agent_platform_agent::{
-    approval::task_gate,
-    store::{ApprovalMode, StoreAccess, TaskSpec, TaskState},
-    task::{ArtifactState, CancellationToken, TaskError, run_file_task},
+    store::TaskSpec,
+    task::{CancellationToken, run_file_task},
+    task_approval::task_gate,
     task_timeout::task_timeout,
 };
-use std::{
-    path::Path,
-    process::ExitCode,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 pub async fn run_command(locale: Locale, path: &Path) -> Result<ExitCode, Message> {
     let mut request = Request::load(path)?;

@@ -4,8 +4,6 @@ use crate::{
     evidence::evidence_files::CHECKS_DIRECTORY, evidence::evidence_files::LOCK_FILE,
     run::run_checks::run_checks,
 };
-use std::fs::{self, OpenOptions};
-use std::path::Path;
 
 pub fn check_all(root: &Path, plan: impl FnOnce(&Path) -> Plan) -> Result<Outcome, XtaskError> {
     let lock = OpenOptions::new()

@@ -19,8 +19,6 @@
 
 - 三平台（使用者 2026-10-26 定）：Windows、macOS、Linux 都是正式 CLI 與桌面（agent-ade）的必要交付，不可把 Windows／Mac 留作未定後續。每步都要考慮平台轉接（針對各作業系統寫的銜接層）與實機驗收；交叉編譯（在一個系統編出另一個系統的程式）不能代替支援證據。
 
-- 檔案結構（使用者 2026-10-28 定）：獨立函數一檔一個；型別（含介面）連同它的方法放同一檔，不把方法拆到別的檔。新程式照此寫；既有程式在動到時一併拆，不另開重構。
-
 - 目錄治理（使用者 2026-11-10 定）：目錄地圖（記錄每個資料夾放什麼的文件）以 docs/standards/directory-structure.md 為準。新增檔案前先查歸屬，沿用既有 crate 與資料夾，不為少量檔案建新資料夾，不重複建立已有職責，不建 misc、common、helper(s)、util(s)、shared、temp、tmp。新增 crate、頂層項目（repo 根目錄的檔案與資料夾）、crate 內新項目、大量搬移或刪除，必須先取得使用者同意，並在同一個提交更新地圖與 xtask（放檢查指令的 crate）的登記表。cargo xtask gate 第一步檢查這件事；完成前核對 git status 沒有意外檔案。
 
 - 設計原則（使用者 2026-10-29 定）：每一步流程都要切割並封裝，遵守 SOLID（五條物件導向設計原則）、低耦合高內聚（部件少牽連、內部職責集中）。程式巢狀（層層包在裡面的 if、迴圈）最好一層、最多兩層，複雜邏輯才可三層；不寫 callback hell（回呼層層嵌套）與 if-else 地獄。能提早返回（條件不符就立刻離開函式）就不用 else，只有語意上真的適合才用 match（Rust 依值分支的語法）。由 clippy（Rust 的程式檢查工具）的 excessive_nesting（門檻 3）與 redundant_else 在 gate 擋；細則見 docs/standards/engineering-standards.md「設計原則」列。
@@ -41,7 +39,7 @@
 | `.cargo/`       | Rust 工具設定：編譯別名與變異測試的設定                                                                   |
 | `.repo-policy/` | 分支與提交政策檢查，以及安裝 hooks 的程式                                                                 |
 | `crates/`       | Rust 程式，一個資料夾一個 crate：`agent`、`approval`、`capabilities`、`cli`、`harness`、`openai`、`xtask` |
-| `docs/`         | 文件，分 `design/`、`standards/`、`research/`、`diagrams/` 四類，索引在根目錄 README.md                   |
+| `docs/`         | 文件，分 `design/`、`standards/`、`research/`、`run-history/`、`diagrams/` 五類，索引在根目錄 README.md   |
 | `loops/`        | 全案 LOOP 與各階段票據、檢查點紀錄                                                                        |
 | `sql/`          | 任務庫資料表版本檔（store_v1 起），見 docs/standards/directory-structure.md                               |
 | `scripts/`      | clippy 與 gitleaks 的設定，以及把計畫轉成 PDF 的腳本                                                      |

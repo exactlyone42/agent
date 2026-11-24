@@ -4,10 +4,7 @@ use crate::{
     evidence::record_keys::COMMAND_KEY, evidence::record_keys::EXIT_CODE_KEY,
     evidence::record_keys::FINISHED_KEY,
 };
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 pub fn run_step(
     name: &str,

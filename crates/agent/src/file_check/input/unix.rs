@@ -1,8 +1,7 @@
+use crate::prelude::*;
 use std::{
-    fs::{self, File, Metadata, OpenOptions},
-    io,
+    fs,
     os::unix::fs::{MetadataExt, OpenOptionsExt},
-    path::Path,
 };
 
 pub(super) struct Pinned {
